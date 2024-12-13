@@ -6,11 +6,33 @@
 - 代码编辑、AI 建议和重构将在 Cursor AI 中完成。
 - 确认已安装 Visual Studio，并应将其用于编译和启动应用程序。
 
-## WPF 代码样式和结构
-- 编写惯用且高效的 WPF 和 C# 代码。
-- 遵循 .NET 和 WPF 约定。
-- 适当使用 WPF 组件进行基于组件的 UI 开发。
+## 编码规范
+- 使用 MVVM 模式，确保视图和逻辑分离
 - 对于较小的组件，最好使用内联函数，但将复杂的逻辑分成代码隐藏或服务类。
 - 应在适用的情况下使用 Async/await 以确保非阻塞 UI 操作。
-- 使用MVVM模式开发应用程序。
+- XAML 使用统一的样式系统
+- 异步操作使用 async/await
+- 使用依赖注入管理服务
+- 遵循 C# 代码规范
 
+## 文件组织
+- Views/ 目录包含所有视图文件
+- Styles/ 目录包含全局样式定义
+- ViewModels/ 目录包含对应的视图模型
+- Models/ 目录包含数据模型
+- Services/ 目录包含业务逻辑服务
+
+## 检索优先级
+1. *.xaml - XAML 视图文件
+2. *ViewModel.cs - 视图模型文件
+3. *Service.cs - 服务类文件
+4. *.styles.xaml - 样式文件
+5. App.xaml - 应用程序配置
+
+## 关键字优先级
+- "KeyMapping" - 按键映射相关
+- "Sync" - 同步功能相关
+- "Style" - 样式定义
+- "Service" - 服务类
+- "ViewModel" - 视图模型
+- "View" - 视图组件
