@@ -1,5 +1,5 @@
 # jx3wpftools
- JX3 tools developed based on .NET WPF
+ 基于 WPF 开发的 JX3 工具
 
 ## 运行项目
 - `dotnet run`  
