@@ -82,7 +82,8 @@
                          CaretBrush="Transparent"
                          TextAlignment="Center"
                          PreviewKeyDown="HotkeyInputBox_PreviewKeyDown"
-
+                         PreviewMouseDown="HotkeyInputBox_PreviewMouseDown"
+                         PreviewMouseWheel="HotkeyInputBox_PreviewMouseWheel"
                          GotFocus="HotkeyInputBox_GotFocus"
                          LostFocus="HotkeyInputBox_LostFocus"/>
             </DockPanel>
@@ -96,7 +97,8 @@
                          CaretBrush="Transparent"
                          TextAlignment="Center"
                          PreviewKeyDown="HotkeyInputBox_PreviewKeyDown"
-
+                         PreviewMouseDown="HotkeyInputBox_PreviewMouseDown"
+                         PreviewMouseWheel="HotkeyInputBox_PreviewMouseWheel"
                          GotFocus="HotkeyInputBox_GotFocus"
                          LostFocus="HotkeyInputBox_LostFocus"/>
             </DockPanel>

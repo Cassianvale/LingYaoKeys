@@ -10,10 +10,12 @@ namespace WpfApp.Views
     {
         private const string KEY_ERROR = "无法识别按键，请检查输入法是否关闭";
         private bool isErrorShown = false;
+        private readonly KeyMappingService _keyMappingService;
 
         public KeyMappingView()
         {
             InitializeComponent();
+            _keyMappingService = new KeyMappingService();
         }
 
         private void KeyInputBox_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -95,8 +97,9 @@ namespace WpfApp.Views
         {
             switch (key)
             {
+                // 特殊符号键
                 case Key.OemPlus:
-                    return "+";
+                    return "=";
                 case Key.OemMinus:
                     return "-";
                 case Key.OemQuestion:
@@ -115,6 +118,25 @@ namespace WpfApp.Views
                     return "]";
                 case Key.OemBackslash:
                     return "\\";
+                case Key.OemTilde:
+                    return "`";
+                    
+                // 功能键
+                case Key.F1:
+                case Key.F2:
+                case Key.F3:
+                case Key.F4:
+                case Key.F5:
+                case Key.F6:
+                case Key.F7:
+                case Key.F8:
+                case Key.F9:
+                case Key.F10:
+                case Key.F11:
+                case Key.F12:
+                    return key.ToString();
+                    
+                // 数字键
                 case Key.D0:
                 case Key.D1:
                 case Key.D2:
@@ -126,6 +148,18 @@ namespace WpfApp.Views
                 case Key.D8:
                 case Key.D9:
                     return key.ToString().Replace("D", "");
+                    
+                // 修饰键
+                case Key.LeftShift:
+                case Key.RightShift:
+                    return "Shift";
+                case Key.LeftCtrl:
+                case Key.RightCtrl:
+                    return "Ctrl";
+                case Key.LeftAlt:
+                case Key.RightAlt:
+                    return "Alt";
+                    
                 default:
                     return key.ToString();
             }
@@ -171,11 +205,8 @@ namespace WpfApp.Views
                     key = e.SystemKey;
                 }
 
-                // 忽略单独按下的修饰键和特殊键
-                if (key == Key.LeftCtrl || key == Key.RightCtrl ||
-                    key == Key.LeftAlt || key == Key.RightAlt ||
-                    key == Key.LeftShift || key == Key.RightShift ||
-                    key == Key.System || key == Key.None)
+                // 只过滤System和None键
+                if (key == Key.System || key == Key.None)
                 {
                     e.Handled = true;
                     return;
@@ -183,14 +214,20 @@ namespace WpfApp.Views
 
                 // 构建按键文本
                 StringBuilder keyText = new StringBuilder();
-                var modifiers = Keyboard.Modifiers;
-
-                if ((modifiers & ModifierKeys.Control) == ModifierKeys.Control)
-                    keyText.Append("Ctrl + ");
-                if ((modifiers & ModifierKeys.Alt) == ModifierKeys.Alt)
-                    keyText.Append("Alt + ");
-                if ((modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
-                    keyText.Append("Shift + ");
+                
+                // 如果按键本身不是修饰键，才添加组合键
+                if (key != Key.LeftCtrl && key != Key.RightCtrl &&
+                    key != Key.LeftAlt && key != Key.RightAlt &&
+                    key != Key.LeftShift && key != Key.RightShift)
+                {
+                    var modifiers = Keyboard.Modifiers;
+                    if ((modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+                        keyText.Append("Ctrl + ");
+                    if ((modifiers & ModifierKeys.Alt) == ModifierKeys.Alt)
+                        keyText.Append("Alt + ");
+                    if ((modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+                        keyText.Append("Shift + ");
+                }
 
                 string keyName = GetDisplayKeyName(key);
                 keyText.Append(keyName);
@@ -216,6 +253,36 @@ namespace WpfApp.Views
             {
                 textBox.Text = string.Empty;
                 isErrorShown = false;
+            }
+        }
+
+        private void HotkeyInputBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                string keyName = e.ChangedButton switch
+                {
+                    MouseButton.Middle => "MBUTTON",
+                    MouseButton.XButton1 => "XBUTTON1",
+                    MouseButton.XButton2 => "XBUTTON2",
+                    _ => string.Empty
+                };
+
+                if (!string.IsNullOrEmpty(keyName))
+                {
+                    textBox.Text = _keyMappingService.GetDisplayName(keyName);
+                    e.Handled = true;
+                }
+            }
+        }
+
+        private void HotkeyInputBox_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                string keyName = e.Delta > 0 ? "MWHEELU" : "MWHEELD";
+                textBox.Text = _keyMappingService.GetDisplayName(keyName);
+                e.Handled = true;
             }
         }
     }
