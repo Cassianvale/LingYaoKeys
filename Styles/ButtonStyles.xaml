@@ -1,0 +1,83 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Style x:Key="RoundedShadowButton" TargetType="Button">
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Background" Value="#E3F2FD"/> <!-- 浅蓝色背景 -->
+        <Setter Property="Foreground" Value="#2C3E50"/>
+        <Setter Property="Padding" Value="15,8"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <!-- 阴影效果 -->
+                        <Border x:Name="shadowBorder"
+                                Background="#22000000"
+                                CornerRadius="6"
+                                Margin="2,2,0,0">
+                        </Border>
+                        
+                        <!-- 主按钮 -->
+                        <Border x:Name="mainBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Margin="0,0,2,2">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <!-- 鼠标悬停效果 -->
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#BBDEFB"/>
+                            <Setter TargetName="shadowBorder" Property="Opacity" Value="0.3"/>
+                        </Trigger>
+                        <!-- 按下效果 -->
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="#90CAF9"/>
+                            <Setter TargetName="mainBorder" Property="Margin" Value="2,2,0,0"/>
+                            <Setter TargetName="shadowBorder" Property="Margin" Value="0"/>
+                        </Trigger>
+                        <!-- 禁用效果 -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Background" Value="#ECEFF1"/>
+                            <Setter Property="Foreground" Value="#B0BEC5"/>
+                            <Setter TargetName="shadowBorder" Property="Opacity" Value="0.1"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
+    <!-- 大号按钮样式 -->
+    <Style x:Key="RoundedShadowButtonLarge" 
+           BasedOn="{StaticResource RoundedShadowButton}" 
+           TargetType="Button">
+        <Setter Property="FontSize" Value="18"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Padding" Value="20,10"/>
+    </Style>
+
+    <!-- 中号按钮样式 -->
+    <Style x:Key="RoundedShadowButtonMedium" 
+           BasedOn="{StaticResource RoundedShadowButton}" 
+           TargetType="Button">
+        <Setter Property="FontSize" Value="16"/>
+        <Setter Property="FontWeight" Value="DemiBold"/>
+        <Setter Property="Padding" Value="18,9"/>
+    </Style>
+
+    <!-- 小号按钮样式 -->
+    <Style x:Key="RoundedShadowButtonSmall" 
+           BasedOn="{StaticResource RoundedShadowButton}" 
+           TargetType="Button">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="Regular"/>
+        <Setter Property="Padding" Value="12,6"/>
+    </Style>
+    
+</ResourceDictionary> 

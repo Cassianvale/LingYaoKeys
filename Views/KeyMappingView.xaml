@@ -1,0 +1,132 @@
+<Page x:Class="WpfApp.Views.KeyMappingView"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:sys="clr-namespace:System;assembly=mscorlib"
+      mc:Ignorable="d">
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 左侧按键列表区域 -->
+        <DockPanel Grid.Column="0" Margin="0,0,10,0">
+
+            <TextBox Style="{StaticResource ModernTextBox}"
+                     DockPanel.Dock="Top"
+                     Height="32"
+                     Margin="0,0,0,10"
+                     TextAlignment="Center"
+                     Tag="点此输入按键"
+                     IsReadOnly="False"
+                     IsUndoEnabled="False"
+                     CaretBrush="Transparent"
+                     PreviewKeyDown="KeyInputBox_PreviewKeyDown"
+                     GotFocus="KeyInputBox_GotFocus"
+                     LostFocus="KeyInputBox_LostFocus"/>
+                    
+            <ListBox x:Name="KeysList" BorderThickness="1">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <CheckBox Content="{Binding}"
+                                  Height="30"
+                                  VerticalContentAlignment="Center"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Height" Value="32"/>
+                        <Setter Property="Padding" Value="5,0"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.Items>
+                    <sys:String>F</sys:String>
+                    <sys:String>F1</sys:String>
+                    <sys:String>F2</sys:String>
+                </ListBox.Items>
+            </ListBox>
+        </DockPanel>
+
+        <!-- 右侧设置区域 -->
+        <StackPanel Grid.Column="1" Width="150">
+            <!-- 顶部按钮组 -->
+            <DockPanel Margin="0,0,0,10">
+                <Button Style="{StaticResource RoundedShadowButtonSmall}"
+                    DockPanel.Dock="Left" 
+                    Width="70" 
+                    Height="30" 
+                    Margin="0,0,5,0"
+                    Content="添加按键" />
+                <Button  Style="{StaticResource RoundedShadowButtonSmall}"
+                    DockPanel.Dock="Right" 
+                    Width="70" 
+                    Height="30" 
+                    Margin="5,0,0,0"
+                    Content="删除勾选" />
+            </DockPanel>
+
+            <Button Style="{StaticResource RoundedShadowButtonLarge}"
+                    Margin="0,0,0,10"
+                    FontWeight="Regular"
+                    Content="一键宏查询"/>
+
+            <!-- 按键设置区域 -->
+            <DockPanel Margin="0,0,0,10">
+                <TextBlock Text="启动键" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBox Style="{StaticResource ModernTextBox}"
+                         Tag="空"
+                         IsReadOnly="True"
+                         IsUndoEnabled="False"
+                         CaretBrush="Transparent"
+                         TextAlignment="Center"
+                         PreviewKeyDown="HotkeyInputBox_PreviewKeyDown"
+
+                         GotFocus="HotkeyInputBox_GotFocus"
+                         LostFocus="HotkeyInputBox_LostFocus"/>
+            </DockPanel>
+
+            <DockPanel Margin="0,0,0,10">
+                <TextBlock Text="停止键" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBox Style="{StaticResource ModernTextBox}"
+                         Tag="空"
+                         IsReadOnly="True"
+                         IsUndoEnabled="False"
+                         CaretBrush="Transparent"
+                         TextAlignment="Center"
+                         PreviewKeyDown="HotkeyInputBox_PreviewKeyDown"
+
+                         GotFocus="HotkeyInputBox_GotFocus"
+                         LostFocus="HotkeyInputBox_LostFocus"/>
+            </DockPanel>
+
+            <!-- 按键模式和间隔设置 -->
+            <DockPanel Margin="0,0,0,10">
+                <TextBlock Text="按键模式" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <ComboBox Style="{StaticResource ModernComboBox}"
+                    ItemContainerStyle="{StaticResource ModernComboBoxItem}"
+                    Width="90"
+                    SelectedIndex="0">
+                    <ComboBoxItem Content="顺序模式"/>
+                    <ComboBoxItem Content="按压模式"/>
+                </ComboBox>
+            </DockPanel>
+
+            <DockPanel Margin="0,0,0,10">
+                <TextBlock Text="按键间隔" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox Style="{StaticResource ModernTextBox}"
+                    Width="90"
+                    Text="50"/>
+            </DockPanel>
+
+            <DockPanel>
+                <CheckBox Content="声音提示" DockPanel.Dock="Left" IsChecked="True"/>
+                <Button Style="{StaticResource RoundedShadowButtonSmall}"
+                    Width="75" 
+                    HorizontalAlignment="Right"
+                    Content="其他设置" />
+            </DockPanel>
+        </StackPanel>
+    </Grid>
+</Page> 

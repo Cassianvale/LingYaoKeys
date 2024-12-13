@@ -1,0 +1,70 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Style x:Key="NavigationRadioButtonStyle" TargetType="RadioButton">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid x:Name="root">
+                        <Border x:Name="border" 
+                                BorderThickness="0"
+                                Height="30">
+                            <Border.Background>
+                                <SolidColorBrush x:Name="BackgroundBrush" Color="Transparent"/>
+                            </Border.Background>
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="15,0"/>
+                        </Border>
+                        <Border x:Name="indicator" 
+                                Height="2" 
+                                Background="#1E90FF"
+                                VerticalAlignment="Bottom"
+                                HorizontalAlignment="Left"
+                                Width="{TemplateBinding ActualWidth}">
+                            <Border.RenderTransform>
+                                <ScaleTransform x:Name="indicatorScale" ScaleX="0"/>
+                            </Border.RenderTransform>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="BackgroundBrush"
+                                                      Storyboard.TargetProperty="Color"
+                                                      To="#F0F0F0"
+                                                      Duration="0:0:0.2"/>
+                                        <ThicknessAnimation Storyboard.TargetName="indicator"
+                                                        Storyboard.TargetProperty="Margin"
+                                                        From="0,0,0,0" To="0,0,0,0"
+                                                        Duration="0:0:0.2"
+                                                        BeginTime="0:0:0"/>
+                                        <DoubleAnimation Storyboard.TargetName="indicatorScale"
+                                                      Storyboard.TargetProperty="ScaleX"
+                                                      To="1"
+                                                      Duration="0:0:0.2"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="BackgroundBrush"
+                                                      Storyboard.TargetProperty="Color"
+                                                      To="Transparent"
+                                                      Duration="0:0:0.2"/>
+                                        <DoubleAnimation Storyboard.TargetName="indicatorScale"
+                                                      Storyboard.TargetProperty="ScaleX"
+                                                      To="0"
+                                                      Duration="0:0:0.2"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary> 

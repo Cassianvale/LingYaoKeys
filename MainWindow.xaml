@@ -1,0 +1,42 @@
+﻿<Window x:Class="WpfApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfApp"
+        xmlns:viewModels="clr-namespace:WpfApp.ViewModels"
+        xmlns:views="clr-namespace:WpfApp.Views"
+        mc:Ignorable="d"
+        Title="jx3wpf" Height="380" Width="450"
+        WindowStartupLocation="CenterScreen">
+    <Window.DataContext>
+        <viewModels:MainViewModel/>
+    </Window.DataContext>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 顶部导航 -->
+        <Border BorderThickness="0,0,0,1" BorderBrush="#DDDDDD">
+            <StackPanel Orientation="Horizontal">
+                <RadioButton Content="前台按键" 
+                            IsChecked="True"
+                            Style="{StaticResource NavigationRadioButtonStyle}"
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="FrontKeys"/>
+                <RadioButton Content="同步设置" 
+                            Style="{StaticResource NavigationRadioButtonStyle}"
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="SyncSettings"/>
+            </StackPanel>
+        </Border>
+
+        <!-- 页面容器 -->
+        <Frame Grid.Row="1" 
+               NavigationUIVisibility="Hidden"
+               Content="{Binding CurrentPage}" Navigated="Frame_Navigated"/>
+    </Grid>
+</Window>
