@@ -47,6 +47,12 @@ namespace WpfApp.Services
                 Thread.Sleep(100);
 
                 // 初始化驱动 - 不传入窗口句柄
+                if (_dd.btn == null)
+                {
+                    MessageBox.Show("驱动接口未正确加载！", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return false;
+                }
+
                 ret = _dd.btn(0);
                 if (ret != 1)
                 {

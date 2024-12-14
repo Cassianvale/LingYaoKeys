@@ -7,7 +7,7 @@ namespace WpfApp.ViewModels
     {
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        protected virtual bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string propertyName = null)
+        protected virtual bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)
         {
             if (Equals(storage, value))
                 return false;

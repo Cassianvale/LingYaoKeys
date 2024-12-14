@@ -32,7 +32,9 @@ namespace WpfApp.ViewModels
             _mainWindow = mainWindow;
             
             // 初始化子ViewModel
+            // 初始化键盘映射
             _keyMappingViewModel = new KeyMappingViewModel(_ddDriver, App.ConfigService);
+            // 初始化同步设置
             _syncSettingsViewModel = new SyncSettingsViewModel();
             
             NavigateCommand = new RelayCommand<string>(Navigate);

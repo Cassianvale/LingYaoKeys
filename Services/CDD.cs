@@ -23,14 +23,15 @@ namespace WpfApp.Services
         [DllImport("kernel32.dll")]
         public static extern bool FreeLibrary(IntPtr hModule);
 
-
         public delegate int pDD_btn(int btn);
         public delegate int pDD_whl(int whl);
         public delegate int pDD_key(int ddcode, int flag);
         public delegate int pDD_mov(int x, int y);
         public delegate int pDD_movR(int dx, int dy);
         public delegate int pDD_str(string str);
-        public delegate int pDD_todc(int vkcode);
+        [UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet = CharSet.Unicode)]
+        private delegate int ToKeyCode(string code);
+        private ToKeyCode? todc;
 
         public pDD_btn? btn;         //Mouse button 
         public pDD_whl? whl;         //Mouse wheel
@@ -38,7 +39,6 @@ namespace WpfApp.Services
         public pDD_movR? movR;  //Mouse move rel. 
         public pDD_key? key;         //Keyboard 
         public pDD_str? str;            //Input visible char
-        public pDD_todc? todc;      //VK to ddcode
 
         private System.IntPtr m_hinst;
 
@@ -94,7 +94,7 @@ namespace WpfApp.Services
 
             if (ptr.Equals(IntPtr.Zero)) { return -1; }
             ptr = GetProcAddress(hinst, "DD_todc");
-            //todc = Marshal.GetDelegateForFunctionPointer(ptr, typeof(pDD_todc)) as pDD_todc;
+            todc = Marshal.GetDelegateForFunctionPointer(ptr, typeof(ToKeyCode)) as ToKeyCode;
 
             return 1 ;
         }

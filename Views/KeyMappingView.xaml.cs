@@ -24,6 +24,8 @@ namespace WpfApp.Views
 
         private void KeyInputBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            if (sender is not TextBox textBox) return;
+            
             e.Handled = true;
             
             // 处理IME输入
@@ -31,7 +33,7 @@ namespace WpfApp.Views
             {
                 if (!isErrorShown)
                 {
-                    ShowError((TextBox)sender);
+                    ShowError(textBox);
                 }
                 return;
             }
@@ -53,7 +55,7 @@ namespace WpfApp.Views
             }
             else if (!isErrorShown)
             {
-                ShowError((TextBox)sender);
+                ShowError(textBox);
             }
         }
 
@@ -177,8 +179,10 @@ namespace WpfApp.Views
         }
 
         // 显示错误信息
-        private void ShowError(TextBox textBox)
+        private void ShowError(TextBox? textBox)
         {
+            if (textBox == null) return;
+            
             isErrorShown = true;
             if (textBox.Name == "StartHotkeyInput")
             {
@@ -289,10 +293,7 @@ namespace WpfApp.Views
 
         private void StartHotkeyInput_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"StartHotkeyInput_PreviewKeyDown triggered");
-            System.Diagnostics.Debug.WriteLine($"Key: {e.Key}, SystemKey: {e.SystemKey}, KeyStates: {e.KeyStates}");
-            System.Diagnostics.Debug.WriteLine($"Modifiers: {Keyboard.Modifiers}");
-            System.Diagnostics.Debug.WriteLine($"Sender: {sender?.GetType().Name}");
+            if (sender is not TextBox textBox) return;
 
             try 
             {
@@ -303,29 +304,25 @@ namespace WpfApp.Views
                     System.Diagnostics.Debug.WriteLine("IME input detected, showing error");
                     if (!isErrorShown)
                     {
-                        ShowError((TextBox)sender);
+                        ShowError(textBox);
                     }
                     return;
                 }
 
                 var key = e.Key == Key.ImeProcessed ? e.SystemKey : e.Key;
-                System.Diagnostics.Debug.WriteLine($"Processed key: {key}");
                 
                 if (key == Key.System || key == Key.None)
                 {
-                    System.Diagnostics.Debug.WriteLine("System or None key detected, ignoring");
                     return;
                 }
 
                 if (TryConvertToDDKeyCode(key, out DDKeyCode ddKeyCode))
                 {
-                    System.Diagnostics.Debug.WriteLine($"Successfully converted to DDKeyCode: {ddKeyCode}");
-                    HandleHotkeyInput((TextBox)sender, ddKeyCode, Keyboard.Modifiers, true);
+                    HandleHotkeyInput(textBox, ddKeyCode, Keyboard.Modifiers, true);
                 }
                 else if (!isErrorShown)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Failed to convert key: {key} to DDKeyCode");
-                    ShowError((TextBox)sender);
+                    ShowError(textBox);
                 }
             }
             catch (Exception ex)
@@ -337,13 +334,15 @@ namespace WpfApp.Views
         // 处理停止热键
         private void StopHotkeyInput_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            if (sender is not TextBox textBox) return;
+            
             e.Handled = true;
             
             if (e.Key == Key.ImeProcessed && e.SystemKey == Key.None)
             {
                 if (!isErrorShown)
                 {
-                    ShowError((TextBox)sender);
+                    ShowError(textBox);
                 }
                 return;
             }
@@ -360,16 +359,15 @@ namespace WpfApp.Views
             
             if (TryConvertToDDKeyCode(key, out DDKeyCode ddKeyCode))
             {
-                // 如果按下的是修饰键，则不立即处理
                 if (IsModifierKey(ddKeyCode))
                 {
                     return;
                 }
-                HandleHotkeyInput((TextBox)sender, ddKeyCode, modifiers, false);
+                HandleHotkeyInput(textBox, ddKeyCode, modifiers, false);
             }
             else if (!isErrorShown)
             {
-                ShowError((TextBox)sender);
+                ShowError(textBox);
             }
         }
 
