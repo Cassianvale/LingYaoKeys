@@ -6,6 +6,7 @@ using System.Windows;
 using WpfApp.ViewModels;
 using WpfApp.Services;
 using System.Windows.Media;
+using System.Windows.Controls.Primitives;
 
 // 提供按键映射视图
 namespace WpfApp.Views
@@ -248,6 +249,10 @@ namespace WpfApp.Views
                 return;
             }
 
+            // 打印处理热键输入的调试信息
+            System.Diagnostics.Debug.WriteLine($"HandleHotkeyInput - keyCode: {keyCode}, 修饰键: {modifiers}, isStartHotkey: {isStartHotkey}");
+
+            // 区分当前处理的是开始热键还是停止热键
             if (isStartHotkey)
             {
                 ViewModel?.SetStartHotkey(keyCode, modifiers);
@@ -273,21 +278,22 @@ namespace WpfApp.Views
         // 处理开始热键
         private void StartHotkeyInput_KeyDown(object sender, KeyEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("StartHotkeyInput_KeyDown triggered");
+            System.Diagnostics.Debug.WriteLine("StartHotkeyInput_KeyDown 已触发");
             System.Diagnostics.Debug.WriteLine($"Key: {e.Key}, SystemKey: {e.SystemKey}, KeyStates: {e.KeyStates}");
             StartHotkeyInput_PreviewKeyDown(sender, e);
         }
 
         private void StartHotkeyInput_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("StartHotkeyInput_MouseDown triggered");
+            System.Diagnostics.Debug.WriteLine("StartHotkeyInput_MouseDown 已触发");
             System.Diagnostics.Debug.WriteLine($"ChangedButton: {e.ChangedButton}");
             StartHotkeyInput_PreviewMouseDown(sender, e);
         }
 
+        // 处理开始热键的鼠标释放
         private void StartHotkeyInput_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("StartHotkeyInput_PreviewMouseUp triggered");
+            System.Diagnostics.Debug.WriteLine("StartHotkeyInput_PreviewMouseUp 已触发");
             System.Diagnostics.Debug.WriteLine($"ChangedButton: {e.ChangedButton}");
         }
 
@@ -417,37 +423,5 @@ namespace WpfApp.Views
         {
             e.Handled = !int.TryParse(e.Text, out _);
         }
-
-        private void Grid_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            // 获取点击的元素
-            var hitTestResult = VisualTreeHelper.HitTest(this, e.GetPosition(this));
-            var element = hitTestResult?.VisualHit;
-
-            // 检查是否点击了TextBox或ComboBox
-            bool hitInputControl = false;
-            while (element != null)
-            {
-                if (element is TextBox || element is ComboBox)
-                {
-                    hitInputControl = true;
-                    break;
-                }
-                element = VisualTreeHelper.GetParent(element);
-            }
-
-            // 如果没有点击输入控件，则清除焦点
-            if (!hitInputControl)
-            {
-                Keyboard.ClearFocus();
-                FocusManager.SetFocusedElement(FocusManager.GetFocusScope(this), null);
-                
-                if (sender is Grid grid)
-                {
-                    grid.Focus();
-                }
-            }
-        }
-
     }
 } 

@@ -57,5 +57,13 @@ namespace WpfApp.ViewModels
         {
             // 清理资源
         }
+
+        public void SaveConfig()
+        {
+            System.Diagnostics.Debug.WriteLine("开始保存应用程序配置...");
+            _keyMappingViewModel.SaveConfig();
+            System.Diagnostics.Debug.WriteLine("配置保存完成");
+            System.Diagnostics.Debug.WriteLine($"--------------------------------");
+        }
     }
 } 

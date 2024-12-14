@@ -63,11 +63,15 @@
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="BorderBrush" Value="#BDBDBD"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+        <Setter Property="MaxDropDownHeight" Value="200"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBox">
                     <Grid>
-                        <ToggleButton x:Name="ToggleButton"
+                        <ToggleButton x:Name="PART_ToggleButton"
                                      BorderBrush="{TemplateBinding BorderBrush}"
                                      Background="{TemplateBinding Background}"
                                      IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
@@ -89,6 +93,7 @@
                                                     ContentTemplate="{Binding Path=SelectionBoxItemTemplate, RelativeSource={RelativeSource AncestorType=ComboBox}}"
                                                     ContentTemplateSelector="{Binding Path=ItemTemplateSelector, RelativeSource={RelativeSource AncestorType=ComboBox}}"
                                                     VerticalAlignment="Center"
+                                                    HorizontalAlignment="Left"
                                                     Margin="10,0,4,0"/>
                                             <Path Grid.Column="1"
                                                   x:Name="arrow"
@@ -120,17 +125,20 @@
                                Placement="Bottom"
                                PopupAnimation="Slide"
                                MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
-                               HorizontalOffset="0">
+                               MaxHeight="{TemplateBinding MaxDropDownHeight}">
                             <Border x:Name="dropDownBorder"
                                     Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="4"
-                                    MinWidth="{Binding ActualWidth, ElementName=ToggleButton}"
+                                    MinWidth="{Binding ActualWidth, ElementName=PART_ToggleButton}"
                                     Margin="0,2,0,0">
-                                <ScrollViewer SnapsToDevicePixels="True"
-                                           HorizontalScrollBarVisibility="Disabled">
-                                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                <ScrollViewer x:Name="DropDownScrollViewer"
+                                           SnapsToDevicePixels="True"
+                                           HorizontalScrollBarVisibility="Disabled"
+                                           VerticalScrollBarVisibility="Auto">
+                                    <ItemsPresenter x:Name="ItemsPresenter"
+                                                  KeyboardNavigation.DirectionalNavigation="Contained"/>
                                 </ScrollViewer>
                             </Border>
                         </Popup>
@@ -139,6 +147,12 @@
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Background" Value="#F5F5F5"/>
                             <Setter Property="Foreground" Value="#9E9E9E"/>
+                        </Trigger>
+                        <Trigger Property="IsDropDownOpen" Value="True">
+                            <Setter TargetName="PART_ToggleButton" Property="BorderBrush" Value="#2196F3"/>
+                        </Trigger>
+                        <Trigger Property="HasItems" Value="False">
+                            <Setter TargetName="dropDownBorder" Property="MinHeight" Value="95"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

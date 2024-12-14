@@ -14,11 +14,51 @@ namespace WpfApp.Services
         private const string SECTION_KEYLIST = "KeyList";
         private const string SECTION_SETTINGS = "Settings";
 
+        public ConfigService()
+        {
+            InitializeConfigFile();
+        }
+
+        private void InitializeConfigFile()
+        {
+            string configPath = GetConfigFilePath();
+            if (!File.Exists(configPath))
+            {
+                // 确保目录存在
+                string? directory = Path.GetDirectoryName(configPath);
+                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                // 写入默认配置
+                WritePrivateProfileString(SECTION_HOTKEYS, "StartKey", "", configPath);
+                WritePrivateProfileString(SECTION_HOTKEYS, "StartModifiers", "None", configPath);
+                WritePrivateProfileString(SECTION_HOTKEYS, "StopKey", "", configPath);
+                WritePrivateProfileString(SECTION_HOTKEYS, "StopModifiers", "None", configPath);
+
+                WritePrivateProfileString(SECTION_KEYLIST, "Count", "0", configPath);
+
+                WritePrivateProfileString(SECTION_SETTINGS, "KeyMode", "0", configPath);
+                WritePrivateProfileString(SECTION_SETTINGS, "Interval", "50", configPath);
+                WritePrivateProfileString(SECTION_SETTINGS, "SoundEnabled", "True", configPath);
+
+                System.Diagnostics.Debug.WriteLine($"已创建默认配置文件: {configPath}");
+            }
+        }
+
         [DllImport("kernel32")]
         private static extern long WritePrivateProfileString(string section, string key, string val, string filePath);
 
         [DllImport("kernel32")]
         private static extern int GetPrivateProfileString(string section, string key, string def, StringBuilder retVal, int size, string filePath);
+
+        public string GetConfigFilePath()
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string configPath = Path.Combine(baseDir, CONFIG_FILE);
+            return configPath;
+        }
 
         public void SaveConfig(
             DDKeyCode? startHotkey, ModifierKeys startModifiers,
@@ -28,7 +68,25 @@ namespace WpfApp.Services
             int interval,
             bool soundEnabled)
         {
-            string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, CONFIG_FILE);
+            string configPath = GetConfigFilePath();
+            System.Diagnostics.Debug.WriteLine($"正在保存配置到: {configPath}");
+            
+            // 确保目录存在
+            string? directory = Path.GetDirectoryName(configPath);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+                System.Diagnostics.Debug.WriteLine($"创建配置目录: {directory}");
+            }
+
+            // 打印保存的配置内容
+            System.Diagnostics.Debug.WriteLine($"保存配置内容:");
+            System.Diagnostics.Debug.WriteLine($"- 启动热键: {startHotkey}, 修饰键: {startModifiers}");
+            System.Diagnostics.Debug.WriteLine($"- 停止热键: {stopHotkey}, 修饰键: {stopModifiers}");
+            System.Diagnostics.Debug.WriteLine($"- 按键列表数量: {keyList.Count}");
+            System.Diagnostics.Debug.WriteLine($"- 按键模式: {keyMode}");
+            System.Diagnostics.Debug.WriteLine($"- 按键间隔: {interval}");
+            System.Diagnostics.Debug.WriteLine($"- 声音提示: {soundEnabled}");
 
             // 保存热键设置
             WritePrivateProfileString(SECTION_HOTKEYS, "StartKey", startHotkey?.ToString() ?? "", configPath);
@@ -54,7 +112,7 @@ namespace WpfApp.Services
                 List<DDKeyCode> keyList,
                 int keyMode, int interval, bool soundEnabled) LoadConfig()
         {
-            string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, CONFIG_FILE);
+            string configPath = GetConfigFilePath();
             
             if (!File.Exists(configPath))
             {

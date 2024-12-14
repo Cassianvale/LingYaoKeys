@@ -9,6 +9,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x86;x64</Platforms>
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <ConsoleOutputRedirection>true</ConsoleOutputRedirection>
   </PropertyGroup>
 
   <ItemGroup>

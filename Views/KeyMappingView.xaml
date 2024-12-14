@@ -7,7 +7,7 @@
       xmlns:vm="clr-namespace:WpfApp.ViewModels"
       mc:Ignorable="d">
     <!-- 添加 PreviewMouseDown 事件处理 -->
-    <Grid Margin="10" PreviewMouseDown="Grid_PreviewMouseDown">
+    <Grid Margin="10">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
@@ -114,11 +114,15 @@
             <DockPanel Margin="0,0,0,10">
                 <TextBlock Text="按键模式" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,5,0"/>
                 <ComboBox Style="{StaticResource ModernComboBox}"
-                    ItemContainerStyle="{StaticResource ModernComboBoxItem}"
-                    Width="90"
-                    SelectedIndex="0">
-                    <ComboBoxItem Content="顺序模式"/>
-                    <ComboBoxItem Content="按压模式"/>
+                          ItemContainerStyle="{StaticResource ModernComboBoxItem}"
+                          Width="90"
+                          ItemsSource="{Binding KeyModes}"
+                          SelectedIndex="{Binding SelectedKeyMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
                 </ComboBox>
             </DockPanel>
 

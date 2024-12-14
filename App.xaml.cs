@@ -3,6 +3,8 @@ using System.IO;
 using System.Windows;
 using System.Threading.Tasks;
 using WpfApp.Services;
+using WpfApp.ViewModels;
+using System.Runtime.InteropServices;
 
 namespace WpfApp
 {
@@ -31,7 +33,7 @@ namespace WpfApp
             string dllName = GetDriverFileName();
             if (string.IsNullOrEmpty(dllName))
             {
-                MessageBox.Show("不支持的处理器架构", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("不支持的理器架构", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
 
@@ -111,12 +113,18 @@ namespace WpfApp
         {
             try
             {
+                // 保存配置
+                if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+                {
+                    System.Diagnostics.Debug.WriteLine("应用程序退出时保存配置");
+                    mainViewModel.SaveConfig();
+                }
+                
                 // 清理资源
                 DDDriver.Dispose();
             }
             catch (Exception ex)
             {
-                // 记录错误但不显示，因为应用程序正在退出
                 System.Diagnostics.Debug.WriteLine($"应用程序退出时发生错误：{ex.Message}");
             }
         }
@@ -124,7 +132,12 @@ namespace WpfApp
         protected override void OnExit(ExitEventArgs e)
         {
             base.OnExit(e);
-            // 可以添加其他退出时的清理代码
+            
+            // 保存配置
+            if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+            {
+                mainViewModel.SaveConfig();
+            }
         }
     }
 }

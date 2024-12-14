@@ -20,6 +20,8 @@ namespace WpfApp
         public MainWindow()
         {
             InitializeComponent();
+            Loaded += MainWindow_Loaded;
+            Closing += MainWindow_Closing;
             DataContext = new MainViewModel(App.DDDriver, this);
         }
 
@@ -31,6 +33,15 @@ namespace WpfApp
             // {
             //     Application.Current.Shutdown();
             // }
+        }
+
+        private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (DataContext is MainViewModel mainViewModel)
+            {
+                System.Diagnostics.Debug.WriteLine("窗口关闭时保存配置");
+                mainViewModel.SaveConfig();
+            }
         }
 
         protected override void OnClosed(EventArgs e)

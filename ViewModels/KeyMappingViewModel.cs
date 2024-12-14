@@ -5,6 +5,8 @@ using WpfApp.Models;
 using WpfApp.Services;
 using WpfApp.Commands;
 using System.Text;
+using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace WpfApp.ViewModels
 {
@@ -20,6 +22,9 @@ namespace WpfApp.ViewModels
         private DDKeyCode? _startHotkey;
         private DDKeyCode? _stopHotkey;
         private int _keyInterval = 50; // 默认按键间隔为50
+        private int _selectedKeyMode;
+        private ModifierKeys _startModifiers = ModifierKeys.None;
+        private ModifierKeys _stopModifiers = ModifierKeys.None;
 
         public ObservableCollection<KeyItem> KeyList
         {
@@ -58,10 +63,34 @@ namespace WpfApp.ViewModels
         public ICommand AddKeyCommand { get; }
         public ICommand DeleteSelectedKeysCommand { get; }
 
+        // 按键模式选项
+        public List<string> KeyModes { get; } = new List<string> 
+        { 
+            "顺序模式",
+            "按压模式" 
+        };
+
+        // 选中的按键模式
+        public int SelectedKeyMode
+        {
+            get => _selectedKeyMode;
+            set
+            {
+                if (SetProperty(ref _selectedKeyMode, value))
+                {
+                    Trace.WriteLine($"Selected key mode changed to: {value}");
+                }
+            }
+        }
+
         public KeyMappingViewModel(DDDriverService ddDriver, ConfigService configService)
         {
             _ddDriver = ddDriver;
             _configService = configService;
+            
+            // 设置跟踪监听器
+            Trace.Listeners.Add(new TextWriterTraceListener("debug.log"));
+            Trace.AutoFlush = true;
             
             // 加载配置
             var config = _configService.LoadConfig();
@@ -85,7 +114,8 @@ namespace WpfApp.ViewModels
             
             // 设置其他选项
             KeyInterval = config.interval;
-            // ... 设置其他属性 ...
+            SelectedKeyMode = config.keyMode;
+            Trace.WriteLine($"Initialized key mode to: {config.keyMode}");
 
             AddKeyCommand = new RelayCommand(AddKey, CanAddKey);
             DeleteSelectedKeysCommand = new RelayCommand(DeleteSelectedKeys);
@@ -99,8 +129,15 @@ namespace WpfApp.ViewModels
 
         public void SetStartHotkey(DDKeyCode keyCode, ModifierKeys modifiers)
         {
-            System.Diagnostics.Debug.WriteLine($"SetStartHotkey called with keyCode: {keyCode}, modifiers: {modifiers}");
             _startHotkey = keyCode;
+            _startModifiers = modifiers;
+            UpdateHotkeyText(keyCode, modifiers, true);
+            
+            System.Diagnostics.Debug.WriteLine($"SetStartHotkey - 设置热键: {keyCode}, 修饰键: {modifiers}");
+        }
+
+        private void UpdateHotkeyText(DDKeyCode keyCode, ModifierKeys modifiers, bool isStart)
+        {
             StringBuilder keyText = new StringBuilder();
             
             if ((modifiers & ModifierKeys.Control) == ModifierKeys.Control)
@@ -111,27 +148,19 @@ namespace WpfApp.ViewModels
                 keyText.Append("Shift + ");
             
             keyText.Append(keyCode.ToDisplayName());
-            StartHotkeyText = keyText.ToString();
             
-            // 强制触发UI更新
-            OnPropertyChanged(nameof(StartHotkeyText));
+            if (isStart)
+                StartHotkeyText = keyText.ToString();
+            else
+                StopHotkeyText = keyText.ToString();
         }
 
         public void SetStopHotkey(DDKeyCode keyCode, ModifierKeys modifiers)
         {
-            System.Diagnostics.Debug.WriteLine($"SetStopHotkey called with keyCode: {keyCode}, modifiers: {modifiers}");
+            System.Diagnostics.Debug.WriteLine($"keyCode 调用 停止热键: {keyCode}, modifiers: {modifiers}");
             _stopHotkey = keyCode;
-            StringBuilder keyText = new StringBuilder();
-            
-            if ((modifiers & ModifierKeys.Control) == ModifierKeys.Control)
-                keyText.Append("Ctrl + ");
-            if ((modifiers & ModifierKeys.Alt) == ModifierKeys.Alt)
-                keyText.Append("Alt + ");
-            if ((modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
-                keyText.Append("Shift + ");
-            
-            keyText.Append(keyCode.ToDisplayName());
-            StopHotkeyText = keyText.ToString();
+            _stopModifiers = modifiers;
+            UpdateHotkeyText(keyCode, modifiers, false);
             
             // 强制触发UI更新
             OnPropertyChanged(nameof(StopHotkeyText));
@@ -164,14 +193,15 @@ namespace WpfApp.ViewModels
         // 添加保存配置的方法
         public void SaveConfig()
         {
-            var keyList = KeyList.Select(k => k.KeyCode).ToList();
             _configService.SaveConfig(
-                _startHotkey, Keyboard.Modifiers,
-                _stopHotkey, Keyboard.Modifiers,
-                keyList,
-                0, // keyMode
+                _startHotkey,
+                _startModifiers,
+                _stopHotkey,
+                _stopModifiers,
+                KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList(),
+                SelectedKeyMode,
                 KeyInterval,
-                true // soundEnabled
+                true  // soundEnabled
             );
         }
     }
