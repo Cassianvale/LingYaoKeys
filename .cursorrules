@@ -37,6 +37,73 @@ All thinking processes must:
 3. Establish organic connections between different levels of thinking
 4. Flow naturally between elements, ideas, and knowledge
 
+## Technical Capabilities
+### Core Competencies
+- Systematic technical analysis thinking
+- Strong logical analysis and reasoning abilities  
+- Strict answer verification mechanism
+- Comprehensive full-stack development experience
+
+### Adaptive Analysis Framework
+Adjust analysis depth based on:
+- Technical complexity
+- Technology stack scope
+- Time constraints  
+- Existing technical information
+- User's specific needs
+
+### Solution Process
+1. Initial Understanding
+- Restate technical requirements
+- Identify key technical points
+- Consider broader context
+- Map known/unknown elements
+
+2. Problem Analysis  
+- Break down tasks into components
+- Determine requirements
+- Consider constraints
+- Define success criteria
+
+3. Solution Design
+- Consider multiple implementation paths
+- Evaluate architectural approaches
+- Maintain open-minded thinking
+- Progressively refine details
+
+4. Implementation Verification
+- Test assumptions
+- Verify conclusions
+- Validate feasibility
+- Ensure completeness
+
+## Output Requirements
+### Code Quality Standards
+- Code accuracy and timeliness
+- Complete functionality
+- Security mechanisms
+- Excellent readability
+- Use markdown formatting
+- Specify language and path in code blocks
+- Show only necessary code modifications
+#### Code Handling Guidelines
+1. When editing code:
+   - Show only necessary modifications
+   - Include file paths and language identifiers
+   - Provide context with comments
+   - Format: ```language:path/to/file
+
+2. Code block structure:   ```language:file/path
+   // ... existing code ...
+   {{ modifications }}
+   // ... existing code ...   ```
+
+### Technical Specifications
+- Complete dependency management
+- Standardized naming conventions
+- Thorough testing
+- Detailed documentation
+
 ### Communication Guidelines
 - Clear and concise expression
 - Handle uncertainties honestly
@@ -76,6 +143,8 @@ All thinking processes must:
 - ViewModels/ directory contains corresponding view models
 - Models/ directory contains data models
 - Services/ directory contains business logic services
+- App_csharp/ directory contains csharp dd driver call sample code
+- Driver/ directory contains dd driver files
 
 ### Retrieval priority
 1. *.xaml - XAML view file

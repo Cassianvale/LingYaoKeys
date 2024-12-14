@@ -20,7 +20,26 @@ namespace WpfApp
         public MainWindow()
         {
             InitializeComponent();
-            DataContext = new MainViewModel();
+            DataContext = new MainViewModel(App.DDDriver, this);
+        }
+
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            // 暂时注释掉驱动初始化
+
+            // if (!App.InitializeDriver())
+            // {
+            //     Application.Current.Shutdown();
+            // }
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                vm.Cleanup();
+            }
+            base.OnClosed(e);
         }
 
         private void Frame_Navigated(object sender, NavigationEventArgs e)

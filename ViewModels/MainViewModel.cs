@@ -1,17 +1,24 @@
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using WpfApp.Commands;
 using WpfApp.Views;
+using System.IO;
+using System.Threading;
+using WpfApp.Services;
+using WpfApp.ViewModels;
 
 namespace WpfApp.ViewModels
 {
     public class MainViewModel : ViewModelBase
     {
-        private Page _currentPage = new KeyMappingView();
+        private Page? _currentPage;
+        private readonly DDDriverService _ddDriver;
+        private readonly Window _mainWindow;
         private readonly KeyMappingViewModel _keyMappingViewModel;
         private readonly SyncSettingsViewModel _syncSettingsViewModel;
 
-        public Page CurrentPage
+        public Page? CurrentPage
         {
             get => _currentPage;
             set => SetProperty(ref _currentPage, value);
@@ -19,25 +26,34 @@ namespace WpfApp.ViewModels
 
         public ICommand NavigateCommand { get; }
 
-        public MainViewModel()
+        public MainViewModel(DDDriverService ddDriver, Window mainWindow)
         {
-            _keyMappingViewModel = new KeyMappingViewModel();
+            _ddDriver = ddDriver;
+            _mainWindow = mainWindow;
+            
+            // 初始化子ViewModel
+            _keyMappingViewModel = new KeyMappingViewModel(_ddDriver, App.ConfigService);
             _syncSettingsViewModel = new SyncSettingsViewModel();
             
             NavigateCommand = new RelayCommand<string>(Navigate);
             
-            // 默认显示前台按键页面
+            // 初始化时设置默认页面
             Navigate("FrontKeys");
         }
 
-        private void Navigate(string page)
+        private void Navigate(string? parameter)
         {
-            CurrentPage = page switch
+            CurrentPage = parameter switch
             {
-                "FrontKeys" => new KeyMappingView() { DataContext = _keyMappingViewModel },
-                "SyncSettings" => new SyncSettingsView() { DataContext = _syncSettingsViewModel },
+                "FrontKeys" => new KeyMappingView { DataContext = _keyMappingViewModel },
+                "SyncSettings" => new SyncSettingsView { DataContext = _syncSettingsViewModel },
                 _ => CurrentPage
             };
+        }
+
+        public void Cleanup()
+        {
+            // 清理资源
         }
     }
 } 

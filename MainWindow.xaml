@@ -9,9 +9,7 @@
         mc:Ignorable="d"
         Title="jx3wpf" Height="380" Width="450"
         WindowStartupLocation="CenterScreen">
-    <Window.DataContext>
-        <viewModels:MainViewModel/>
-    </Window.DataContext>
+
 
     <Grid>
         <Grid.RowDefinitions>

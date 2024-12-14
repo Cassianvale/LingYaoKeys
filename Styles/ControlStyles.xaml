@@ -10,7 +10,6 @@
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="BorderBrush" Value="#BDBDBD"/>
-        <Setter Property="IsReadOnly" Value="True"/>
         <Setter Property="Focusable" Value="True"/>
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="Template">

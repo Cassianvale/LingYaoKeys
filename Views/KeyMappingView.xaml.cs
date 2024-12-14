@@ -3,287 +3,453 @@ using System.Windows.Navigation;
 using System.Windows.Input;
 using System.Text;
 using System.Windows;
+using WpfApp.ViewModels;
+using WpfApp.Services;
+using System.Windows.Media;
 
+// 提供按键映射视图
 namespace WpfApp.Views
 {
     public partial class KeyMappingView : Page
     {
         private const string KEY_ERROR = "无法识别按键，请检查输入法是否关闭";
         private bool isErrorShown = false;
-        private readonly KeyMappingService _keyMappingService;
+
+        private KeyMappingViewModel ViewModel => (KeyMappingViewModel)DataContext;
 
         public KeyMappingView()
         {
             InitializeComponent();
-            _keyMappingService = new KeyMappingService();
         }
 
         private void KeyInputBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (sender is TextBox textBox)
+            e.Handled = true;
+            
+            // 处理IME输入
+            if (e.Key == Key.ImeProcessed && e.SystemKey == Key.None)
             {
-                var key = e.Key;
-                
-                // 如果是IME处理的按键但没有对应的SystemKey
-                if (key == Key.ImeProcessed && e.SystemKey == Key.None)
+                if (!isErrorShown)
                 {
-                    ShowError(textBox);
-                    e.Handled = true;
-                    return;
+                    ShowError((TextBox)sender);
                 }
-
-                // 如果之前显示过错误信息，现在有正常按键，则清除错误
-                if (isErrorShown && textBox.Text == KEY_ERROR)
-                {
-                    textBox.Text = string.Empty;
-                    isErrorShown = false;
-                }
-
-                // 使用SystemKey如果可用
-                if (key == Key.ImeProcessed)
-                {
-                    key = e.SystemKey;
-                }
-
-                // 忽略单独按下的修饰键和特殊键
-                if (key == Key.LeftCtrl || key == Key.RightCtrl ||
-                    key == Key.LeftAlt || key == Key.RightAlt ||
-                    key == Key.LeftShift || key == Key.RightShift ||
-                    key == Key.System || key == Key.None)
-                {
-                    e.Handled = true;
-                    return;
-                }
-
-                // 构建按键文本
-                StringBuilder keyText = new StringBuilder();
-                var modifiers = Keyboard.Modifiers;
-
-                if ((modifiers & ModifierKeys.Control) == ModifierKeys.Control)
-                    keyText.Append("Ctrl + ");
-                if ((modifiers & ModifierKeys.Alt) == ModifierKeys.Alt)
-                    keyText.Append("Alt + ");
-                if ((modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
-                    keyText.Append("Shift + ");
-
-                string keyName = GetDisplayKeyName(key);
-                keyText.Append(keyName);
-
-                textBox.Text = keyText.ToString().TrimEnd(' ', '+');
+                return;
             }
 
-            e.Handled = true;
+            // 获取实际按键
+            var key = e.Key == Key.ImeProcessed ? e.SystemKey : e.Key;
+            
+            // 过滤系统按键和空按键
+            if (key == Key.System || key == Key.None)
+            {
+                return;
+            }
+            
+            // 转换并设置按键
+            if (TryConvertToDDKeyCode(key, out DDKeyCode ddKeyCode))
+            {
+                ViewModel?.SetCurrentKey(ddKeyCode);
+                isErrorShown = false;
+            }
+            else if (!isErrorShown)
+            {
+                ShowError((TextBox)sender);
+            }
         }
 
+        // 将WPF的Key映射到DDKeyCode
+        private bool TryConvertToDDKeyCode(Key key, out DDKeyCode ddKeyCode)
+        {
+            // 将WPF的Key映射到DDKeyCode
+            ddKeyCode = key switch
+            {
+                // 字母键
+                Key.A => DDKeyCode.A,
+                Key.B => DDKeyCode.B,
+                Key.C => DDKeyCode.C,
+                Key.D => DDKeyCode.D,
+                Key.E => DDKeyCode.E,
+                Key.F => DDKeyCode.F,
+                Key.G => DDKeyCode.G,
+                Key.H => DDKeyCode.H,
+                Key.I => DDKeyCode.I,
+                Key.J => DDKeyCode.J,
+                Key.K => DDKeyCode.K,
+                Key.L => DDKeyCode.L,
+                Key.M => DDKeyCode.M,
+                Key.N => DDKeyCode.N,
+                Key.O => DDKeyCode.O,
+                Key.P => DDKeyCode.P,
+                Key.Q => DDKeyCode.Q,
+                Key.R => DDKeyCode.R,
+                Key.S => DDKeyCode.S,
+                Key.T => DDKeyCode.T,
+                Key.U => DDKeyCode.U,
+                Key.V => DDKeyCode.V,
+                Key.W => DDKeyCode.W,
+                Key.X => DDKeyCode.X,
+                Key.Y => DDKeyCode.Y,
+                Key.Z => DDKeyCode.Z,
+
+                // 数字键
+                Key.D0 => DDKeyCode.NUM_0,
+                Key.D1 => DDKeyCode.NUM_1,
+                Key.D2 => DDKeyCode.NUM_2,
+                Key.D3 => DDKeyCode.NUM_3,
+                Key.D4 => DDKeyCode.NUM_4,
+                Key.D5 => DDKeyCode.NUM_5,
+                Key.D6 => DDKeyCode.NUM_6,
+                Key.D7 => DDKeyCode.NUM_7,
+                Key.D8 => DDKeyCode.NUM_8,
+                Key.D9 => DDKeyCode.NUM_9,
+
+                // 功能键
+                Key.F1 => DDKeyCode.F1,
+                Key.F2 => DDKeyCode.F2,
+                Key.F3 => DDKeyCode.F3,
+                Key.F4 => DDKeyCode.F4,
+                Key.F5 => DDKeyCode.F5,
+                Key.F6 => DDKeyCode.F6,
+                Key.F7 => DDKeyCode.F7,
+                Key.F8 => DDKeyCode.F8,
+                Key.F9 => DDKeyCode.F9,
+                Key.F10 => DDKeyCode.F10,
+                Key.F11 => DDKeyCode.F11,
+                Key.F12 => DDKeyCode.F12,
+
+                // 特殊键
+                Key.Escape => DDKeyCode.ESC,
+                Key.Tab => DDKeyCode.TAB,
+                Key.CapsLock => DDKeyCode.CAPS_LOCK,
+                Key.LeftShift => DDKeyCode.LEFT_SHIFT,
+                Key.RightShift => DDKeyCode.RIGHT_SHIFT,
+                Key.LeftCtrl => DDKeyCode.LEFT_CTRL,
+                Key.RightCtrl => DDKeyCode.RIGHT_CTRL,
+                Key.LeftAlt => DDKeyCode.LEFT_ALT,
+                Key.RightAlt => DDKeyCode.RIGHT_ALT,
+                Key.Space => DDKeyCode.SPACE,
+                Key.Enter => DDKeyCode.ENTER,
+                Key.Back => DDKeyCode.BACKSPACE,
+
+                // 符号键
+                Key.OemTilde => DDKeyCode.TILDE,
+                Key.OemMinus => DDKeyCode.MINUS,
+                Key.OemPlus => DDKeyCode.EQUALS,
+                Key.OemOpenBrackets => DDKeyCode.LEFT_BRACKET,
+                Key.OemCloseBrackets => DDKeyCode.RIGHT_BRACKET,
+                Key.OemSemicolon => DDKeyCode.SEMICOLON,
+                Key.OemQuotes => DDKeyCode.QUOTE,
+                Key.OemComma => DDKeyCode.COMMA,
+                Key.OemPeriod => DDKeyCode.PERIOD,
+                Key.OemQuestion => DDKeyCode.SLASH,
+                Key.OemBackslash => DDKeyCode.BACKSLASH,
+
+                _ => DDKeyCode.ESC
+            };
+
+            // 只要按键被正确映射就返回true
+            return key == Key.Escape || ddKeyCode != DDKeyCode.ESC;
+        }
+
+        // 处理按键输入框获得焦点
         private void KeyInputBox_GotFocus(object sender, RoutedEventArgs e)
         {
             if (sender is TextBox textBox)
             {
-                textBox.Text = string.Empty;
                 isErrorShown = false;
             }
         }
 
+        // 处理按键输入框失去焦点
         private void KeyInputBox_LostFocus(object sender, RoutedEventArgs e)
         {
             if (sender is TextBox textBox && string.IsNullOrEmpty(textBox.Text))
             {
-                textBox.Text = string.Empty;
                 isErrorShown = false;
             }
         }
 
-        private string GetDisplayKeyName(Key key)
-        {
-            switch (key)
-            {
-                // 特殊符号键
-                case Key.OemPlus:
-                    return "=";
-                case Key.OemMinus:
-                    return "-";
-                case Key.OemQuestion:
-                    return "?";
-                case Key.OemPeriod:
-                    return ".";
-                case Key.OemComma:
-                    return ",";
-                case Key.OemSemicolon:
-                    return ";";
-                case Key.OemQuotes:
-                    return "'";
-                case Key.OemOpenBrackets:
-                    return "[";
-                case Key.OemCloseBrackets:
-                    return "]";
-                case Key.OemBackslash:
-                    return "\\";
-                case Key.OemTilde:
-                    return "`";
-                    
-                // 功能键
-                case Key.F1:
-                case Key.F2:
-                case Key.F3:
-                case Key.F4:
-                case Key.F5:
-                case Key.F6:
-                case Key.F7:
-                case Key.F8:
-                case Key.F9:
-                case Key.F10:
-                case Key.F11:
-                case Key.F12:
-                    return key.ToString();
-                    
-                // 数字键
-                case Key.D0:
-                case Key.D1:
-                case Key.D2:
-                case Key.D3:
-                case Key.D4:
-                case Key.D5:
-                case Key.D6:
-                case Key.D7:
-                case Key.D8:
-                case Key.D9:
-                    return key.ToString().Replace("D", "");
-                    
-                // 修饰键
-                case Key.LeftShift:
-                case Key.RightShift:
-                    return "Shift";
-                case Key.LeftCtrl:
-                case Key.RightCtrl:
-                    return "Ctrl";
-                case Key.LeftAlt:
-                case Key.RightAlt:
-                    return "Alt";
-                    
-                default:
-                    return key.ToString();
-            }
-        }
-
+        // 处理超链接请求导航
         private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
         {
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
             e.Handled = true;
         }
 
+        // 显示错误信息
         private void ShowError(TextBox textBox)
         {
-            textBox.Text = KEY_ERROR;
             isErrorShown = true;
-        }
-
-        // 添加热键输入框的事件处理
-        private void HotkeyInputBox_PreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            if (sender is TextBox textBox)
+            if (textBox.Name == "StartHotkeyInput")
             {
-                var key = e.Key;
-                
-                // 如果是IME处理的按键但没有对应的SystemKey
-                if (key == Key.ImeProcessed && e.SystemKey == Key.None)
-                {
-                    ShowError(textBox);
-                    e.Handled = true;
-                    return;
-                }
-
-                // 如果之前显示过错误信息，现在有正常按键，则清除错误
-                if (isErrorShown && textBox.Text == KEY_ERROR)
-                {
-                    textBox.Text = string.Empty;
-                    isErrorShown = false;
-                }
-
-                // 使用SystemKey如果可用
-                if (key == Key.ImeProcessed)
-                {
-                    key = e.SystemKey;
-                }
-
-                // 只过滤System和None键
-                if (key == Key.System || key == Key.None)
-                {
-                    e.Handled = true;
-                    return;
-                }
-
-                // 构建按键文本
-                StringBuilder keyText = new StringBuilder();
-                
-                // 如果按键本身不是修饰键，才添加组合键
-                if (key != Key.LeftCtrl && key != Key.RightCtrl &&
-                    key != Key.LeftAlt && key != Key.RightAlt &&
-                    key != Key.LeftShift && key != Key.RightShift)
-                {
-                    var modifiers = Keyboard.Modifiers;
-                    if ((modifiers & ModifierKeys.Control) == ModifierKeys.Control)
-                        keyText.Append("Ctrl + ");
-                    if ((modifiers & ModifierKeys.Alt) == ModifierKeys.Alt)
-                        keyText.Append("Alt + ");
-                    if ((modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
-                        keyText.Append("Shift + ");
-                }
-
-                string keyName = GetDisplayKeyName(key);
-                keyText.Append(keyName);
-
-                textBox.Text = keyText.ToString().TrimEnd(' ', '+');
+                ViewModel.StartHotkeyText = KEY_ERROR;
             }
-
-            e.Handled = true;
+            else if (textBox.Name == "StopHotkeyInput")
+            {
+                ViewModel.StopHotkeyText = KEY_ERROR;
+            }
         }
 
+        // 处理热键输入框获得焦点
         private void HotkeyInputBox_GotFocus(object sender, RoutedEventArgs e)
         {
             if (sender is TextBox textBox)
             {
-                textBox.Text = string.Empty;
                 isErrorShown = false;
             }
         }
 
+        // 处理热键输入框失去焦点
         private void HotkeyInputBox_LostFocus(object sender, RoutedEventArgs e)
         {
             if (sender is TextBox textBox && string.IsNullOrEmpty(textBox.Text))
             {
-                textBox.Text = string.Empty;
                 isErrorShown = false;
             }
         }
 
+        // 处理鼠标按键
         private void HotkeyInputBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is TextBox textBox)
             {
-                string keyName = e.ChangedButton switch
+                DDKeyCode keyCode = e.ChangedButton switch
                 {
-                    MouseButton.Middle => "MBUTTON",
-                    MouseButton.XButton1 => "XBUTTON1",
-                    MouseButton.XButton2 => "XBUTTON2",
-                    _ => string.Empty
+                    MouseButton.Middle => DDKeyCode.MBUTTON,
+                    MouseButton.XButton1 => DDKeyCode.XBUTTON1,
+                    MouseButton.XButton2 => DDKeyCode.XBUTTON2,
+                    _ => DDKeyCode.ESC
                 };
 
-                if (!string.IsNullOrEmpty(keyName))
+                if (keyCode != DDKeyCode.ESC)
                 {
-                    textBox.Text = _keyMappingService.GetDisplayName(keyName);
+                    ViewModel.SetCurrentKey(keyCode);
                     e.Handled = true;
                 }
             }
         }
 
-        private void HotkeyInputBox_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        // 统一的热键处理方法
+        private void HandleHotkeyInput(TextBox textBox, DDKeyCode keyCode, ModifierKeys modifiers, bool isStartHotkey)
+        {
+            if (textBox == null)
+            {
+                System.Diagnostics.Debug.WriteLine("HandleHotkeyInput: textBox is null");
+                return;
+            }
+
+            // 只过滤修饰键
+            if (IsModifierKey(keyCode))
+            {
+                return;
+            }
+
+            if (isStartHotkey)
+            {
+                ViewModel?.SetStartHotkey(keyCode, modifiers);
+            }
+            else
+            {
+                ViewModel?.SetStopHotkey(keyCode, modifiers);
+            }
+            isErrorShown = false;
+        }
+
+        // 判断是否为修饰键
+        private bool IsModifierKey(DDKeyCode keyCode)
+        {
+            return keyCode == DDKeyCode.LEFT_CTRL 
+                || keyCode == DDKeyCode.RIGHT_CTRL
+                || keyCode == DDKeyCode.LEFT_ALT 
+                || keyCode == DDKeyCode.RIGHT_ALT
+                || keyCode == DDKeyCode.LEFT_SHIFT 
+                || keyCode == DDKeyCode.RIGHT_SHIFT;
+        }
+
+        // 处理开始热键
+        private void StartHotkeyInput_KeyDown(object sender, KeyEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("StartHotkeyInput_KeyDown triggered");
+            System.Diagnostics.Debug.WriteLine($"Key: {e.Key}, SystemKey: {e.SystemKey}, KeyStates: {e.KeyStates}");
+            StartHotkeyInput_PreviewKeyDown(sender, e);
+        }
+
+        private void StartHotkeyInput_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("StartHotkeyInput_MouseDown triggered");
+            System.Diagnostics.Debug.WriteLine($"ChangedButton: {e.ChangedButton}");
+            StartHotkeyInput_PreviewMouseDown(sender, e);
+        }
+
+        private void StartHotkeyInput_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("StartHotkeyInput_PreviewMouseUp triggered");
+            System.Diagnostics.Debug.WriteLine($"ChangedButton: {e.ChangedButton}");
+        }
+
+        private void StartHotkeyInput_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine($"StartHotkeyInput_PreviewKeyDown triggered");
+            System.Diagnostics.Debug.WriteLine($"Key: {e.Key}, SystemKey: {e.SystemKey}, KeyStates: {e.KeyStates}");
+            System.Diagnostics.Debug.WriteLine($"Modifiers: {Keyboard.Modifiers}");
+            System.Diagnostics.Debug.WriteLine($"Sender: {sender?.GetType().Name}");
+
+            try 
+            {
+                e.Handled = true;
+                
+                if (e.Key == Key.ImeProcessed && e.SystemKey == Key.None)
+                {
+                    System.Diagnostics.Debug.WriteLine("IME input detected, showing error");
+                    if (!isErrorShown)
+                    {
+                        ShowError((TextBox)sender);
+                    }
+                    return;
+                }
+
+                var key = e.Key == Key.ImeProcessed ? e.SystemKey : e.Key;
+                System.Diagnostics.Debug.WriteLine($"Processed key: {key}");
+                
+                if (key == Key.System || key == Key.None)
+                {
+                    System.Diagnostics.Debug.WriteLine("System or None key detected, ignoring");
+                    return;
+                }
+
+                if (TryConvertToDDKeyCode(key, out DDKeyCode ddKeyCode))
+                {
+                    System.Diagnostics.Debug.WriteLine($"Successfully converted to DDKeyCode: {ddKeyCode}");
+                    HandleHotkeyInput((TextBox)sender, ddKeyCode, Keyboard.Modifiers, true);
+                }
+                else if (!isErrorShown)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to convert key: {key} to DDKeyCode");
+                    ShowError((TextBox)sender);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Exception in StartHotkeyInput_PreviewKeyDown: {ex}");
+            }
+        }
+
+        // 处理停止热键
+        private void StopHotkeyInput_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            e.Handled = true;
+            
+            if (e.Key == Key.ImeProcessed && e.SystemKey == Key.None)
+            {
+                if (!isErrorShown)
+                {
+                    ShowError((TextBox)sender);
+                }
+                return;
+            }
+
+            var key = e.Key == Key.ImeProcessed ? e.SystemKey : e.Key;
+            
+            if (key == Key.System || key == Key.None)
+            {
+                return;
+            }
+
+            // 获取当前修饰键状态
+            var modifiers = Keyboard.Modifiers;
+            
+            if (TryConvertToDDKeyCode(key, out DDKeyCode ddKeyCode))
+            {
+                // 如果按下的是修饰键，则不立即处理
+                if (IsModifierKey(ddKeyCode))
+                {
+                    return;
+                }
+                HandleHotkeyInput((TextBox)sender, ddKeyCode, modifiers, false);
+            }
+            else if (!isErrorShown)
+            {
+                ShowError((TextBox)sender);
+            }
+        }
+
+        // 处理开始热键的鼠标点击
+        private void StartHotkeyInput_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is TextBox textBox)
             {
-                string keyName = e.Delta > 0 ? "MWHEELU" : "MWHEELD";
-                textBox.Text = _keyMappingService.GetDisplayName(keyName);
-                e.Handled = true;
+                DDKeyCode? keyCode = e.ChangedButton switch
+                {
+                    MouseButton.Middle => DDKeyCode.MBUTTON,
+                    MouseButton.XButton1 => DDKeyCode.XBUTTON1,
+                    MouseButton.XButton2 => DDKeyCode.XBUTTON2,
+                    _ => null // 对于左键和右键不处理，让输入框正常获取焦点以接收键盘输入
+                };
+
+                if (keyCode.HasValue)
+                {
+                    HandleHotkeyInput(textBox, keyCode.Value, Keyboard.Modifiers, true);
+                    e.Handled = true; // 阻止事件继续传播
+                }
             }
         }
+
+        // 处理停止热键的鼠标点击
+        private void StopHotkeyInput_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                DDKeyCode? keyCode = e.ChangedButton switch
+                {
+                    MouseButton.Middle => DDKeyCode.MBUTTON,
+                    MouseButton.XButton1 => DDKeyCode.XBUTTON1,
+                    MouseButton.XButton2 => DDKeyCode.XBUTTON2,
+                    _ => null // 对于左键和右键，不处理，让输入框正常获取焦点以接收键盘输入
+                };
+
+                if (keyCode.HasValue)
+                {
+                    HandleHotkeyInput(textBox, keyCode.Value, Keyboard.Modifiers, false);
+                    e.Handled = true; // 阻止事件继续传播
+                }
+            }
+        }
+
+        private void NumberValidationTextBox(object sender, TextCompositionEventArgs e)
+        {
+            e.Handled = !int.TryParse(e.Text, out _);
+        }
+
+        private void Grid_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // 获取点击的元素
+            var hitTestResult = VisualTreeHelper.HitTest(this, e.GetPosition(this));
+            var element = hitTestResult?.VisualHit;
+
+            // 检查是否点击了TextBox或ComboBox
+            bool hitInputControl = false;
+            while (element != null)
+            {
+                if (element is TextBox || element is ComboBox)
+                {
+                    hitInputControl = true;
+                    break;
+                }
+                element = VisualTreeHelper.GetParent(element);
+            }
+
+            // 如果没有点击输入控件，则清除焦点
+            if (!hitInputControl)
+            {
+                Keyboard.ClearFocus();
+                FocusManager.SetFocusedElement(FocusManager.GetFocusScope(this), null);
+                
+                if (sender is Grid grid)
+                {
+                    grid.Focus();
+                }
+            }
+        }
+
     }
 } 

@@ -7,13 +7,14 @@ namespace WpfApp.ViewModels
     {
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        protected virtual void SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+        protected virtual bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string propertyName = null)
         {
-            if (!Equals(field, value))
-            {
-                field = value;
-                OnPropertyChanged(propertyName);
-            }
+            if (Equals(storage, value))
+                return false;
+
+            storage = value;
+            OnPropertyChanged(propertyName);
+            return true;
         }
 
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -21,4 +22,4 @@ namespace WpfApp.ViewModels
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
-} 
+}

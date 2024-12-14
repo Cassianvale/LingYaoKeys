@@ -1,41 +1,52 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using System.Linq;
+using WpfApp.Models;
+using WpfApp.Services;
 using WpfApp.Commands;
+using System.Text;
 
 namespace WpfApp.ViewModels
 {
     public class KeyMappingViewModel : ViewModelBase
     {
-        private ObservableCollection<KeyMapping> _keyMappings = new();
-        private string _startKey = "UNKNOWN";
-        private string _stopKey = "UNKNOWN";
-        private string _pauseKey = "UNKNOWN";
-        private int _keyInterval = 50;
-        private bool _playSound = true;
-        private string _selectedMode = "顺序模式";
+        private readonly DDDriverService _ddDriver;
+        private readonly ConfigService _configService;
+        private DDKeyCode? _currentKey;
+        private string _currentKeyText = string.Empty;
+        private ObservableCollection<KeyItem> _keyList;
+        private string _startHotkeyText = string.Empty;
+        private string _stopHotkeyText = string.Empty;
+        private DDKeyCode? _startHotkey;
+        private DDKeyCode? _stopHotkey;
+        private int _keyInterval = 50; // 默认按键间隔为50
 
-        public ObservableCollection<KeyMapping> KeyMappings
+        public ObservableCollection<KeyItem> KeyList
         {
-            get => _keyMappings;
-            set => SetProperty(ref _keyMappings, value);
+            get => _keyList;
+            set => SetProperty(ref _keyList, value);
         }
 
-        public string StartKey
+        public string CurrentKeyText
         {
-            get => _startKey;
-            set => SetProperty(ref _startKey, value);
+            get => _currentKeyText;
+            set
+            {
+                _currentKeyText = value;
+                OnPropertyChanged(nameof(CurrentKeyText));
+            }
         }
 
-        public string StopKey
+        public string StartHotkeyText
         {
-            get => _stopKey;
-            set => SetProperty(ref _stopKey, value);
+            get => _startHotkeyText;
+            set => SetProperty(ref _startHotkeyText, value);
         }
 
-        public string PauseKey
+        public string StopHotkeyText
         {
-            get => _pauseKey;
-            set => SetProperty(ref _pauseKey, value);
+            get => _stopHotkeyText;
+            set => SetProperty(ref _stopHotkeyText, value);
         }
 
         public int KeyInterval
@@ -44,73 +55,124 @@ namespace WpfApp.ViewModels
             set => SetProperty(ref _keyInterval, value);
         }
 
-        public bool PlaySound
-        {
-            get => _playSound;
-            set => SetProperty(ref _playSound, value);
-        }
-
-        public string SelectedMode
-        {
-            get => _selectedMode;
-            set => SetProperty(ref _selectedMode, value);
-        }
-
         public ICommand AddKeyCommand { get; }
-        public ICommand RemoveSelectedCommand { get; }
-        public ICommand SetHotkeyCommand { get; }
-        public ICommand QueryLeftCommand { get; }
+        public ICommand DeleteSelectedKeysCommand { get; }
 
-        public KeyMappingViewModel()
+        public KeyMappingViewModel(DDDriverService ddDriver, ConfigService configService)
         {
-            KeyMappings = new ObservableCollection<KeyMapping>
+            _ddDriver = ddDriver;
+            _configService = configService;
+            
+            // 加载配置
+            var config = _configService.LoadConfig();
+            _keyList = new ObservableCollection<KeyItem>();
+            
+            // 设置热键
+            if (config.startKey.HasValue)
             {
-                new KeyMapping { Key = "F9", IsEnabled = true },
-                new KeyMapping { Key = "F10", IsEnabled = false }
-            };
+                SetStartHotkey(config.startKey.Value, config.startMods);
+            }
+            if (config.stopKey.HasValue)
+            {
+                SetStopHotkey(config.stopKey.Value, config.stopMods);
+            }
+            
+            // 设置按键列表
+            foreach (var key in config.keyList)
+            {
+                KeyList.Add(new KeyItem(key));
+            }
+            
+            // 设置其他选项
+            KeyInterval = config.interval;
+            // ... 设置其他属性 ...
 
-            AddKeyCommand = new RelayCommand(AddKey);
-            RemoveSelectedCommand = new RelayCommand(RemoveSelected);
-            SetHotkeyCommand = new RelayCommand<string>(SetHotkey);
-            QueryLeftCommand = new RelayCommand(QueryLeft);
+            AddKeyCommand = new RelayCommand(AddKey, CanAddKey);
+            DeleteSelectedKeysCommand = new RelayCommand(DeleteSelectedKeys);
+        }
+
+        public void SetCurrentKey(DDKeyCode keyCode)
+        {
+            _currentKey = keyCode;
+            CurrentKeyText = keyCode.ToDisplayName();
+        }
+
+        public void SetStartHotkey(DDKeyCode keyCode, ModifierKeys modifiers)
+        {
+            System.Diagnostics.Debug.WriteLine($"SetStartHotkey called with keyCode: {keyCode}, modifiers: {modifiers}");
+            _startHotkey = keyCode;
+            StringBuilder keyText = new StringBuilder();
+            
+            if ((modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+                keyText.Append("Ctrl + ");
+            if ((modifiers & ModifierKeys.Alt) == ModifierKeys.Alt)
+                keyText.Append("Alt + ");
+            if ((modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+                keyText.Append("Shift + ");
+            
+            keyText.Append(keyCode.ToDisplayName());
+            StartHotkeyText = keyText.ToString();
+            
+            // 强制触发UI更新
+            OnPropertyChanged(nameof(StartHotkeyText));
+        }
+
+        public void SetStopHotkey(DDKeyCode keyCode, ModifierKeys modifiers)
+        {
+            System.Diagnostics.Debug.WriteLine($"SetStopHotkey called with keyCode: {keyCode}, modifiers: {modifiers}");
+            _stopHotkey = keyCode;
+            StringBuilder keyText = new StringBuilder();
+            
+            if ((modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+                keyText.Append("Ctrl + ");
+            if ((modifiers & ModifierKeys.Alt) == ModifierKeys.Alt)
+                keyText.Append("Alt + ");
+            if ((modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+                keyText.Append("Shift + ");
+            
+            keyText.Append(keyCode.ToDisplayName());
+            StopHotkeyText = keyText.ToString();
+            
+            // 强制触发UI更新
+            OnPropertyChanged(nameof(StopHotkeyText));
+        }
+
+        private bool CanAddKey()
+        {
+            return _currentKey.HasValue;
         }
 
         private void AddKey()
         {
-            // 实现添加按键逻辑
+            if (_currentKey.HasValue)
+            {
+                KeyList.Add(new KeyItem(_currentKey.Value));
+                _currentKey = null;
+                CurrentKeyText = string.Empty;
+            }
         }
 
-        private void RemoveSelected()
+        private void DeleteSelectedKeys()
         {
-            // 实现删除选中按键逻辑
+            var selectedKeys = KeyList.Where(k => k.IsSelected).ToList();
+            foreach (var key in selectedKeys)
+            {
+                KeyList.Remove(key);
+            }
         }
 
-        private void SetHotkey(string keyType)
+        // 添加保存配置的方法
+        public void SaveConfig()
         {
-            // 实现设置热键逻辑
-        }
-
-        private void QueryLeft()
-        {
-            // 实现一键宏查询逻辑
-        }
-    }
-
-    public class KeyMapping : ViewModelBase
-    {
-        private string _key = string.Empty;
-        private bool _isEnabled;
-
-        public string Key
-        {
-            get => _key;
-            set => SetProperty(ref _key, value);
-        }
-
-        public bool IsEnabled
-        {
-            get => _isEnabled;
-            set => SetProperty(ref _isEnabled, value);
+            var keyList = KeyList.Select(k => k.KeyCode).ToList();
+            _configService.SaveConfig(
+                _startHotkey, Keyboard.Modifiers,
+                _stopHotkey, Keyboard.Modifiers,
+                keyList,
+                0, // keyMode
+                KeyInterval,
+                true // soundEnabled
+            );
         }
     }
 } 

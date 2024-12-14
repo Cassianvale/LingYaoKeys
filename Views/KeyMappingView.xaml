@@ -3,9 +3,11 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-      xmlns:sys="clr-namespace:System;assembly=mscorlib"
+      xmlns:services="clr-namespace:WpfApp.Services"
+      xmlns:vm="clr-namespace:WpfApp.ViewModels"
       mc:Ignorable="d">
-    <Grid Margin="10">
+    <!-- 添加 PreviewMouseDown 事件处理 -->
+    <Grid Margin="10" PreviewMouseDown="Grid_PreviewMouseDown">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
@@ -13,24 +15,27 @@
 
         <!-- 左侧按键列表区域 -->
         <DockPanel Grid.Column="0" Margin="0,0,10,0">
-
             <TextBox Style="{StaticResource ModernTextBox}"
                      DockPanel.Dock="Top"
                      Height="32"
                      Margin="0,0,0,10"
                      TextAlignment="Center"
                      Tag="点此输入按键"
-                     IsReadOnly="False"
+                     Text="{Binding CurrentKeyText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     IsReadOnly="True"
                      IsUndoEnabled="False"
                      CaretBrush="Transparent"
                      PreviewKeyDown="KeyInputBox_PreviewKeyDown"
                      GotFocus="KeyInputBox_GotFocus"
                      LostFocus="KeyInputBox_LostFocus"/>
                     
-            <ListBox x:Name="KeysList" BorderThickness="1">
+            <ListBox x:Name="KeysList" 
+                     BorderThickness="1"
+                     ItemsSource="{Binding KeyList}">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <CheckBox Content="{Binding}"
+                        <CheckBox Content="{Binding DisplayName}"
+                                  IsChecked="{Binding IsSelected}"
                                   Height="30"
                                   VerticalContentAlignment="Center"/>
                     </DataTemplate>
@@ -41,11 +46,6 @@
                         <Setter Property="Padding" Value="5,0"/>
                     </Style>
                 </ListBox.ItemContainerStyle>
-                <ListBox.Items>
-                    <sys:String>F</sys:String>
-                    <sys:String>F1</sys:String>
-                    <sys:String>F2</sys:String>
-                </ListBox.Items>
             </ListBox>
         </DockPanel>
 
@@ -54,12 +54,14 @@
             <!-- 顶部按钮组 -->
             <DockPanel Margin="0,0,0,10">
                 <Button Style="{StaticResource RoundedShadowButtonSmall}"
+                    Command="{Binding AddKeyCommand}"
                     DockPanel.Dock="Left" 
                     Width="70" 
                     Height="30" 
                     Margin="0,0,5,0"
                     Content="添加按键" />
-                <Button  Style="{StaticResource RoundedShadowButtonSmall}"
+                <Button Style="{StaticResource RoundedShadowButtonSmall}"
+                    Command="{Binding DeleteSelectedKeysCommand}"
                     DockPanel.Dock="Right" 
                     Width="70" 
                     Height="30" 
@@ -78,12 +80,16 @@
                 <TextBox Style="{StaticResource ModernTextBox}"
                          Tag="空"
                          IsReadOnly="True"
+                         Text="{Binding StartHotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                          IsUndoEnabled="False"
                          CaretBrush="Transparent"
                          TextAlignment="Center"
-                         PreviewKeyDown="HotkeyInputBox_PreviewKeyDown"
-                         PreviewMouseDown="HotkeyInputBox_PreviewMouseDown"
-                         PreviewMouseWheel="HotkeyInputBox_PreviewMouseWheel"
+                         x:Name="StartHotkeyInput"
+                         PreviewKeyDown="StartHotkeyInput_PreviewKeyDown"
+                         KeyDown="StartHotkeyInput_KeyDown"
+                         PreviewMouseDown="StartHotkeyInput_PreviewMouseDown"
+                         PreviewMouseUp="StartHotkeyInput_PreviewMouseUp"
+                         MouseDown="StartHotkeyInput_MouseDown"
                          GotFocus="HotkeyInputBox_GotFocus"
                          LostFocus="HotkeyInputBox_LostFocus"/>
             </DockPanel>
@@ -93,12 +99,13 @@
                 <TextBox Style="{StaticResource ModernTextBox}"
                          Tag="空"
                          IsReadOnly="True"
+                         Text="{Binding StopHotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                          IsUndoEnabled="False"
                          CaretBrush="Transparent"
                          TextAlignment="Center"
-                         PreviewKeyDown="HotkeyInputBox_PreviewKeyDown"
-                         PreviewMouseDown="HotkeyInputBox_PreviewMouseDown"
-                         PreviewMouseWheel="HotkeyInputBox_PreviewMouseWheel"
+                         x:Name="StopHotkeyInput"
+                         PreviewKeyDown="StopHotkeyInput_PreviewKeyDown"
+                         PreviewMouseDown="StopHotkeyInput_PreviewMouseDown"
                          GotFocus="HotkeyInputBox_GotFocus"
                          LostFocus="HotkeyInputBox_LostFocus"/>
             </DockPanel>
@@ -118,8 +125,13 @@
             <DockPanel Margin="0,0,0,10">
                 <TextBlock Text="按键间隔" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,5,0"/>
                 <TextBox Style="{StaticResource ModernTextBox}"
-                    Width="90"
-                    Text="50"/>
+                         Width="90"
+                         IsReadOnly="False"
+                         PreviewTextInput="NumberValidationTextBox"
+                         Text="{Binding KeyInterval, 
+                                Mode=TwoWay, 
+                                UpdateSourceTrigger=PropertyChanged,
+                                Converter={StaticResource IntToStringConverter}}"/>
             </DockPanel>
 
             <DockPanel>
