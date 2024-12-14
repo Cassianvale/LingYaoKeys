@@ -8,4 +8,4 @@
 - `dotnet publish -c Release -o ./publish`  
 
 ## 项目展示  
-![image](Resource\img\home.png)  
+![image](https://github.com/Cassianvale/jx3wpftools/raw/main/Resource/img/home.png)  
