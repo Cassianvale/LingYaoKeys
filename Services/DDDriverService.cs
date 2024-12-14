@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Windows;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace WpfApp.Services
 {
@@ -12,6 +13,10 @@ namespace WpfApp.Services
         private string? _loadedDllPath;
         private bool _isEnabled;
         private Timer? _timer;
+        private bool _isSequenceMode;
+        private List<DDKeyCode> _keyList = new List<DDKeyCode>();
+        private bool _isHoldMode;
+        private int _keyInterval = 50;
 
         public event EventHandler<bool>? InitializationStatusChanged;
         public event EventHandler<bool>? EnableStatusChanged;
@@ -24,6 +29,10 @@ namespace WpfApp.Services
             _isEnabled = false;
         }
 
+        // 添加公共属性用于检查初始化状态
+        public bool IsInitialized => _isInitialized;
+
+        // 修改 LoadDllFile 方法，添加更多状态检查
         public bool LoadDllFile(string dllPath)
         {
             try
@@ -43,16 +52,14 @@ namespace WpfApp.Services
                     return false;
                 }
 
-                // 等待一小段时间确保驱动加载完成
-                Thread.Sleep(100);
-
-                // 初始化驱动 - 不传入窗口句柄
-                if (_dd.btn == null)
+                // 检查驱动接口
+                if (_dd.btn == null || _dd.key == null)
                 {
                     MessageBox.Show("驱动接口未正确加载！", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
 
+                // 初始化驱动
                 ret = _dd.btn(0);
                 if (ret != 1)
                 {
@@ -63,6 +70,8 @@ namespace WpfApp.Services
                 _isInitialized = true;
                 _loadedDllPath = dllPath;
                 InitializationStatusChanged?.Invoke(this, true);
+                
+                System.Diagnostics.Debug.WriteLine($"驱动加载成功: {dllPath}");
                 return true;
             }
             catch (Exception ex)
@@ -78,19 +87,16 @@ namespace WpfApp.Services
             get => _isEnabled;
             set
             {
-                if (_isEnabled != value)
+                _isEnabled = value;
+                EnableStatusChanged?.Invoke(this, value);
+                
+                if (_isEnabled)
                 {
-                    _isEnabled = value;
-                    EnableStatusChanged?.Invoke(this, value);
-                    
-                    if (_isEnabled)
-                    {
-                        StartTimer();
-                    }
-                    else
-                    {
-                        StopTimer();
-                    }
+                    StartTimer();
+                }
+                else
+                {
+                    StopTimer();
                 }
             }
         }
@@ -99,7 +105,7 @@ namespace WpfApp.Services
         private void StartTimer()
         {
             _timer?.Dispose();
-            _timer = new Timer(TimerCallback, null, 0, 50); // 50ms 间隔
+            _timer = new Timer(TimerCallback, null, 0, 10);
         }
 
         // 停止定时器
@@ -113,8 +119,40 @@ namespace WpfApp.Services
         private void TimerCallback(object? state)
         {
             if (!_isEnabled || !_isInitialized) return;
-            
-            // 在这里添加定时执行的功能
+
+            // 使用同步方式执行按键
+            try 
+            {
+                if (_isSequenceMode)
+                {
+                    foreach (var keyCode in _keyList)
+                    {
+                        if (!_isEnabled) return;
+                        
+                        SendKey(keyCode, true);
+                        Thread.Sleep(_keyInterval);
+                        SendKey(keyCode, false);
+                        Thread.Sleep(_keyInterval);
+                    }
+                }
+                else if (_isHoldMode)
+                {
+                    foreach (var keyCode in _keyList)
+                    {
+                        if (!_isHoldMode) return;
+                        
+                        SendKey(keyCode, true);
+                        Thread.Sleep(_keyInterval);
+                        SendKey(keyCode, false);
+                        Thread.Sleep(_keyInterval);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"执行按键时发生错误：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                _isEnabled = false;
+            }
         }
 
         // 模拟按键组合（如Ctrl+Alt+Del）
@@ -240,6 +278,74 @@ namespace WpfApp.Services
         {
             _timer?.Dispose();
             // add dispose code here
+        }
+
+        // 添加属性用于设置按键模式和按键列表
+        public bool IsSequenceMode
+        {
+            get => _isSequenceMode;
+            set => _isSequenceMode = value;
+        }
+
+        public void SetKeyList(List<DDKeyCode> keyList)
+        {
+            _keyList = keyList ?? new List<DDKeyCode>();
+        }
+
+        public void SetKeyInterval(int interval)
+        {
+            _keyInterval = Math.Max(1, interval);
+        }
+
+        // 添加方法用于控制按压模式
+        public void SetHoldMode(bool isHold)
+        {
+            _isHoldMode = isHold;
+            if (!_isSequenceMode)
+            {
+                _isEnabled = isHold;
+                if (isHold)
+                {
+                    StartTimer();
+                }
+                else
+                {
+                    StopTimer();
+                }
+            }
+        }
+
+        // 添加验证方法
+        public bool ValidateDriver()
+        {
+            if (!_isInitialized)
+            {
+                MessageBox.Show("驱动未初始化！", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+
+            if (_dd.btn == null || _dd.key == null)
+            {
+                MessageBox.Show("驱动接口无效！", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+
+            // 测试基本功能
+            try
+            {
+                int ret = _dd.btn(0);
+                if (ret != 1)
+                {
+                    MessageBox.Show("驱动状态异常！", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"驱动验证失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
         }
     }
 

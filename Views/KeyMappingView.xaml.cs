@@ -423,5 +423,35 @@ namespace WpfApp.Views
         {
             e.Handled = !int.TryParse(e.Text, out _);
         }
+
+        private void HandleStartHotkey(bool isKeyDown)
+        {
+            if (ViewModel == null) return;
+            
+            if (ViewModel.SelectedKeyMode == 0) // 顺序模式
+            {
+                if (isKeyDown) // 按下时启动
+                {
+                    ViewModel.StartKeyMapping();
+                }
+            }
+            else // 按压模式
+            {
+                if (isKeyDown)
+                {
+                    ViewModel.StartKeyMapping();
+                    ViewModel.SetHoldMode(true);
+                }
+                else
+                {
+                    ViewModel.SetHoldMode(false);
+                }
+            }
+        }
+
+        private void HandleStopHotkey()
+        {
+            ViewModel?.StopKeyMapping();
+        }
     }
 } 

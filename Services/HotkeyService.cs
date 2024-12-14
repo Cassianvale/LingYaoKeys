@@ -19,18 +19,33 @@ namespace WpfApp.Services
         private const int HOTKEY_ID = 80;
         private IntPtr _windowHandle;
         private Window _mainWindow;
-        private HwndSource _source;
+        private HwndSource? _source;
         private bool _isRegistered;
 
         public event Action? HotkeyPressed;
+        public event Action? StartHotkeyPressed;
+        public event Action? StartHotkeyReleased;
+        public event Action? StopHotkeyPressed;
+
+        private const int START_HOTKEY_ID = 1;
+        private const int STOP_HOTKEY_ID = 2;
+
+        private DDKeyCode? _startHotkey;
+        private DDKeyCode? _stopHotkey;
 
         // 构造函数
         public HotkeyService(Window mainWindow)
         {
             _mainWindow = mainWindow;
+            // 等待窗口初始化完成后再初始化热键服务
+            _mainWindow.SourceInitialized += MainWindow_SourceInitialized;
+        }
+
+        private void MainWindow_SourceInitialized(object? sender, EventArgs e)
+        {
             _windowHandle = new WindowInteropHelper(_mainWindow).Handle;
             _source = HwndSource.FromHwnd(_windowHandle);
-            _source.AddHook(WndProc);
+            _source?.AddHook(WndProc);
         }
 
         // 注册快捷键
@@ -61,13 +76,33 @@ namespace WpfApp.Services
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
             const int WM_HOTKEY = 0x0312;
+            const int WM_KEYUP = 0x0101;
 
-            if (msg == WM_HOTKEY && wParam.ToInt32() == HOTKEY_ID)
+            if (msg == WM_HOTKEY)
             {
-                HotkeyPressed?.Invoke();
-                handled = true;
+                int id = wParam.ToInt32();
+                switch (id)
+                {
+                    case START_HOTKEY_ID:
+                        StartHotkeyPressed?.Invoke();
+                        handled = true;
+                        break;
+                    case STOP_HOTKEY_ID:
+                        StopHotkeyPressed?.Invoke();
+                        handled = true;
+                        break;
+                }
             }
-
+            else if (msg == WM_KEYUP)
+            {
+                int vkCode = wParam.ToInt32();
+                if (_startHotkey.HasValue && vkCode == (int)_startHotkey.Value)
+                {
+                    StartHotkeyReleased?.Invoke();
+                    handled = true;
+                }
+            }
+            
             return IntPtr.Zero;
         }
 
@@ -75,7 +110,26 @@ namespace WpfApp.Services
         public void Dispose()
         {
             UnregisterHotKey();
-            _source.RemoveHook(WndProc);
+            if (_source != null)
+            {
+                _source.RemoveHook(WndProc);
+                _source = null;
+            }
+            _mainWindow.SourceInitialized -= MainWindow_SourceInitialized;
+        }
+
+        public bool RegisterStartHotkey(DDKeyCode keyCode, ModifierKeys modifiers)
+        {
+            _startHotkey = keyCode;  // 保存开始热键
+            UnregisterHotKey(_windowHandle, START_HOTKEY_ID);
+            return RegisterHotKey(_windowHandle, START_HOTKEY_ID, (uint)modifiers, (uint)keyCode);
+        }
+
+        public bool RegisterStopHotkey(DDKeyCode keyCode, ModifierKeys modifiers)
+        {
+            _stopHotkey = keyCode;  // 保存停止热键
+            UnregisterHotKey(_windowHandle, STOP_HOTKEY_ID);
+            return RegisterHotKey(_windowHandle, STOP_HOTKEY_ID, (uint)modifiers, (uint)keyCode);
         }
     }
 } 

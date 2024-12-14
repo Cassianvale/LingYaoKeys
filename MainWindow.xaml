@@ -7,7 +7,7 @@
         xmlns:viewModels="clr-namespace:WpfApp.ViewModels"
         xmlns:views="clr-namespace:WpfApp.Views"
         mc:Ignorable="d"
-        Title="jx3wpf" Height="380" Width="450"
+        Title="jx3wpf" Height="400" Width="500"
         WindowStartupLocation="CenterScreen">
 
 

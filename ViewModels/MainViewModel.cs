@@ -17,6 +17,7 @@ namespace WpfApp.ViewModels
         private readonly Window _mainWindow;
         private readonly KeyMappingViewModel _keyMappingViewModel;
         private readonly SyncSettingsViewModel _syncSettingsViewModel;
+        private readonly HotkeyService _hotkeyService;
 
         public Page? CurrentPage
         {
@@ -30,11 +31,8 @@ namespace WpfApp.ViewModels
         {
             _ddDriver = ddDriver;
             _mainWindow = mainWindow;
-            
-            // 初始化子ViewModel
-            // 初始化键盘映射
-            _keyMappingViewModel = new KeyMappingViewModel(_ddDriver, App.ConfigService);
-            // 初始化同步设置
+            _hotkeyService = new HotkeyService(mainWindow);
+            _keyMappingViewModel = new KeyMappingViewModel(_ddDriver, App.ConfigService, _hotkeyService);
             _syncSettingsViewModel = new SyncSettingsViewModel();
             
             NavigateCommand = new RelayCommand<string>(Navigate);
@@ -55,7 +53,10 @@ namespace WpfApp.ViewModels
 
         public void Cleanup()
         {
-            // 清理资源
+            System.Diagnostics.Debug.WriteLine("开始清理资源...");
+            SaveConfig(); // 只在这里保存一次配置
+            _hotkeyService?.Dispose();
+            System.Diagnostics.Debug.WriteLine("资源清理完成");
         }
 
         public void SaveConfig()

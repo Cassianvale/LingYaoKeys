@@ -25,6 +25,7 @@ namespace WpfApp.ViewModels
         private int _selectedKeyMode;
         private ModifierKeys _startModifiers = ModifierKeys.None;
         private ModifierKeys _stopModifiers = ModifierKeys.None;
+        private readonly HotkeyService _hotkeyService;
 
         public ObservableCollection<KeyItem> KeyList
         {
@@ -83,10 +84,16 @@ namespace WpfApp.ViewModels
             }
         }
 
-        public KeyMappingViewModel(DDDriverService ddDriver, ConfigService configService)
+        public KeyMappingViewModel(DDDriverService ddDriver, ConfigService configService, HotkeyService hotkeyService)
         {
             _ddDriver = ddDriver;
             _configService = configService;
+            _hotkeyService = hotkeyService;
+
+            // 注册热键事件处理
+            _hotkeyService.StartHotkeyPressed += OnStartHotkeyPressed;
+            _hotkeyService.StartHotkeyReleased += OnStartHotkeyReleased;
+            _hotkeyService.StopHotkeyPressed += OnStopHotkeyPressed;
             
             // 设置跟踪监听器
             Trace.Listeners.Add(new TextWriterTraceListener("debug.log"));
@@ -132,8 +139,7 @@ namespace WpfApp.ViewModels
             _startHotkey = keyCode;
             _startModifiers = modifiers;
             UpdateHotkeyText(keyCode, modifiers, true);
-            
-            System.Diagnostics.Debug.WriteLine($"SetStartHotkey - 设置热键: {keyCode}, 修饰键: {modifiers}");
+            _hotkeyService.RegisterStartHotkey(keyCode, modifiers);
         }
 
         private void UpdateHotkeyText(DDKeyCode keyCode, ModifierKeys modifiers, bool isStart)
@@ -157,13 +163,10 @@ namespace WpfApp.ViewModels
 
         public void SetStopHotkey(DDKeyCode keyCode, ModifierKeys modifiers)
         {
-            System.Diagnostics.Debug.WriteLine($"keyCode 调用 停止热键: {keyCode}, modifiers: {modifiers}");
             _stopHotkey = keyCode;
             _stopModifiers = modifiers;
             UpdateHotkeyText(keyCode, modifiers, false);
-            
-            // 强制触发UI更新
-            OnPropertyChanged(nameof(StopHotkeyText));
+            _hotkeyService.RegisterStopHotkey(keyCode, modifiers);
         }
 
         private bool CanAddKey()
@@ -203,6 +206,61 @@ namespace WpfApp.ViewModels
                 KeyInterval,
                 true  // soundEnabled
             );
+        }
+
+        public void StartKeyMapping()
+        {
+            if (_ddDriver == null) return;
+            
+            // 设置按键列表
+            var keys = KeyList.Select(k => k.KeyCode).ToList();
+            _ddDriver.SetKeyList(keys);
+            
+            // 设置模式和间隔
+            _ddDriver.IsSequenceMode = SelectedKeyMode == 0; // 0为顺序模式
+            _ddDriver.SetKeyInterval(KeyInterval);
+            
+            // 启动服务
+            if (_ddDriver.IsSequenceMode)
+            {
+                _ddDriver.IsEnabled = true;
+            }
+        }
+
+        public void StopKeyMapping()
+        {
+            _ddDriver.IsEnabled = false;
+        }
+
+        public void SetHoldMode(bool isHold)
+        {
+            _ddDriver?.SetHoldMode(isHold);
+        }
+
+        private void OnStartHotkeyPressed()
+        {
+            if (SelectedKeyMode == 0) // 顺序模式
+            {
+                StartKeyMapping();
+            }
+            else // 按压模式
+            {
+                StartKeyMapping();
+                SetHoldMode(true);
+            }
+        }
+
+        private void OnStartHotkeyReleased()
+        {
+            if (SelectedKeyMode == 1) // 按压模式
+            {
+                SetHoldMode(false);
+            }
+        }
+
+        private void OnStopHotkeyPressed()
+        {
+            StopKeyMapping();
         }
     }
 } 

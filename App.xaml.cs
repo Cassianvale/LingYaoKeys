@@ -21,7 +21,15 @@ namespace WpfApp
         {
             base.OnStartup(e);
             
-            // 只创建和显示主窗口，驱动初始化移到窗口Loaded事件中
+            // 先初始化驱动
+            if (!InitializeDriver())
+            {
+                MessageBox.Show("驱动初始化失败，程序将退出！", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                Shutdown();
+                return;
+            }
+            
+            // 驱动初始化成功后再创建主窗口
             var mainWindow = new MainWindow();
             mainWindow.Show();
         }
@@ -113,30 +121,14 @@ namespace WpfApp
         {
             try
             {
-                // 保存配置
-                if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
-                {
-                    System.Diagnostics.Debug.WriteLine("应用程序退出时保存配置");
-                    mainViewModel.SaveConfig();
-                }
-                
-                // 清理资源
+                // 清理驱动资源
+                System.Diagnostics.Debug.WriteLine("开始释放驱动资源...");
                 DDDriver.Dispose();
+                System.Diagnostics.Debug.WriteLine("驱动资源已释放");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"应用程序退出时发生错误：{ex.Message}");
-            }
-        }
-
-        protected override void OnExit(ExitEventArgs e)
-        {
-            base.OnExit(e);
-            
-            // 保存配置
-            if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
-            {
-                mainViewModel.SaveConfig();
             }
         }
     }

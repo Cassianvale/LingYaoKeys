@@ -12,6 +12,8 @@
             </ResourceDictionary.MergedDictionaries>
             
             <converters:IntToStringConverter x:Key="IntToStringConverter"/>
+            <!-- <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
+            <converters:BoolToStatusTextConverter x:Key="BoolToStatusTextConverter"/> -->
         </ResourceDictionary>
     </Application.Resources>
 </Application>
