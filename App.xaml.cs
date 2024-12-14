@@ -33,7 +33,7 @@ namespace WpfApp
             string dllName = GetDriverFileName();
             if (string.IsNullOrEmpty(dllName))
             {
-                MessageBox.Show("不支持的理器架构", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("不支持的处理器架构", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
 
