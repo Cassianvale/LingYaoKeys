@@ -103,7 +103,35 @@ namespace WpfApp.Services
             { DDKeyCode.RBUTTON, "RBUTTON" },
             { DDKeyCode.MBUTTON, "MBUTTON" },
             { DDKeyCode.XBUTTON1, "XBUTTON1" },
-            { DDKeyCode.XBUTTON2, "XBUTTON2" }
+            { DDKeyCode.XBUTTON2, "XBUTTON2" },
+
+            // 字母区
+            { DDKeyCode.A, "A" },
+            { DDKeyCode.B, "B" },
+            { DDKeyCode.C, "C" },
+            { DDKeyCode.D, "D" },
+            { DDKeyCode.E, "E" },
+            { DDKeyCode.F, "F" },
+            { DDKeyCode.G, "G" },
+            { DDKeyCode.H, "H" },
+            { DDKeyCode.I, "I" },
+            { DDKeyCode.J, "J" },
+            { DDKeyCode.K, "K" },
+            { DDKeyCode.L, "L" },
+            { DDKeyCode.M, "M" },
+            { DDKeyCode.N, "N" },
+            { DDKeyCode.O, "O" },
+            { DDKeyCode.P, "P" },
+            { DDKeyCode.Q, "Q" },
+            { DDKeyCode.R, "R" },
+            { DDKeyCode.S, "S" },
+            { DDKeyCode.T, "T" },
+            { DDKeyCode.U, "U" },
+            { DDKeyCode.V, "V" },
+            { DDKeyCode.W, "W" },
+            { DDKeyCode.X, "X" },
+            { DDKeyCode.Y, "Y" },
+            { DDKeyCode.Z, "Z" }
         };
 
         // 获取显示名称

@@ -189,8 +189,7 @@ namespace WpfApp.Services
                 return DDKeyCode.None;
             }
         }
-
-        public static bool IsValidDDKeyCode(DDKeyCode keyCode)
+                public static bool IsValidDDKeyCode(DDKeyCode keyCode)
         {
             try
             {
@@ -210,12 +209,10 @@ namespace WpfApp.Services
                     1 or 4 or 16 or 64 or 256 => true, // 鼠标按键
                     _ => false
                 };
-
                 if (!isValid)
                 {
                     System.Diagnostics.Debug.WriteLine($"无效的DD键码: {keyCode} ({code})");
                 }
-
                 return isValid;
             }
             catch (Exception ex)

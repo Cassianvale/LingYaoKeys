@@ -64,10 +64,12 @@ namespace WpfApp.Services
                 if (ret != 1)
                 {
                     System.Diagnostics.Debug.WriteLine("驱动初始化失败");
+                    MessageBox.Show("驱动初始化失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    SendStatusMessage("驱动初始化失败", true);
                     return false;
                 }
 
-                // 4. 设置初始化标志
+                // 5. 设置初始化标志
                 _isInitialized = true;
                 _loadedDllPath = dllPath;
                 InitializationStatusChanged?.Invoke(this, true);
@@ -154,18 +156,15 @@ namespace WpfApp.Services
         {
             if (!_isEnabled || !_isInitialized) return;
 
-            try
+            try 
             {
                 if (_isSequenceMode)
                 {
-                    // 顺序模式
                     foreach (var keyCode in _keyList)
                     {
                         if (!_isEnabled) break;
-
                         System.Diagnostics.Debug.WriteLine($"发送按键: {keyCode} ({(int)keyCode})");
                         
-                        // 按下
                         if (!SendKey(keyCode, true))
                         {
                             System.Diagnostics.Debug.WriteLine($"按键按下失败: {keyCode}");
@@ -173,7 +172,6 @@ namespace WpfApp.Services
                         }
                         Thread.Sleep(_keyInterval);
                         
-                        // 释放
                         if (!SendKey(keyCode, false))
                         {
                             System.Diagnostics.Debug.WriteLine($"按键释放失败: {keyCode}");
@@ -183,18 +181,20 @@ namespace WpfApp.Services
                 }
                 else if (_isHoldMode)
                 {
-                    // 按压模式
                     foreach (var keyCode in _keyList)
                     {
                         if (!_isEnabled) break;
                         SendKey(keyCode, true);
+
                     }
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"定时器回调异常: {ex}");
+
                 _isEnabled = false;
+
             }
         }
 
@@ -367,29 +367,31 @@ namespace WpfApp.Services
                     System.Diagnostics.Debug.WriteLine($"无效的DD键码: {keyCode} ({(int)keyCode})");
                     return false;
                 }
-
                 int ddCode = (int)keyCode;
                 System.Diagnostics.Debug.WriteLine($"发送按键 - DD键码: {keyCode} ({ddCode}), 状态: {(isKeyDown ? "按下" : "释放")}");
-
                 // 确保驱动就绪
                 if (!ValidateDriver())
                 {
                     System.Diagnostics.Debug.WriteLine("驱动状态验证失败");
                     return false;
                 }
-
+                // 直接使用DD键码
                 int ret = _dd.key(ddCode, isKeyDown ? 1 : 2);
+
                 if (ret != 1)
                 {
                     System.Diagnostics.Debug.WriteLine($"按键操作失败 - 返回值: {ret}");
+                    SendStatusMessage($"按键操作失败: {keyCode}", true);
                     return false;
                 }
 
+                System.Diagnostics.Debug.WriteLine($"按键操作成功 - DD键码: {(int)keyCode}");
                 return true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"按键操作异常: {ex}");
+                System.Diagnostics.Debug.WriteLine($"按键操作异常：{ex}");
+                SendStatusMessage($"按键操作异常: {ex.Message}", true);
                 return false;
             }
         }
@@ -587,13 +589,13 @@ namespace WpfApp.Services
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"执行按键序列���常: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"执行按键序列异常: {ex.Message}");
                     break;
                 }
             }
         }
 
-        // 新增：检查动状态
+        // 新增：检查驱动是否就绪
         public bool IsReady => _isInitialized && _dd.key != null;
 
         // 将Windows虚拟键码转换为DD键码
