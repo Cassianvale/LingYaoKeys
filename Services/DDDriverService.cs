@@ -3,6 +3,7 @@ using System.Threading;
 using System.Windows;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.IO;
 
 // 封装CDD驱动服务
 namespace WpfApp.Services
@@ -48,12 +49,23 @@ namespace WpfApp.Services
                     _isInitialized = false;
                 }
 
-                // 2. 直接调用Load方法并检查返回值
-                System.Diagnostics.Debug.WriteLine("调用DD.Load()...");
-                int ret = _dd.Load(dllPath);
+                // 2. 根据系统架构选择正确的dll
+                string ddDllPath;
+                if (IntPtr.Size == 8)
+                {
+                    ddDllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dd", "ddx64.dll");
+                }
+                else
+                {
+                    ddDllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dd", "ddx32.dll");
+                }
+
+                System.Diagnostics.Debug.WriteLine($"使用驱动文件: {ddDllPath}");
+
+                // 3. 加载驱动
+                int ret = _dd.Load(ddDllPath);
                 System.Diagnostics.Debug.WriteLine($"DD.Load()返回值: {ret}");
                 
-                // 检查返回值
                 if (ret != 1)
                 {
                     string errorMsg = ret switch
@@ -68,9 +80,19 @@ namespace WpfApp.Services
                     return false;
                 }
 
-                // 3. 如果Load成功，设置初始化标志
+                // 4. 初始化驱动
+                ret = _dd.btn(0);
+                if (ret != 1)
+                {
+                    System.Diagnostics.Debug.WriteLine("驱动初始化失败");
+                    MessageBox.Show("驱动初始化失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    SendStatusMessage("驱动初始化失败", true);
+                    return false;
+                }
+
+                // 5. 设置初始化标志
                 _isInitialized = true;
-                _loadedDllPath = dllPath;
+                _loadedDllPath = ddDllPath;
                 InitializationStatusChanged?.Invoke(this, true);
                 
                 SendStatusMessage("驱动加载成功");
@@ -153,7 +175,7 @@ namespace WpfApp.Services
             _timer = null;
         }
 
-        // 定时器��调
+        // 定时器回调
         private void TimerCallback(object? state)
         {
             if (!_isEnabled || !_isInitialized) return;
@@ -308,7 +330,7 @@ namespace WpfApp.Services
             }
         }
 
-        // 鼠标移动(绝对坐标)���以屏幕左上角为原点
+        // 鼠标移动(绝对坐标)以屏幕左上角为原点
         public bool MoveMouse(int x, int y)
         {
             if (!_isInitialized || _dd.mov == null)
@@ -348,7 +370,7 @@ namespace WpfApp.Services
                 int ret = _dd.whl(isForward ? 1 : 2);
                 if (ret != 1)
                 {
-                    System.Diagnostics.Debug.WriteLine($"鼠标滚轮操作失败，返回值��{ret}");
+                    System.Diagnostics.Debug.WriteLine($"鼠标滚轮操作失败，返回值：{ret}");
                     return false;
                 }
                 return true;
@@ -371,38 +393,18 @@ namespace WpfApp.Services
 
             try
             {
-                // 添加详细的日志
                 System.Diagnostics.Debug.WriteLine($"准备发送按键 - DD键码: {keyCode} ({(int)keyCode}), 状态: {(isKeyDown ? "按下" : "释放")}");
 
-                // 尝试转换为Windows虚拟键码
-                int vkCode = 0;
-                foreach (var pair in KeyCodeMapping.VirtualToDDKeyMap)
-                {
-                    if (pair.Value == keyCode)
-                    {
-                        vkCode = pair.Key;
-                        break;
-                    }
-                }
-
-                if (vkCode == 0)
-                {
-                    System.Diagnostics.Debug.WriteLine($"无法找到对应的虚拟键码: {keyCode}");
-                    return false;
-                }
-
-                System.Diagnostics.Debug.WriteLine($"转换后的虚拟键码: 0x{vkCode:X2}");
-
-                // 使用虚拟键码调用驱动
-                int ret = _dd.key(vkCode, isKeyDown ? 1 : 2);
+                // 直接使用DD键码
+                int ret = _dd.key((int)keyCode, isKeyDown ? 1 : 2);
                 if (ret != 1)
                 {
-                    System.Diagnostics.Debug.WriteLine($"按键操作失败，虚拟键码：0x{vkCode:X2}，状态：{(isKeyDown ? "按下" : "释放")}，返回值：{ret}");
+                    System.Diagnostics.Debug.WriteLine($"按键操作失败，DD键码：{(int)keyCode}，状态：{(isKeyDown ? "按下" : "释放")}，返回值：{ret}");
                     SendStatusMessage($"按键操作失败: {keyCode}", true);
                     return false;
                 }
 
-                System.Diagnostics.Debug.WriteLine($"按键操作成功 - 虚拟键码: 0x{vkCode:X2}");
+                System.Diagnostics.Debug.WriteLine($"按键操作成功 - DD键码: {(int)keyCode}");
                 return true;
             }
             catch (Exception ex)
@@ -534,7 +536,7 @@ namespace WpfApp.Services
                 await Task.Delay(50);
                 SendKey(keyCode, false);
 
-                // 释放所有修饰键(反序)
+                // ���放所有修饰键(反序)
                 for (int i = modifierKeys.Count - 1; i >= 0; i--)
                 {
                     SendKey(modifierKeys[i], false);
@@ -612,7 +614,7 @@ namespace WpfApp.Services
             }
         }
 
-        // 新增：检查驱动状态
+        // 新增：检查��动状态
         public bool IsReady => _isInitialized && _dd.key != null;
 
         // 将Windows虚拟键码转换为DD键码

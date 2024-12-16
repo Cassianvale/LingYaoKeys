@@ -37,9 +37,6 @@ namespace WpfApp.Services
         private const int START_HOTKEY_ID = 1;
         private const int STOP_HOTKEY_ID = 2;
 
-        private DDKeyCode? _startHotkey;
-        private DDKeyCode? _stopHotkey;
-
         private bool _isSequenceRunning;
         private DDDriverService _ddDriverService;
 

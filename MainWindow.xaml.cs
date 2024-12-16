@@ -28,7 +28,6 @@ namespace WpfApp
             InitializeComponent();
 
             // 添加调试信息
-            System.Diagnostics.Debug.WriteLine($"MainWindow初始化 - 实际尺寸: {Width}x{Height}");
             System.Diagnostics.Debug.WriteLine($"MainWindow初始化 - 配置尺寸: {_viewModel.Config.UI.MainWindow.DefaultWidth}x{_viewModel.Config.UI.MainWindow.DefaultHeight}");
 
             // 窗口加载完成后再次检查尺寸

@@ -100,7 +100,6 @@ namespace WpfApp.Services
                     { 0x6A, DDKeyCode.NUMPAD_MULTIPLY }, // Num *
                     { 0x6D, DDKeyCode.NUMPAD_MINUS },    // Num -
                     { 0x6B, DDKeyCode.NUMPAD_PLUS },     // Num +
-                    // 移除重复的 ENTER 映射，使用不同的键码
                     { 0x6E, DDKeyCode.NUMPAD_DECIMAL },  // Num .
 
                     // 鼠标按键

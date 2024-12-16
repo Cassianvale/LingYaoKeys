@@ -205,6 +205,7 @@ namespace WpfApp.ViewModels
 
         public void SetCurrentKey(DDKeyCode keyCode)
         {
+            System.Diagnostics.Debug.WriteLine($"设置当前按键: {keyCode}");
             _currentKey = keyCode;
             CurrentKeyText = keyCode.ToDisplayName();
         }
@@ -293,7 +294,13 @@ namespace WpfApp.ViewModels
 
         private void AddKey()
         {
-            if (!_currentKey.HasValue) return;
+            System.Diagnostics.Debug.WriteLine($"尝试添加按键，当前按键: {_currentKey}");
+            
+            if (!_currentKey.HasValue)
+            {
+                System.Diagnostics.Debug.WriteLine("当前按键为空，无法添加");
+                return;
+            }
 
             if (_startHotkey.HasValue && _currentKey.Value == _startHotkey.Value)
             {
@@ -314,9 +321,6 @@ namespace WpfApp.ViewModels
             }
 
             KeyList.Add(new KeyItem(_currentKey.Value));
-            _currentKey = null;
-            CurrentKeyText = string.Empty;
-            System.Diagnostics.Debug.WriteLine($"添加按键到列表: {_currentKey}");
         }
 
         private void DeleteSelectedKeys()
