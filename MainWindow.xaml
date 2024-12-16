@@ -38,3 +38,4 @@
                Content="{Binding CurrentPage}" />
     </Grid>
 </Window>
+

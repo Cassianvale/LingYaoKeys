@@ -53,6 +53,12 @@ namespace WpfApp.Services
         private DDKeyCode? _startDDKey;
         private DDKeyCode? _stopDDKey;
 
+        // 修改常量定义
+        private const int MOD_ALT = 0x0001;
+        private const int MOD_CONTROL = 0x0002;
+        private const int MOD_SHIFT = 0x0004;
+        private const int MOD_NOREPEAT = 0x4000;  // 添加此标志防止按键重复
+
         // 构造函数
         public HotkeyService(Window mainWindow, DDDriverService ddDriverService)
         {
@@ -101,7 +107,7 @@ namespace WpfApp.Services
 
                 if (!_isRegistered)
                 {
-                    MessageBox.Show("热键注册失败，可能被其他程序占用", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("热键注册失败，可能被他程序占用", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
 
                 return _isRegistered;
@@ -134,44 +140,37 @@ namespace WpfApp.Services
         {
             const int WM_HOTKEY = 0x0312;
             
-            // 添加日志确认消息循环是否正常运行
             if (msg == WM_HOTKEY)
             {
-                System.Diagnostics.Debug.WriteLine($"WndProc - 收到热键消息: {DateTime.Now}");
-            }
-
-            if (msg == WM_HOTKEY)
-            {
-                System.Diagnostics.Debug.WriteLine("收到热键消息");
+                System.Diagnostics.Debug.WriteLine($"WndProc - 收到热键消息: wParam={wParam.ToInt32()}, lParam={lParam.ToInt32():X}");
                 int id = wParam.ToInt32();
-                switch (id)
-                {
-                    case START_HOTKEY_ID:
-                        System.Diagnostics.Debug.WriteLine("收到开始热键");
-                        // 使用同步方式处理按键
-                        if (_startDDKey.HasValue)
-                        {
-                            while (IsKeyPressed(_startDDKey.Value))
-                            {
-                                if (!_isSequenceRunning)
-                                {
-                                    StartSequence();
-                                }
-                                Thread.Sleep(100); // 降低CPU使用率
-                            }
-                            if (_isSequenceRunning)
-                            {
-                                StopSequence();
-                            }
-                        }
-                        handled = true;
-                        break;
 
-                    case STOP_HOTKEY_ID:
-                        System.Diagnostics.Debug.WriteLine("收到停止热键");
-                        StopSequence();
-                        handled = true;
-                        break;
+                try
+                {
+                    switch (id)
+                    {
+                        case START_HOTKEY_ID:
+                            System.Diagnostics.Debug.WriteLine("收到开始热键，开始序列");
+                            // 先触发事件，再启动序列
+                            StartHotkeyPressed?.Invoke();
+                            if (!_isSequenceRunning)
+                            {
+                                StartSequence();
+                            }
+                            handled = true;
+                            break;
+
+                        case STOP_HOTKEY_ID:
+                            System.Diagnostics.Debug.WriteLine("收到停止热键，停止序列");
+                            StopSequence();
+                            StopHotkeyPressed?.Invoke();
+                            handled = true;
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"处理热键消息异常: {ex}");
                 }
             }
             
@@ -195,18 +194,11 @@ namespace WpfApp.Services
         {
             try
             {
-                // 添加更多日志
-                System.Diagnostics.Debug.WriteLine($"注册热键 - 窗口句柄: {_windowHandle:X}");
+                System.Diagnostics.Debug.WriteLine($"注册开始热键 - 窗口句柄: {_windowHandle:X}");
 
                 if (_windowHandle == IntPtr.Zero)
                 {
                     System.Diagnostics.Debug.WriteLine("窗口句柄无效");
-                    return false;
-                }
-
-                if (ddKeyCode == DDKeyCode.None)
-                {
-                    System.Diagnostics.Debug.WriteLine("无效的DD键码");
                     return false;
                 }
 
@@ -222,33 +214,29 @@ namespace WpfApp.Services
 
                 _startDDKey = ddKeyCode;
                 
-                // 注册新热键
-                uint modifierFlags = 0;
-                if (modifiers.HasFlag(ModifierKeys.Alt)) modifierFlags |= 0x0001;     // MOD_ALT
-                if (modifiers.HasFlag(ModifierKeys.Control)) modifierFlags |= 0x0002; // MOD_CONTROL
-                if (modifiers.HasFlag(ModifierKeys.Shift)) modifierFlags |= 0x0004;   // MOD_SHIFT
-                if (modifiers.HasFlag(ModifierKeys.Windows)) modifierFlags |= 0x0008; // MOD_WIN
+                // 转换修饰键
+                uint modifierFlags = MOD_NOREPEAT;  // 添加防重复标志
+                if (modifiers.HasFlag(ModifierKeys.Alt)) modifierFlags |= MOD_ALT;
+                if (modifiers.HasFlag(ModifierKeys.Control)) modifierFlags |= MOD_CONTROL;
+                if (modifiers.HasFlag(ModifierKeys.Shift)) modifierFlags |= MOD_SHIFT;
 
+                // 注册热键
                 bool result = RegisterHotKey(_windowHandle, START_HOTKEY_ID, modifierFlags, (uint)_startVirtualKey);
                 
-                System.Diagnostics.Debug.WriteLine($"注册热键结果: 句柄=0x{_windowHandle:X}, ID={START_HOTKEY_ID}, " +
+                System.Diagnostics.Debug.WriteLine($"注册开始热键结果: ID={START_HOTKEY_ID}, " +
                     $"修饰键=0x{modifierFlags:X2}, 虚拟键码=0x{_startVirtualKey:X2}, 结果={result}");
-                
+
                 if (!result)
                 {
                     int error = Marshal.GetLastWin32Error();
                     System.Diagnostics.Debug.WriteLine($"注册热键失败，错误码: {error}");
                 }
-                
-                if (result)
-                {
-                    System.Diagnostics.Debug.WriteLine("热键注册成功");
-                }
+
                 return result;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"注册热键失败: {ex}");
+                System.Diagnostics.Debug.WriteLine($"注册开始热键异常: {ex}");
                 return false;
             }
         }
@@ -281,18 +269,25 @@ namespace WpfApp.Services
         // 新增方法：手动触发按键
         public async Task TriggerKeyAsync(DDKeyCode keyCode)
         {
-            if (!_isSequenceRunning)
-            {
-                System.Diagnostics.Debug.WriteLine($"序列未运行，忽略按键: {keyCode}");
-                return;
-            }
-
             try
             {
                 System.Diagnostics.Debug.WriteLine($"开始触发按键: {keyCode}");
                 KeyTriggered?.Invoke(keyCode);
-                bool result = await Task.Run(() => _ddDriverService.SimulateKeyPress(keyCode));
-                System.Diagnostics.Debug.WriteLine($"按键触发{(result ? "成功" : "失败")}: {keyCode}");
+                
+                // 按下按键
+                bool pressResult = await Task.Run(() => _ddDriverService.SendKey(keyCode, true));
+                if (!pressResult)
+                {
+                    System.Diagnostics.Debug.WriteLine($"按键按下失败: {keyCode}");
+                    return;
+                }
+                
+                // 等待一小段时间
+                await Task.Delay(50);
+                
+                // 释放按键
+                bool releaseResult = await Task.Run(() => _ddDriverService.SendKey(keyCode, false));
+                System.Diagnostics.Debug.WriteLine($"按键触发{(releaseResult ? "成功" : "失败")}: {keyCode}");
             }
             catch (Exception ex)
             {
@@ -327,24 +322,29 @@ namespace WpfApp.Services
         // 新增：启动序列
         private async void StartSequence()
         {
-            if (_isSequenceRunning || _keyList.Count == 0) return;
-
-            _isSequenceRunning = true;
-            SequenceModeStarted?.Invoke();
-            System.Diagnostics.Debug.WriteLine($"开始序列，按键数量: {_keyList.Count}, 间隔: {_keyInterval}ms");
-            _sequenceCts = new CancellationTokenSource();
-
             try
             {
-                while (!_sequenceCts.Token.IsCancellationRequested && IsKeyPressed(_startDDKey.Value))
+                if (_isSequenceRunning || _keyList.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("序列已在运行或按键列表为空");
+                    return;
+                }
+
+                _isSequenceRunning = true;
+                SequenceModeStarted?.Invoke();
+                System.Diagnostics.Debug.WriteLine($"开始序列，按键数量: {_keyList.Count}, 间隔: {_keyInterval}ms");
+                _sequenceCts = new CancellationTokenSource();
+
+                while (!_sequenceCts.Token.IsCancellationRequested)
                 {
                     foreach (var ddKeyCode in _keyList)
                     {
-                        if (_sequenceCts.Token.IsCancellationRequested || !IsKeyPressed(_startDDKey.Value))
+                        if (_sequenceCts.Token.IsCancellationRequested)
                         {
                             break;
                         }
                         
+                        System.Diagnostics.Debug.WriteLine($"触发按键: {ddKeyCode}");
                         await TriggerKeyAsync(ddKeyCode);
                         await Task.Delay(_keyInterval, _sequenceCts.Token);
                     }
@@ -362,6 +362,7 @@ namespace WpfApp.Services
             {
                 _isSequenceRunning = false;
                 SequenceModeStopped?.Invoke();
+                System.Diagnostics.Debug.WriteLine("序列已停止");
             }
         }
 
@@ -417,6 +418,20 @@ namespace WpfApp.Services
                 System.Diagnostics.Debug.WriteLine($"转换DD键码时发生异常: {ex.Message}");
                 return 0;
             }
+        }
+
+        // 添加新方法用于检查热键状态
+        private bool IsHotkeyPressed(int hotkeyId)
+        {
+            if (hotkeyId == START_HOTKEY_ID && _startDDKey.HasValue)
+            {
+                return IsKeyPressed(_startDDKey.Value);
+            }
+            else if (hotkeyId == STOP_HOTKEY_ID && _stopDDKey.HasValue)
+            {
+                return IsKeyPressed(_stopDDKey.Value);
+            }
+            return false;
         }
     }
 }

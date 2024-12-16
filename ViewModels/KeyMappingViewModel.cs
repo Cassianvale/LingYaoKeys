@@ -7,6 +7,7 @@ using WpfApp.Commands;
 using System.Text;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Windows;
 
 namespace WpfApp.ViewModels
 {
@@ -108,12 +109,48 @@ namespace WpfApp.ViewModels
             _configService = configService;
             _hotkeyService = hotkeyService;
 
-            // 注册热键事件处理
-            _hotkeyService.StartHotkeyPressed += OnStartHotkeyPressed;
-            _hotkeyService.StartHotkeyReleased += OnStartHotkeyReleased;
-            _hotkeyService.StopHotkeyPressed += OnStopHotkeyPressed;
+            // 修改热键事件处理
+            _hotkeyService.StartHotkeyPressed += () =>
+            {
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine("收到开始热键事件");
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        System.Diagnostics.Debug.WriteLine($"处理开始热键 - 当前模式: {SelectedKeyMode}");
+                        StartKeyMapping();
+                        IsHotkeyEnabled = true;
+                        System.Diagnostics.Debug.WriteLine("热键处理完成");
+                    });
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"处理开始热键异常: {ex}");
+                }
+            };
+
+            _hotkeyService.StartHotkeyReleased += () =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    if (SelectedKeyMode == 1) // 按压模式
+                    {
+                        SetHoldMode(false);
+                    }
+                    IsHotkeyEnabled = false;
+                });
+            };
+
+            _hotkeyService.StopHotkeyPressed += () =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    StopKeyMapping();
+                    IsHotkeyEnabled = false;
+                });
+            };
             
-            // 设置跟踪监听器
+            // 设置踪监听器
             Trace.Listeners.Add(new TextWriterTraceListener("debug.log"));
             Trace.AutoFlush = true;
             
@@ -242,57 +279,45 @@ namespace WpfApp.ViewModels
 
         public void StartKeyMapping()
         {
-            if (_ddDriver == null) return;
-            
-            // 设置按键列表
-            var keys = KeyList.Select(k => k.KeyCode).ToList();
-            _ddDriver.SetKeyList(keys);
-            
-            // 设置模式和间隔
-            _ddDriver.IsSequenceMode = SelectedKeyMode == 0; // 0为顺序模式
-            _ddDriver.SetKeyInterval(KeyInterval);
-            
-            // 启动服务
-            if (_ddDriver.IsSequenceMode)
+            try
             {
-                _ddDriver.IsEnabled = true;
+                if (_ddDriver == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("DDDriver 为空");
+                    return;
+                }
+                
+                System.Diagnostics.Debug.WriteLine("开始按键映射");
+                
+                // 获取选中的按键
+                var keys = KeyList.Select(k => k.KeyCode).ToList();
+                System.Diagnostics.Debug.WriteLine($"按键列表数量: {keys.Count}");
+                
+                if (keys.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("按键列表为空，无法启动映射");
+                    return;
+                }
+                
+                // 设置热键服务的按键序列
+                _hotkeyService.SetKeySequence(keys, KeyInterval);
+                
+                System.Diagnostics.Debug.WriteLine($"按键映射已准备: 模式={SelectedKeyMode}, 间隔={KeyInterval}ms");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"启动按键映射异常: {ex}");
             }
         }
 
         public void StopKeyMapping()
         {
-            _ddDriver.IsEnabled = false;
+            _hotkeyService.StopSequence();
         }
 
         public void SetHoldMode(bool isHold)
         {
             _ddDriver?.SetHoldMode(isHold);
-        }
-
-        private void OnStartHotkeyPressed()
-        {
-            if (SelectedKeyMode == 0) // 顺序模式
-            {
-                StartKeyMapping();
-            }
-            else // 按压模式
-            {
-                StartKeyMapping();
-                SetHoldMode(true);
-            }
-        }
-
-        private void OnStartHotkeyReleased()
-        {
-            if (SelectedKeyMode == 1) // 按压模式
-            {
-                SetHoldMode(false);
-            }
-        }
-
-        private void OnStopHotkeyPressed()
-        {
-            StopKeyMapping();
         }
     }
 } 
