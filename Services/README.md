@@ -73,3 +73,14 @@ Dim ddcode As int32 = DD_todc(27);
 功能： 直接输入键盘上可见字符和空格  
 参数： 字符串, (注意，这个参数不是int32 类型)  
 例子： DD_str("MyEmail@aa.bb.cc !@#$")  
+
+
+1. 用户按下物理按键
+2. WPF捕获并转换为Key枚举值
+3. KeyCodeMapping将WPF Key转换为DD键码
+4. 验证DD键码有效性
+5. DDDriverService检查驱动状态
+6. 转换为整数键码
+7. 调用DD驱动的key函数
+8. DD驱动执行按键操作
+9. 返回执行结果
