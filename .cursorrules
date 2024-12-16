@@ -132,7 +132,6 @@ Adjust analysis depth based on:
 - Must use MVVM mode to ensure separation of view and logic
 - Must use XAML to unify style
 - For smaller components, you must use inline functions, but separate complex logic into code-behind or service classes
-- For asynchronous operations, you need to use async/await to ensure non-blocking UI operations
 - If necessary, use dependency injection to manage services to reduce coupling between classes
 - Please use WPF controls instead of WinForms controls
 - The code must be unit tested to ensure its stability

@@ -145,6 +145,18 @@
                     HorizontalAlignment="Right"
                     Content="其他设置" />
             </DockPanel>
+
+            <!-- 添加状态显示 -->
+            <Border 
+                Margin="0,10,0,10" 
+                Padding="8,4" 
+                CornerRadius="4"
+                Background="{Binding IsHotkeyEnabled, Converter={StaticResource BoolToColorConverter}}">
+                <TextBlock 
+                    Text="{Binding HotkeyStatus}" 
+                    Foreground="White"
+                    FontWeight="Medium"/>
+            </Border>
         </StackPanel>
     </Grid>
 </Page> 

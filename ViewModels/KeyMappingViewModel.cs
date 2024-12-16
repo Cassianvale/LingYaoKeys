@@ -26,6 +26,8 @@ namespace WpfApp.ViewModels
         private ModifierKeys _startModifiers = ModifierKeys.None;
         private ModifierKeys _stopModifiers = ModifierKeys.None;
         private readonly HotkeyService _hotkeyService;
+        private bool _isHotkeyEnabled;
+        private string _hotkeyStatus;
 
         public ObservableCollection<KeyItem> KeyList
         {
@@ -84,6 +86,22 @@ namespace WpfApp.ViewModels
             }
         }
 
+        public bool IsHotkeyEnabled
+        {
+            get => _isHotkeyEnabled;
+            set
+            {
+                SetProperty(ref _isHotkeyEnabled, value);
+                HotkeyStatus = value ? "热键已启用" : "热键已禁用";
+            }
+        }
+
+        public string HotkeyStatus
+        {
+            get => _hotkeyStatus;
+            set => SetProperty(ref _hotkeyStatus, value);
+        }
+
         public KeyMappingViewModel(DDDriverService ddDriver, ConfigService configService, HotkeyService hotkeyService)
         {
             _ddDriver = ddDriver;
@@ -126,6 +144,20 @@ namespace WpfApp.ViewModels
 
             AddKeyCommand = new RelayCommand(AddKey, CanAddKey);
             DeleteSelectedKeysCommand = new RelayCommand(DeleteSelectedKeys);
+
+            IsHotkeyEnabled = false;
+            HotkeyStatus = "热键已禁用";
+
+            // 订阅热键服务的事件
+            _hotkeyService.SequenceModeStarted += () =>
+            {
+                IsHotkeyEnabled = true;
+            };
+
+            _hotkeyService.SequenceModeStopped += () =>
+            {
+                IsHotkeyEnabled = false;
+            };
         }
 
         public void SetCurrentKey(DDKeyCode keyCode)

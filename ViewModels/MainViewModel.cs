@@ -7,6 +7,7 @@ using System.IO;
 using System.Threading;
 using WpfApp.Services;
 using WpfApp.ViewModels;
+using System.Diagnostics;
 
 namespace WpfApp.ViewModels
 {
@@ -31,7 +32,7 @@ namespace WpfApp.ViewModels
         {
             _ddDriver = ddDriver;
             _mainWindow = mainWindow;
-            _hotkeyService = new HotkeyService(mainWindow);
+            _hotkeyService = new HotkeyService(mainWindow, ddDriver);
             _keyMappingViewModel = new KeyMappingViewModel(_ddDriver, App.ConfigService, _hotkeyService);
             _syncSettingsViewModel = new SyncSettingsViewModel();
             

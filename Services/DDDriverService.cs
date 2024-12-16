@@ -349,7 +349,8 @@ namespace WpfApp.Services
 
             try
             {
-                int ret = _dd.key((int)keyCode, isKeyDown ? 1 : 2);
+                int ddCode = (int)keyCode;  // 显式转换
+                int ret = _dd.key(ddCode, isKeyDown ? 1 : 2);
                 if (ret != 1)
                 {
                     System.Diagnostics.Debug.WriteLine($"按键操作失败，键码：{keyCode}，状态：{(isKeyDown ? "按下" : "释放")}，返回值：{ret}");
@@ -360,6 +361,28 @@ namespace WpfApp.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"按键操作异常：{ex}");
+                return false;
+            }
+        }
+
+        // 新增从虚拟键码发送按键的方法
+        public bool SendVirtualKey(int virtualKeyCode, bool isKeyDown)
+        {
+            if (!_isInitialized || _dd.key == null) return false;
+
+            try
+            {
+                // 使用优化后的映射获取DD键码
+                DDKeyCode ddKeyCode = KeyCodeMapping.GetDDKeyCode(virtualKeyCode, this);
+                if (ddKeyCode == DDKeyCode.None) return false;
+
+                // 显式转换为int
+                int ret = _dd.key((int)ddKeyCode, isKeyDown ? 1 : 2);
+                return ret == 1;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"虚拟按键操作异常：{ex}");
                 return false;
             }
         }
@@ -496,8 +519,6 @@ namespace WpfApp.Services
                         return IsKeyPressed(DDKeyCode.LEFT_ALT) || IsKeyPressed(DDKeyCode.RIGHT_ALT);
                     case KeyModifiers.Shift:
                         return IsKeyPressed(DDKeyCode.LEFT_SHIFT) || IsKeyPressed(DDKeyCode.RIGHT_SHIFT);
-                    case KeyModifiers.Windows:
-                        return IsKeyPressed(DDKeyCode.LEFT_WIN) || IsKeyPressed(DDKeyCode.RIGHT_WIN);
                     default:
                         return false;
                 }
@@ -514,6 +535,62 @@ namespace WpfApp.Services
         {
             if (_dd.key == null) return false;
             return _dd.key((int)keyCode, 3) == 1; // 3表示检查按键状态
+        }
+
+        // 新增：执行按键序列
+        public async Task ExecuteKeySequenceAsync(IEnumerable<DDKeyCode> keySequence, int interval)
+        {
+            if (!_isInitialized) return;
+
+            foreach (var keyCode in keySequence)
+            {
+                if (!_isEnabled) break;
+
+                try
+                {
+                    await Task.Run(() =>
+                    {
+                        SendKey(keyCode, true);
+                        Thread.Sleep(interval);
+                        SendKey(keyCode, false);
+                        Thread.Sleep(interval);
+                    });
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"执行按键序列异常: {ex.Message}");
+                    break;
+                }
+            }
+        }
+
+        // 新增：检查驱动状态
+        public bool IsReady => _isInitialized && _dd.key != null;
+
+        // 将Windows虚拟键码转换为DD键码
+        public int? ConvertVirtualKeyToDDCode(int vkCode)
+        {
+            if (!_isInitialized || _dd.todc == null)
+            {
+                System.Diagnostics.Debug.WriteLine("驱动未初始化或todc函数指针为空");
+                return null;
+            }
+
+            try
+            {
+                int ddCode = _dd.todc(vkCode);
+                if (ddCode <= 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"虚拟键码转换失败: {vkCode}");
+                    return null;
+                }
+                return ddCode;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"虚拟键码转换异常: {ex}");
+                return null;
+            }
         }
     }
 
