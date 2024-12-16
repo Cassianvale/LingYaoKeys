@@ -32,51 +32,74 @@ namespace WpfApp.Services
         // 添加公共属性用于检查初始化状态
         public bool IsInitialized => _isInitialized;
 
-        // 修改 LoadDllFile 方法，添加更多状态检查
         public bool LoadDllFile(string dllPath)
         {
             try
             {
-                // 确保之前的实例被清理
+                System.Diagnostics.Debug.WriteLine($"开始加载驱动文件: {dllPath}");
+                
+                // 1. 确保之前的实例被清理
                 if(_isInitialized)
                 {
+                    System.Diagnostics.Debug.WriteLine("清理现有驱动实例");
                     _dd = new CDD();
                     _isInitialized = false;
                 }
 
-                // 同步加载驱动
+                // 2. 直接调用Load方法并检查返回值
+                System.Diagnostics.Debug.WriteLine("调用DD.Load()...");
                 int ret = _dd.Load(dllPath);
+                System.Diagnostics.Debug.WriteLine($"DD.Load()返回值: {ret}");
+                
+                // 检查返回值
                 if (ret != 1)
                 {
-                    MessageBox.Show("驱动加载失败！", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    string errorMsg = ret switch
+                    {
+                        -1 => "获取驱动函数地址失败",
+                        -2 => "加载驱动文件失败",
+                        _ => $"未知错误 ({ret})"
+                    };
+                    System.Diagnostics.Debug.WriteLine($"驱动加载失败: {errorMsg}");
+                    MessageBox.Show($"驱动加载失败: {errorMsg}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
 
-                // 检查驱动接口
-                if (_dd.btn == null || _dd.key == null)
-                {
-                    MessageBox.Show("驱动接口未正确加载！", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return false;
-                }
-
-                // 初始化驱动
-                ret = _dd.btn(0);
-                if (ret != 1)
-                {
-                    MessageBox.Show("驱动初始化失败！", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return false;
-                }
-
+                // 3. 如果Load成功，设置初始化标志
                 _isInitialized = true;
                 _loadedDllPath = dllPath;
                 InitializationStatusChanged?.Invoke(this, true);
                 
-                System.Diagnostics.Debug.WriteLine($"驱动加载成功: {dllPath}");
+                System.Diagnostics.Debug.WriteLine("驱动加载成功");
                 return true;
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"驱动加载过程中发生异常：{ex}");
                 MessageBox.Show($"驱动加载异常：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+        }
+
+        // 修改验证方法
+        public bool ValidateDriver()
+        {
+            if (!_isInitialized)
+            {
+                System.Diagnostics.Debug.WriteLine("驱动未初始化");
+                return false;
+            }
+
+            try
+            {
+                // 只检查btn(0)的返回值
+                int ret = _dd.btn(0);
+                System.Diagnostics.Debug.WriteLine($"驱动状态检查返回值: {ret}");
+                return ret == 1;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"驱动验证时发生异常：{ex}");
                 return false;
             }
         }
@@ -312,39 +335,6 @@ namespace WpfApp.Services
                 {
                     StopTimer();
                 }
-            }
-        }
-
-        // 添加验证方法
-        public bool ValidateDriver()
-        {
-            if (!_isInitialized)
-            {
-                MessageBox.Show("驱动未初始化！", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
-            }
-
-            if (_dd.btn == null || _dd.key == null)
-            {
-                MessageBox.Show("驱动接口无效！", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
-            }
-
-            // 测试基本功能
-            try
-            {
-                int ret = _dd.btn(0);
-                if (ret != 1)
-                {
-                    MessageBox.Show("驱动状态异常！", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return false;
-                }
-                return true;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"驱动验证失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
             }
         }
     }

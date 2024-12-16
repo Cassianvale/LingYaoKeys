@@ -20,59 +20,53 @@ namespace WpfApp
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-            
-            // 先初始化驱动
-            if (!InitializeDriver())
-            {
-                MessageBox.Show("驱动初始化失败，程序将退出！", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                Shutdown();
-                return;
-            }
-            
-            // 驱动初始化成功后再创建主窗口
-            var mainWindow = new MainWindow();
-            mainWindow.Show();
-        }
 
-        // 修改为public以便MainWindow可以调用
-        public static bool InitializeDriver()
-        {
-            // 检查系统架构
-            string dllName = GetDriverFileName();
-            if (string.IsNullOrEmpty(dllName))
+            try
             {
-                MessageBox.Show("不支持的处理器架构", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
-            }
+                System.Diagnostics.Debug.WriteLine("应用程序启动...");
+                
+                // 初始化驱动服务
+                DDDriver = new DDDriverService();
+                
+                // 获取当前程序路径
+                string currentDir = AppDomain.CurrentDomain.BaseDirectory;
+                string dllPath = System.IO.Path.Combine(currentDir, "dd", Environment.Is64BitProcess ? "ddx64.dll" : "ddx32.dll");
+                
+                System.Diagnostics.Debug.WriteLine($"使用驱动: {dllPath}");
 
-            // 构建驱动路径
-            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            string dllPath = Path.Combine(baseDir, DD_FOLDER, dllName);
+                // 检查文件是否存在
+                if (!System.IO.File.Exists(dllPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"驱动文件不存在: {dllPath}");
+                    MessageBox.Show($"找不到驱动文件：{dllPath}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Shutdown();
+                    return;
+                }
 
-            // 检查驱动文件
-            try 
-            {
-                CheckDriverFile(dllPath);
+                // 加载驱动
+                System.Diagnostics.Debug.WriteLine("开始加载驱动...");
+                if (!DDDriver.LoadDllFile(dllPath))
+                {
+                    System.Diagnostics.Debug.WriteLine("驱动加载失败");
+                    Shutdown();
+                    return;
+                }
+
+                // 创建并显示主窗口
+                System.Diagnostics.Debug.WriteLine("创建主窗口...");
+                var mainWindow = new MainWindow();
+                mainWindow.Show();
+                System.Diagnostics.Debug.WriteLine("主窗口已显示");
+
+                // 注册应用程序退出事件
+                Exit += OnApplicationExit;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"驱动文件检查失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
+                System.Diagnostics.Debug.WriteLine($"应用程序启动异常: {ex}");
+                MessageBox.Show($"程序启动异常：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                Shutdown();
             }
-
-            // 同步加载驱动
-            if (!DDDriver.LoadDllFile(dllPath))
-            {
-                return false;
-            }
-
-            // 修改事件注册方式
-            if (Application.Current is App app)
-            {
-                app.Exit += app.OnApplicationExit;
-            }
-            
-            return true;
         }
 
         private static string GetDriverFileName()

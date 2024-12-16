@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Input;
+using System.Security.Principal;
 
 // 提供快捷键服务
 namespace WpfApp.Services
@@ -22,7 +23,6 @@ namespace WpfApp.Services
         private HwndSource? _source;
         private bool _isRegistered;
 
-        public event Action? HotkeyPressed;
         public event Action? StartHotkeyPressed;
         public event Action? StartHotkeyReleased;
         public event Action? StopHotkeyPressed;
@@ -37,39 +37,73 @@ namespace WpfApp.Services
         public HotkeyService(Window mainWindow)
         {
             _mainWindow = mainWindow;
-            // 等待窗口初始化完成后再初始化热键服务
             _mainWindow.SourceInitialized += MainWindow_SourceInitialized;
+
+            if (!IsRunAsAdministrator())
+            {
+                MessageBox.Show("请以管理员身份运行程序以使用热键功能", "权限不足", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private bool IsRunAsAdministrator()
+        {
+            WindowsIdentity identity = WindowsIdentity.GetCurrent();
+            WindowsPrincipal principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator);
         }
 
         private void MainWindow_SourceInitialized(object? sender, EventArgs e)
         {
             _windowHandle = new WindowInteropHelper(_mainWindow).Handle;
             _source = HwndSource.FromHwnd(_windowHandle);
-            _source?.AddHook(WndProc);
+            if (_source != null)
+            {
+                _source.AddHook(WndProc);
+            }
         }
 
         // 注册快捷键
         public bool RegisterHotKey(Key key, ModifierKeys modifiers = ModifierKeys.None)
         {
-            if (_isRegistered) return false;
+            if (_isRegistered || _windowHandle == IntPtr.Zero) return false;
 
-            _isRegistered = RegisterHotKey(_windowHandle, HOTKEY_ID, (uint)modifiers, (uint)KeyInterop.VirtualKeyFromKey(key));
-            
-            if (!_isRegistered)
+            try
             {
-                MessageBox.Show("快捷键被占用！", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
+                _isRegistered = RegisterHotKey(
+                    _windowHandle,
+                    HOTKEY_ID,
+                    (uint)modifiers,
+                    (uint)KeyInterop.VirtualKeyFromKey(key)
+                );
 
-            return _isRegistered;
+                if (!_isRegistered)
+                {
+                    MessageBox.Show("热键注册失败，可能被其他程序占用", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+
+                return _isRegistered;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"热键注册异常: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
         }
 
         // 取消注册快捷键
         public void UnregisterHotKey()
         {
-            if (!_isRegistered) return;
-            
-            UnregisterHotKey(_windowHandle, HOTKEY_ID);
-            _isRegistered = false;
+            if (!_isRegistered || _windowHandle == IntPtr.Zero) return;
+
+            try
+            {
+                UnregisterHotKey(_windowHandle, HOTKEY_ID);
+                _isRegistered = false;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"热键注销异常: {ex.Message}");
+            }
         }
 
         // 处理热键事件
@@ -78,29 +112,31 @@ namespace WpfApp.Services
             const int WM_HOTKEY = 0x0312;
             const int WM_KEYUP = 0x0101;
 
-            if (msg == WM_HOTKEY)
+            switch (msg)
             {
-                int id = wParam.ToInt32();
-                switch (id)
-                {
-                    case START_HOTKEY_ID:
-                        StartHotkeyPressed?.Invoke();
+                case WM_HOTKEY:
+                    int id = wParam.ToInt32();
+                    switch (id)
+                    {
+                        case START_HOTKEY_ID:
+                            StartHotkeyPressed?.Invoke();
+                            handled = true;
+                            break;
+                        case STOP_HOTKEY_ID:
+                            StopHotkeyPressed?.Invoke();
+                            handled = true;
+                            break;
+                    }
+                    break;
+
+                case WM_KEYUP:
+                    int vkCode = wParam.ToInt32();
+                    if (_startHotkey.HasValue && vkCode == (int)_startHotkey.Value)
+                    {
+                        StartHotkeyReleased?.Invoke();
                         handled = true;
-                        break;
-                    case STOP_HOTKEY_ID:
-                        StopHotkeyPressed?.Invoke();
-                        handled = true;
-                        break;
-                }
-            }
-            else if (msg == WM_KEYUP)
-            {
-                int vkCode = wParam.ToInt32();
-                if (_startHotkey.HasValue && vkCode == (int)_startHotkey.Value)
-                {
-                    StartHotkeyReleased?.Invoke();
-                    handled = true;
-                }
+                    }
+                    break;
             }
             
             return IntPtr.Zero;
@@ -120,16 +156,32 @@ namespace WpfApp.Services
 
         public bool RegisterStartHotkey(DDKeyCode keyCode, ModifierKeys modifiers)
         {
-            _startHotkey = keyCode;  // 保存开始热键
-            UnregisterHotKey(_windowHandle, START_HOTKEY_ID);
-            return RegisterHotKey(_windowHandle, START_HOTKEY_ID, (uint)modifiers, (uint)keyCode);
+            try
+            {
+                _startHotkey = keyCode;
+                UnregisterHotKey(_windowHandle, START_HOTKEY_ID);
+                return RegisterHotKey(_windowHandle, START_HOTKEY_ID, (uint)modifiers, (uint)keyCode);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"注册开始热键异常: {ex.Message}");
+                return false;
+            }
         }
 
         public bool RegisterStopHotkey(DDKeyCode keyCode, ModifierKeys modifiers)
         {
-            _stopHotkey = keyCode;  // 保存停止热键
-            UnregisterHotKey(_windowHandle, STOP_HOTKEY_ID);
-            return RegisterHotKey(_windowHandle, STOP_HOTKEY_ID, (uint)modifiers, (uint)keyCode);
+            try
+            {
+                _stopHotkey = keyCode;
+                UnregisterHotKey(_windowHandle, STOP_HOTKEY_ID);
+                return RegisterHotKey(_windowHandle, STOP_HOTKEY_ID, (uint)modifiers, (uint)keyCode);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"注册停止热键异常: {ex.Message}");
+                return false;
+            }
         }
     }
 } 
