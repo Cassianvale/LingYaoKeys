@@ -13,132 +13,133 @@ namespace WpfApp.Services
         Shift = 4,
         Windows = 8
     }
+
     class CDD
     {
         [DllImport("Kernel32")]
-        private static extern System.IntPtr LoadLibrary(string dllfile);
+        private static extern IntPtr LoadLibrary(string dllfile);
 
         [DllImport("Kernel32")]
-        private static extern System.IntPtr GetProcAddress(System.IntPtr hModule, string lpProcName);
+        private static extern IntPtr GetProcAddress(IntPtr hModule, string lpProcName);
 
         [DllImport("kernel32.dll")]
         public static extern bool FreeLibrary(IntPtr hModule);
 
+        // 委托定义
+        public delegate int pDD_btn(int btn); // 鼠标按键
+        public delegate int pDD_whl(int whl); // 鼠标滚轮
+        public delegate int pDD_key(int ddcode, int flag); // 键盘输入
+        public delegate int pDD_mov(int x, int y); // 鼠标绝对移动
+        public delegate int pDD_movR(int dx, int dy); // 鼠标相对移动
+        public delegate int pDD_str(string str); // 输入字符串
+        public delegate int pDD_todc(int vkcode);   // 转换Windows虚拟键码到dd驱动键码
 
-        // 模拟鼠标点击
-        // 1 =左键按下 ，2 =左键放开
-        // 4 =右键按下 ，8 =右键放开
-        // 16 =中键按下 ，32 =中键放开
-        // 64 =4键按下 ，128 =4键放开
-        // 256 =5键按下 ，512 =5键放开
-        // 例子：模拟鼠标右键 只需要连写(中间可添加延迟)
-        // dd_btn(4); dd_btn(8);
-        public delegate int pDD_btn(int btn);
+        // 使用可空类型声明函数指针
+        public pDD_btn? btn { get; private set; }
+        public pDD_whl? whl { get; private set; }
+        public pDD_mov? mov { get; private set; }
+        public pDD_movR? movR { get; private set; }
+        public pDD_key? key { get; private set; }
+        public pDD_str? str { get; private set; }
+        public pDD_todc? todc { get; private set; }
 
-        // DD_whl(int whl)模拟鼠标滚轮
-        // 1=前,2=后
-        // 向前滚一格,DD_whl(1)
-        public delegate int pDD_whl(int whl);
-        public delegate int pDD_key(int ddcode, int flag);
+        private IntPtr m_hinst;
 
-        // 鼠标绝对移动，x、y为左上角为原点
-        // 把鼠标移动到分辨率1920*1080 的屏幕正中间，
-        // int x = 1920/2 ; int y = 1080/2;
-        // DD_mov(x,y) ;
-        public delegate int pDD_mov(int x, int y);
-
-        // 模拟鼠标相对移动, dx、dy以当前坐标为原点
-        // 把鼠标向左移动10像素, DD_movR(-10,0)
-        public delegate int pDD_movR(int dx, int dy);
-
-        // 直接输入键盘上可见字符和空格
-        // DD_str(char *str) 参数：单字节字符串
-        public delegate int pDD_str(string str);
-        public delegate int pDD_todc(int vkcode);
-
-        public pDD_btn btn;         //Mouse button 
-        public pDD_whl whl;         //Mouse wheel
-        public pDD_mov mov;      //Mouse move abs. 
-        public pDD_movR movR;  //Mouse move rel. 
-
-        // 模拟键盘按键
-        // 参数：参数1 ，请查看[DD虚拟键盘码表]。
-        // DD_key(int ddcode，int flag)
-        // 参数2，1=按下，2=放开
-        // 单键WIN，
-        // DD_key(601, 1);
-        // DD_key(601, 2);
-        // 组合键：ctrl+alt+del
-        // DD_key(600,1);
-        // DD_key(602,1);
-        // DD_key(706,1);
-        // DD_key(706,2);
-        // DD_key(602,2);
-        // DD_key(600,2);
-        public pDD_key key;
-
-        public pDD_str str;
-
-        public pDD_todc todc;      //  转换Windows虚拟键码到 DD 专用键码
-
-        private System.IntPtr m_hinst;
-
-         ~CDD()
+        ~CDD()
         {
-             if (!m_hinst.Equals(IntPtr.Zero))
-             {
-                 bool b = FreeLibrary(m_hinst);
-             }
+            if (!m_hinst.Equals(IntPtr.Zero))
+            {
+                FreeLibrary(m_hinst);
+            }
         }
-
 
         public int Load(string dllfile)
         {
-            m_hinst = LoadLibrary(dllfile);
-            if (m_hinst.Equals(IntPtr.Zero))
+            try
             {
-                return -2;
-            }
-            else
-            {
+                m_hinst = LoadLibrary(dllfile);
+                if (m_hinst.Equals(IntPtr.Zero))
+                {
+                    System.Diagnostics.Debug.WriteLine("LoadLibrary failed");
+                    return -2;
+                }
+
                 return GetDDfunAddress(m_hinst);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Load exception: {ex}");
+                return -2;
             }
         }
 
         private int GetDDfunAddress(IntPtr hinst)
         {
-            IntPtr ptr;
+            try
+            {
+                // 获取函数地址
+                IntPtr ptr = GetProcAddress(hinst, "DD_btn");
+                if (ptr.Equals(IntPtr.Zero))
+                {
+                    System.Diagnostics.Debug.WriteLine("Failed to get DD_btn address");
+                    return -1;
+                }
+                btn = Marshal.GetDelegateForFunctionPointer<pDD_btn>(ptr);
 
-            ptr = GetProcAddress(hinst, "DD_btn");
-            if (ptr.Equals(IntPtr.Zero)) { return -1; }
-            btn = Marshal.GetDelegateForFunctionPointer(ptr, typeof(pDD_btn)) as pDD_btn;
+                ptr = GetProcAddress(hinst, "DD_whl");
+                if (ptr.Equals(IntPtr.Zero))
+                {
+                    System.Diagnostics.Debug.WriteLine("Failed to get DD_whl address");
+                    return -1;
+                }
+                whl = Marshal.GetDelegateForFunctionPointer<pDD_whl>(ptr);
 
-            if (ptr.Equals(IntPtr.Zero)) { return -1; }
-            ptr = GetProcAddress(hinst, "DD_whl");
-            whl = Marshal.GetDelegateForFunctionPointer(ptr, typeof(pDD_whl)) as pDD_whl;
-            
-            if (ptr.Equals(IntPtr.Zero)) { return -1; }
-            ptr = GetProcAddress(hinst, "DD_mov");
-            mov = Marshal.GetDelegateForFunctionPointer(ptr, typeof(pDD_mov)) as pDD_mov;
+                ptr = GetProcAddress(hinst, "DD_mov");
+                if (ptr.Equals(IntPtr.Zero))
+                {
+                    System.Diagnostics.Debug.WriteLine("Failed to get DD_mov address");
+                    return -1;
+                }
+                mov = Marshal.GetDelegateForFunctionPointer<pDD_mov>(ptr);
 
-            if (ptr.Equals(IntPtr.Zero)) { return -1; }
-            ptr = GetProcAddress(hinst, "DD_key");
-            key = Marshal.GetDelegateForFunctionPointer(ptr, typeof(pDD_key)) as pDD_key;
+                ptr = GetProcAddress(hinst, "DD_key");
+                if (ptr.Equals(IntPtr.Zero))
+                {
+                    System.Diagnostics.Debug.WriteLine("Failed to get DD_key address");
+                    return -1;
+                }
+                key = Marshal.GetDelegateForFunctionPointer<pDD_key>(ptr);
 
-            if (ptr.Equals(IntPtr.Zero)) { return -1; }
-            ptr = GetProcAddress(hinst, "DD_movR");
-            movR = Marshal.GetDelegateForFunctionPointer(ptr, typeof(pDD_movR)) as pDD_movR;
+                ptr = GetProcAddress(hinst, "DD_movR");
+                if (ptr.Equals(IntPtr.Zero))
+                {
+                    System.Diagnostics.Debug.WriteLine("Failed to get DD_movR address");
+                    return -1;
+                }
+                movR = Marshal.GetDelegateForFunctionPointer<pDD_movR>(ptr);
 
-            if (ptr.Equals(IntPtr.Zero)) { return -1; }
-            ptr = GetProcAddress(hinst, "DD_str");
-            str = Marshal.GetDelegateForFunctionPointer(ptr, typeof(pDD_str)) as pDD_str;
+                ptr = GetProcAddress(hinst, "DD_str");
+                if (ptr.Equals(IntPtr.Zero))
+                {
+                    System.Diagnostics.Debug.WriteLine("Failed to get DD_str address");
+                    return -1;
+                }
+                str = Marshal.GetDelegateForFunctionPointer<pDD_str>(ptr);
 
-            if (ptr.Equals(IntPtr.Zero)) { return -1; }
-            ptr = GetProcAddress(hinst, "DD_todc");
-            //todc = Marshal.GetDelegateForFunctionPointer(ptr, typeof(pDD_todc)) as pDD_todc;
+                // todc函数是可选的，不影响主要功能
+                ptr = GetProcAddress(hinst, "DD_todc");
+                if (!ptr.Equals(IntPtr.Zero))
+                {
+                    todc = Marshal.GetDelegateForFunctionPointer<pDD_todc>(ptr);
+                }
 
-            return 1 ;
+                return 1;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"GetDDfunAddress exception: {ex}");
+                return -1;
+            }
         }
     }
-
 }

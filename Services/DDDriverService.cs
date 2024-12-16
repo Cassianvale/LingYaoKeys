@@ -4,6 +4,7 @@ using System.Windows;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
+// 封装CDD驱动服务
 namespace WpfApp.Services
 {
     public class DDDriverService
@@ -92,7 +93,14 @@ namespace WpfApp.Services
 
             try
             {
-                // 只检查btn(0)的返回值
+                // 检查btn函数指针是否为空
+                if (_dd.btn == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("btn函数指针为空");
+                    return false;
+                }
+
+                // 调用btn函数
                 int ret = _dd.btn(0);
                 System.Diagnostics.Debug.WriteLine($"驱动状态检查返回值: {ret}");
                 return ret == 1;
@@ -210,13 +218,18 @@ namespace WpfApp.Services
         // 输入文本
         public bool SimulateText(string text)
         {
-            if (!_isInitialized || _dd.str == null) return false;
+            if (!_isInitialized || _dd.str == null)
+            {
+                System.Diagnostics.Debug.WriteLine("驱动未初始化或str函数指针为空");
+                return false;
+            }
             try
             {
                 return _dd.str(text) == 1;
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"模拟文本输入异常：{ex}");
                 return false;
             }
         }
@@ -224,77 +237,157 @@ namespace WpfApp.Services
         // 鼠标相关方法
         public bool MouseClick(DDMouseButton button, int delayMs = 50)
         {
-            if (!_isInitialized || _dd.btn == null) return false;
-
-            int downCode = button switch
+            if (!_isInitialized || _dd.btn == null)
             {
-                DDMouseButton.Left => 1,
-                DDMouseButton.Right => 4,
-                DDMouseButton.Middle => 16,
-                DDMouseButton.XButton1 => 64,
-                DDMouseButton.XButton2 => 256,
-                _ => 0
+                System.Diagnostics.Debug.WriteLine("驱动未初始化或btn函数指针为空");
+                return false;
+            }
+
+            // 根据文档说明设置按键代码
+            (int down, int up) = button switch
+            {
+                DDMouseButton.Left => (1, 2),      // 左键：按下=1，放开=2
+                DDMouseButton.Right => (4, 8),      // 右键：按下=4，放开=8
+                DDMouseButton.Middle => (16, 32),   // 中键：按下=16，放开=32
+                DDMouseButton.XButton1 => (64, 128), // 4键：按下=64，放开=128
+                DDMouseButton.XButton2 => (256, 512), // 5键：按下=256，放开=512
+                _ => (0, 0)
             };
 
-            if (downCode == 0) return false;
+            if (down == 0) return false;
 
             try
             {
-                _dd.btn(downCode);
+                // 按下按键
+                int ret = _dd.btn(down);
+                if (ret != 1)
+                {
+                    System.Diagnostics.Debug.WriteLine($"鼠标按下失败，返回值：{ret}");
+                    return false;
+                }
+
+                // 延迟
                 Thread.Sleep(delayMs);
-                _dd.btn(downCode * 2); // 释放代码是按下代码的2倍
+
+                // 释放按键
+                ret = _dd.btn(up);
+                if (ret != 1)
+                {
+                    System.Diagnostics.Debug.WriteLine($"鼠标释放失败，返回值：{ret}");
+                    return false;
+                }
+
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"鼠标点击异常：{ex}");
+                return false;
+            }
+        }
+
+        // 鼠标移动(绝对坐标)，以屏幕左上角为原点
+        public bool MoveMouse(int x, int y)
+        {
+            if (!_isInitialized || _dd.mov == null)
+            {
+                System.Diagnostics.Debug.WriteLine("驱动未初始化或mov函数指针为空");
+                return false;
+            }
+
+            try
+            {
+                int ret = _dd.mov(x, y);
+                if (ret != 1)
+                {
+                    System.Diagnostics.Debug.WriteLine($"鼠标移动失败，返回值：{ret}");
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"鼠标移动异常：{ex}");
+                return false;
+            }
+        }
+
+        // 滚轮操作：1=前滚，2=后滚
+        public bool MouseWheel(bool isForward)
+        {
+            if (!_isInitialized || _dd.whl == null)
+            {
+                System.Diagnostics.Debug.WriteLine("驱动未初始化或whl函数指针为空");
+                return false;
+            }
+
+            try
+            {
+                int ret = _dd.whl(isForward ? 1 : 2);
+                if (ret != 1)
+                {
+                    System.Diagnostics.Debug.WriteLine($"鼠标滚轮操作失败，返回值：{ret}");
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"鼠标滚轮操作异常：{ex}");
                 return false;
             }
         }
 
         // 键盘按键
-        public bool SendKey(int keyCode, bool isKeyDown)
-        {
-            if (!_isInitialized || _dd.key == null) return false;
-            return _dd.key(keyCode, isKeyDown ? 1 : 2) == 1;
-        }
-
-        // 鼠标移动(绝对坐标)
-        public bool MoveMouse(int x, int y)
-        {
-            if (!_isInitialized || _dd.mov == null) return false;
-            return _dd.mov(x, y) == 1;
-        }
-
-        // 鼠标相对移动
-        public bool MoveMouseRelative(int dx, int dy)
-        {
-            if (!_isInitialized || _dd.movR == null) return false;
-            return _dd.movR(dx, dy) == 1;
-        }
-
-        // 滚轮操作
-        public bool MouseWheel(bool isUp)
-        {
-            if (!_isInitialized || _dd.whl == null) return false;
-            return _dd.whl(isUp ? 1 : 2) == 1;
-        }
-
-        // 添加以下方法
         public bool SendKey(DDKeyCode keyCode, bool isKeyDown)
         {
-            return SendKey((int)keyCode, isKeyDown);
+            if (!_isInitialized || _dd.key == null)
+            {
+                System.Diagnostics.Debug.WriteLine("驱动未初始化或key函数指针为空");
+                return false;
+            }
+
+            try
+            {
+                int ret = _dd.key((int)keyCode, isKeyDown ? 1 : 2);
+                if (ret != 1)
+                {
+                    System.Diagnostics.Debug.WriteLine($"按键操作失败，键码：{keyCode}，状态：{(isKeyDown ? "按下" : "释放")}，返回值：{ret}");
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"按键操作异常：{ex}");
+                return false;
+            }
         }
 
-        // 模拟按键按下和释放
-        public bool SimulateKeyPress(DDKeyCode keyCode)
+        // 模拟按键按下和释放的完整过程
+        public bool SimulateKeyPress(DDKeyCode keyCode, int delayMs = 50)
         {
             if (!_isInitialized) return false;
             
-            // 按下并释放按键
-            SendKey(keyCode, true);
-            Thread.Sleep(50);
-            SendKey(keyCode, false);
-            return true;
+            try
+            {
+                // 按下按键
+                if (!SendKey(keyCode, true))
+                {
+                    return false;
+                }
+
+                // 延迟
+                Thread.Sleep(delayMs);
+
+                // 释放按键
+                return SendKey(keyCode, false);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"模拟按键异常：{ex}");
+                return false;
+            }
         }
 
         public void Dispose()
@@ -342,10 +435,10 @@ namespace WpfApp.Services
     // 重命名鼠标按键枚举
     public enum DDMouseButton
     {
-        Left,
-        Right,
-        Middle,
-        XButton1,
-        XButton2
+        Left,   // 左键
+        Right,  // 右键
+        Middle, // 中键
+        XButton1, // 侧键1
+        XButton2 // 侧键2
     }
 } 
