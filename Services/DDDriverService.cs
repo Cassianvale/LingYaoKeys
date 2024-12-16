@@ -49,50 +49,27 @@ namespace WpfApp.Services
                     _isInitialized = false;
                 }
 
-                // 2. 根据系统架构选择正确的dll
-                string ddDllPath;
-                if (IntPtr.Size == 8)
-                {
-                    ddDllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dd", "ddx64.dll");
-                }
-                else
-                {
-                    ddDllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dd", "ddx32.dll");
-                }
-
-                System.Diagnostics.Debug.WriteLine($"使用驱动文件: {ddDllPath}");
-
-                // 3. 加载驱动
-                int ret = _dd.Load(ddDllPath);
+                // 2. 加载驱动
+                int ret = _dd.Load(dllPath);
                 System.Diagnostics.Debug.WriteLine($"DD.Load()返回值: {ret}");
                 
                 if (ret != 1)
                 {
-                    string errorMsg = ret switch
-                    {
-                        -1 => "获取驱动函数地址失败",
-                        -2 => "加载驱动文件失败",
-                        _ => $"未知错误 ({ret})"
-                    };
-                    System.Diagnostics.Debug.WriteLine($"驱动加载失败: {errorMsg}");
-                    MessageBox.Show($"驱动加载失败: {errorMsg}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    SendStatusMessage($"驱动加载失败: {errorMsg}", true);
+                    System.Diagnostics.Debug.WriteLine($"驱动加载失败: {ret}");
                     return false;
                 }
 
-                // 4. 初始化驱动
+                // 3. 初始化驱动
                 ret = _dd.btn(0);
                 if (ret != 1)
                 {
                     System.Diagnostics.Debug.WriteLine("驱动初始化失败");
-                    MessageBox.Show("驱动初始化失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    SendStatusMessage("驱动初始化失败", true);
                     return false;
                 }
 
-                // 5. 设置初始化标志
+                // 4. 设置初始化标志
                 _isInitialized = true;
-                _loadedDllPath = ddDllPath;
+                _loadedDllPath = dllPath;
                 InitializationStatusChanged?.Invoke(this, true);
                 
                 SendStatusMessage("驱动加载成功");
@@ -100,10 +77,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                string errorMsg = $"驱动加载异常：{ex.Message}";
-                System.Diagnostics.Debug.WriteLine($"驱动加载过程中发生异常：{ex}");
-                MessageBox.Show(errorMsg, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                SendStatusMessage(errorMsg, true);
+                System.Diagnostics.Debug.WriteLine($"驱动加载异常: {ex}");
                 return false;
             }
         }
@@ -180,53 +154,47 @@ namespace WpfApp.Services
         {
             if (!_isEnabled || !_isInitialized) return;
 
-            try 
+            try
             {
                 if (_isSequenceMode)
                 {
+                    // 顺序模式
                     foreach (var keyCode in _keyList)
                     {
-                        if (!_isEnabled) return;
+                        if (!_isEnabled) break;
+
+                        System.Diagnostics.Debug.WriteLine($"发送按键: {keyCode} ({(int)keyCode})");
                         
+                        // 按下
                         if (!SendKey(keyCode, true))
                         {
-                            _isEnabled = false;
-                            SendStatusMessage("按键执行失败，已停止序列", true);
-                            EnableStatusChanged?.Invoke(this, false);
-                            return;
+                            System.Diagnostics.Debug.WriteLine($"按键按下失败: {keyCode}");
+                            continue;
                         }
                         Thread.Sleep(_keyInterval);
                         
+                        // 释放
                         if (!SendKey(keyCode, false))
                         {
-                            _isEnabled = false;
-                            SendStatusMessage("按键释放失败，已停止序列", true);
-                            EnableStatusChanged?.Invoke(this, false);
-                            return;
+                            System.Diagnostics.Debug.WriteLine($"按键释放失败: {keyCode}");
                         }
                         Thread.Sleep(_keyInterval);
                     }
                 }
                 else if (_isHoldMode)
                 {
+                    // 按压模式
                     foreach (var keyCode in _keyList)
                     {
-                        if (!_isHoldMode) return;
-                        
+                        if (!_isEnabled) break;
                         SendKey(keyCode, true);
-                        Thread.Sleep(_keyInterval);
-                        SendKey(keyCode, false);
-                        Thread.Sleep(_keyInterval);
                     }
                 }
             }
             catch (Exception ex)
             {
-                string errorMsg = $"执行按键时发生错误：{ex.Message}";
-                System.Diagnostics.Debug.WriteLine(errorMsg);
-                SendStatusMessage(errorMsg, true);
+                System.Diagnostics.Debug.WriteLine($"定时器回调异常: {ex}");
                 _isEnabled = false;
-                EnableStatusChanged?.Invoke(this, false);
             }
         }
 
@@ -393,24 +361,35 @@ namespace WpfApp.Services
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"准备发送按键 - DD键码: {keyCode} ({(int)keyCode}), 状态: {(isKeyDown ? "按下" : "释放")}");
-
-                // 直接使用DD键码
-                int ret = _dd.key((int)keyCode, isKeyDown ? 1 : 2);
-                if (ret != 1)
+                // 验证键码
+                if (!KeyCodeMapping.IsValidDDKeyCode(keyCode))
                 {
-                    System.Diagnostics.Debug.WriteLine($"按键操作失败，DD键码：{(int)keyCode}，状态：{(isKeyDown ? "按下" : "释放")}，返回值：{ret}");
-                    SendStatusMessage($"按键操作失败: {keyCode}", true);
+                    System.Diagnostics.Debug.WriteLine($"无效的DD键码: {keyCode} ({(int)keyCode})");
                     return false;
                 }
 
-                System.Diagnostics.Debug.WriteLine($"按键操作成功 - DD键码: {(int)keyCode}");
+                int ddCode = (int)keyCode;
+                System.Diagnostics.Debug.WriteLine($"发送按键 - DD键码: {keyCode} ({ddCode}), 状态: {(isKeyDown ? "按下" : "释放")}");
+
+                // 确保驱动就绪
+                if (!ValidateDriver())
+                {
+                    System.Diagnostics.Debug.WriteLine("驱动状态验证失败");
+                    return false;
+                }
+
+                int ret = _dd.key(ddCode, isKeyDown ? 1 : 2);
+                if (ret != 1)
+                {
+                    System.Diagnostics.Debug.WriteLine($"按键操作失败 - 返回值: {ret}");
+                    return false;
+                }
+
                 return true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"按键操作异常：{ex}");
-                SendStatusMessage($"按键操作异常: {ex.Message}", true);
+                System.Diagnostics.Debug.WriteLine($"按键操作异常: {ex}");
                 return false;
             }
         }
@@ -536,7 +515,7 @@ namespace WpfApp.Services
                 await Task.Delay(50);
                 SendKey(keyCode, false);
 
-                // ���放所有修饰键(反序)
+                // 释放所有修饰键(反序)
                 for (int i = modifierKeys.Count - 1; i >= 0; i--)
                 {
                     SendKey(modifierKeys[i], false);
@@ -608,13 +587,13 @@ namespace WpfApp.Services
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"执行按键序列异常: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"执行按键序列���常: {ex.Message}");
                     break;
                 }
             }
         }
 
-        // 新增：检查��动状态
+        // 新增：检查动状态
         public bool IsReady => _isInitialized && _dd.key != null;
 
         // 将Windows虚拟键码转换为DD键码

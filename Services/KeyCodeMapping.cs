@@ -189,5 +189,40 @@ namespace WpfApp.Services
                 return DDKeyCode.None;
             }
         }
+
+        public static bool IsValidDDKeyCode(DDKeyCode keyCode)
+        {
+            try
+            {
+                int code = (int)keyCode;
+                
+                // 检查键码范围
+                bool isValid = code switch
+                {
+                    >= 100 and <= 112 => true,   // 功能键 F1-F12
+                    >= 200 and <= 214 => true,   // 数字键区
+                    >= 300 and <= 313 => true,   // 字母键区第一行
+                    >= 400 and <= 411 => true,   // 字母键区第二行
+                    >= 500 and <= 511 => true,   // 字母键区第三行
+                    >= 600 and <= 607 => true,   // 控制键区
+                    >= 700 and <= 712 => true,   // 编辑键区
+                    >= 800 and <= 816 => true,   // 小键盘区
+                    1 or 4 or 16 or 64 or 256 => true, // 鼠标按键
+                    _ => false
+                };
+
+                if (!isValid)
+                {
+                    System.Diagnostics.Debug.WriteLine($"无效的DD键码: {keyCode} ({code})");
+                }
+
+                return isValid;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"键码验证异常: {ex}");
+                return false;
+            }
+        }
     }
 } 

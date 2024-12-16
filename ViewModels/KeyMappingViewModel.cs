@@ -119,38 +119,8 @@ namespace WpfApp.ViewModels
             };
 
             // 修改热键事件处理
-            _hotkeyService.StartHotkeyPressed += () =>
-            {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    try
-                    {
-                        System.Diagnostics.Debug.WriteLine($"开始热键触发，当前模式: {SelectedKeyMode}");
-                        if (!IsHotkeyEnabled && KeyList.Any())
-                        {
-                            StartKeyMapping();
-                        }
-                        else
-                        {
-                            System.Diagnostics.Debug.WriteLine("无法启动：按键列表为空或已在运行中");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"启动按键映射异常: {ex.Message}");
-                        IsHotkeyEnabled = false;
-                    }
-                });
-            };
-
-            _hotkeyService.StopHotkeyPressed += () =>
-            {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    StopKeyMapping();
-                    IsHotkeyEnabled = false;
-                });
-            };
+            _hotkeyService.StartHotkeyPressed += OnStartHotkeyPressed;
+            _hotkeyService.StopHotkeyPressed += OnStopHotkeyPressed;
 
             // 加载配置并自动注册热键
             var config = _configService.LoadConfig();
@@ -254,7 +224,7 @@ namespace WpfApp.ViewModels
         {
             if (IsKeyInList(keyCode))
             {
-                MessageBox.Show("该按键已在按键列表中，请选择其他按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("该��键已在按键列表中，请选择其他按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -282,7 +252,7 @@ namespace WpfApp.ViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"设置停止热键异常: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"设���停止热键异常: {ex.Message}");
                 MessageBox.Show($"设置停止热键失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -316,7 +286,7 @@ namespace WpfApp.ViewModels
 
             if (IsKeyInList(_currentKey.Value))
             {
-                MessageBox.Show("该按键已在列表中，请选择其他按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("该按键已在列表中，请选���其他按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -421,7 +391,7 @@ namespace WpfApp.ViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"停止按键映射失败: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"���止按键映射失败: {ex.Message}");
                 IsHotkeyEnabled = false; // 确保错误时状态正确
             }
         }
@@ -434,6 +404,85 @@ namespace WpfApp.ViewModels
         private bool IsKeyInList(DDKeyCode keyCode)
         {
             return KeyList.Any(k => k.KeyCode == keyCode);
+        }
+
+        private void OnStartHotkeyPressed()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"开始热键按下 - 当前模式: {SelectedKeyMode}");
+                
+                // 验证驱动状态
+                if (!_ddDriver.ValidateDriver())
+                {
+                    System.Diagnostics.Debug.WriteLine("驱动状态验证失败");
+                    return;
+                }
+
+                // 检查按键列表
+                var keys = KeyList.Select(k => k.KeyCode).ToList();
+                if (!keys.Any())
+                {
+                    System.Diagnostics.Debug.WriteLine("按键列表为空");
+                    return;
+                }
+
+                // 设置按键列表和参数
+                _ddDriver.SetKeyList(keys);
+                _ddDriver.IsSequenceMode = SelectedKeyMode == 0;
+                _ddDriver.SetKeyInterval(KeyInterval);
+
+                // 根据模式启动
+                if (SelectedKeyMode == 0) // 顺序模式
+                {
+                    System.Diagnostics.Debug.WriteLine("启动顺序模式");
+                    _ddDriver.IsEnabled = true;
+                }
+                else // 按压模式
+                {
+                    System.Diagnostics.Debug.WriteLine("启动按压模式");
+                    _ddDriver.SetHoldMode(true);
+                }
+
+                IsHotkeyEnabled = true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"启动按键映射异常: {ex}");
+                IsHotkeyEnabled = false;
+            }
+        }
+
+        private void OnStartHotkeyReleased()
+        {
+            try
+            {
+                if (SelectedKeyMode == 1) // 按压模式
+                {
+                    System.Diagnostics.Debug.WriteLine("释放按压模式");
+                    _ddDriver.SetHoldMode(false);
+                    IsHotkeyEnabled = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"释放热键异常: {ex}");
+            }
+        }
+
+        private void OnStopHotkeyPressed()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("停止热键按下");
+                _ddDriver.IsEnabled = false;
+                _ddDriver.SetHoldMode(false);
+                IsHotkeyEnabled = false;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"停止按键映射异常: {ex}");
+            }
         }
     }
 } 
