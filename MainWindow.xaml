@@ -7,18 +7,21 @@
         xmlns:viewModels="clr-namespace:WpfApp.ViewModels"
         xmlns:views="clr-namespace:WpfApp.Views"
         mc:Ignorable="d"
-        Title="jx3wpf" Height="400" Width="500"
+        Title="{Binding WindowTitle}"
+        SizeToContent="Manual"
+        MinHeight="400"
+        MinWidth="500"
         WindowStartupLocation="CenterScreen">
-
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="25"/>
         </Grid.RowDefinitions>
 
         <!-- 顶部导航 -->
-        <Border BorderThickness="0,0,0,1" BorderBrush="#DDDDDD">
+        <Border Grid.Row="0" BorderThickness="0,0,0,1" BorderBrush="#DDDDDD">
             <StackPanel Orientation="Horizontal">
                 <RadioButton Content="前台按键" 
                             IsChecked="True"
@@ -36,6 +39,36 @@
         <Frame Grid.Row="1"
                NavigationUIVisibility="Hidden"
                Content="{Binding CurrentPage}" />
+
+        <!-- 状态栏 -->
+        <StatusBar Grid.Row="2" Background="#F5F5F5">
+            <StatusBar.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                    </Grid>
+                </ItemsPanelTemplate>
+            </StatusBar.ItemsPanel>
+            
+            <!-- 状态信息 -->
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusMessage}" />
+            </StatusBarItem>
+            
+            <!-- 热键状态 -->
+            <StatusBarItem Grid.Column="1" Margin="10,0">
+                <TextBlock Text="{Binding CurrentPage.DataContext.HotkeyStatus}" />
+            </StatusBarItem>
+            
+            <!-- 版本信息 -->
+            <StatusBarItem Grid.Column="2">
+                <TextBlock Text="{Binding VersionInfo}" Margin="0,0,5,0"/>
+            </StatusBarItem>
+        </StatusBar>
     </Grid>
 </Window>
 

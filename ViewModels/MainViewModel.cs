@@ -8,6 +8,7 @@ using System.Threading;
 using WpfApp.Services;
 using WpfApp.ViewModels;
 using System.Diagnostics;
+using WpfApp.Models;
 
 namespace WpfApp.ViewModels
 {
@@ -19,11 +20,35 @@ namespace WpfApp.ViewModels
         private readonly KeyMappingViewModel _keyMappingViewModel;
         private readonly SyncSettingsViewModel _syncSettingsViewModel;
         private readonly HotkeyService _hotkeyService;
+        private string _statusMessage = "就绪";
+        private AppConfig? _config;
+
+        public AppConfig Config
+        {
+            get
+            {
+                if (_config == null)
+                {
+                    _config = AppConfigService.Config;
+                    System.Diagnostics.Debug.WriteLine($"MainViewModel初始化配置 - 窗口尺寸: {_config.UI.MainWindow.DefaultWidth}x{_config.UI.MainWindow.DefaultHeight}");
+                }
+                return _config;
+            }
+        }
+        
+        public string WindowTitle => Config.AppInfo.Title;
+        public string VersionInfo => $"v{Config.AppInfo.Version}";
 
         public Page? CurrentPage
         {
             get => _currentPage;
             set => SetProperty(ref _currentPage, value);
+        }
+
+        public string StatusMessage
+        {
+            get => _statusMessage;
+            set => SetProperty(ref _statusMessage, value);
         }
 
         public ICommand NavigateCommand { get; }
@@ -37,6 +62,13 @@ namespace WpfApp.ViewModels
             _syncSettingsViewModel = new SyncSettingsViewModel();
             
             NavigateCommand = new RelayCommand<string>(Navigate);
+            
+            // 订阅状态消息事件
+            _ddDriver.StatusMessageChanged += OnDriverStatusMessageChanged;
+            
+            // 确保配置已加载
+            var config = Config;
+            System.Diagnostics.Debug.WriteLine($"MainViewModel构造函数 - 窗口尺寸: {config.UI.MainWindow.DefaultWidth}x{config.UI.MainWindow.DefaultHeight}");
             
             // 初始化时设置默认页面
             Navigate("FrontKeys");
@@ -66,6 +98,20 @@ namespace WpfApp.ViewModels
             _keyMappingViewModel.SaveConfig();
             System.Diagnostics.Debug.WriteLine("配置保存完成");
             System.Diagnostics.Debug.WriteLine($"--------------------------------");
+        }
+
+        private void OnDriverStatusMessageChanged(object? sender, StatusMessageEventArgs e)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                StatusMessage = e.Message;
+                
+                // 如果是错误消息，可以让它显示更长时间
+                if (e.IsError)
+                {
+                    // 可以选择性地添加视觉反馈，比如改变状态栏颜色等
+                }
+            });
         }
     }
 } 

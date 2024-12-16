@@ -17,35 +17,41 @@ namespace WpfApp
     /// </summary>
     public partial class MainWindow : Window
     {
+        private readonly MainViewModel _viewModel;
+
         public MainWindow()
         {
-            InitializeComponent();
-            Loaded += MainWindow_Loaded;
-            Closing += MainWindow_Closing;
-            DataContext = new MainViewModel(App.DDDriver, this);
-        }
-
-        // 初始化驱动
-        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
-        {
-            // 只需要验证驱动状态
-            if (!App.DDDriver.ValidateDriver())
-            {
-                MessageBox.Show("驱动状态异常，程序将退出！", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                Application.Current.Shutdown();
-                return;
-            }
+            // 在InitializeComponent之前设置DataContext
+            _viewModel = new MainViewModel(App.DDDriver, this);
+            DataContext = _viewModel;
             
-            System.Diagnostics.Debug.WriteLine("驱动状态正常");
-        }
+            InitializeComponent();
 
-        private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
-        {
-            if (DataContext is MainViewModel mainViewModel)
+            // 添加调试信息
+            System.Diagnostics.Debug.WriteLine($"MainWindow初始化 - 实际尺寸: {Width}x{Height}");
+            System.Diagnostics.Debug.WriteLine($"MainWindow初始化 - 配置尺寸: {_viewModel.Config.UI.MainWindow.DefaultWidth}x{_viewModel.Config.UI.MainWindow.DefaultHeight}");
+
+            // 窗口加载完成后再次检查尺寸
+            Loaded += (s, e) =>
             {
-                mainViewModel.Cleanup();
-            }
+                System.Diagnostics.Debug.WriteLine($"MainWindow加载完成 - 实际尺寸: {Width}x{Height}");
+            };
+
+            // 确保窗口尺寸正确
+            Width = _viewModel.Config.UI.MainWindow.DefaultWidth;
+            Height = _viewModel.Config.UI.MainWindow.DefaultHeight;
         }
 
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            System.Diagnostics.Debug.WriteLine($"MainWindow源初始化 - 实际尺寸: {Width}x{Height}");
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            _viewModel.Cleanup();
+            base.OnClosed(e);
+        }
     }
 }

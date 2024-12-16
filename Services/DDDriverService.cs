@@ -21,6 +21,7 @@ namespace WpfApp.Services
 
         public event EventHandler<bool>? InitializationStatusChanged;
         public event EventHandler<bool>? EnableStatusChanged;
+        public event EventHandler<StatusMessageEventArgs>? StatusMessageChanged;
 
         // DD驱动服务构造函数
         public DDDriverService()
@@ -63,6 +64,7 @@ namespace WpfApp.Services
                     };
                     System.Diagnostics.Debug.WriteLine($"驱动加载失败: {errorMsg}");
                     MessageBox.Show($"驱动加载失败: {errorMsg}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    SendStatusMessage($"驱动加载失败: {errorMsg}", true);
                     return false;
                 }
 
@@ -71,13 +73,15 @@ namespace WpfApp.Services
                 _loadedDllPath = dllPath;
                 InitializationStatusChanged?.Invoke(this, true);
                 
-                System.Diagnostics.Debug.WriteLine("驱动加载成功");
+                SendStatusMessage("驱动加载成功");
                 return true;
             }
             catch (Exception ex)
             {
+                string errorMsg = $"驱动加载异常：{ex.Message}";
                 System.Diagnostics.Debug.WriteLine($"驱动加载过程中发生异常：{ex}");
-                MessageBox.Show($"驱动加载异常：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(errorMsg, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                SendStatusMessage(errorMsg, true);
                 return false;
             }
         }
@@ -118,16 +122,19 @@ namespace WpfApp.Services
             get => _isEnabled;
             set
             {
-                _isEnabled = value;
-                EnableStatusChanged?.Invoke(this, value);
-                
-                if (_isEnabled)
+                if (_isEnabled != value)
                 {
-                    StartTimer();
-                }
-                else
-                {
-                    StopTimer();
+                    _isEnabled = value;
+                    EnableStatusChanged?.Invoke(this, value);
+                    
+                    if (_isEnabled)
+                    {
+                        StartTimer();
+                    }
+                    else
+                    {
+                        StopTimer();
+                    }
                 }
             }
         }
@@ -151,7 +158,6 @@ namespace WpfApp.Services
         {
             if (!_isEnabled || !_isInitialized) return;
 
-            // 使用同步方式执行按键
             try 
             {
                 if (_isSequenceMode)
@@ -160,9 +166,22 @@ namespace WpfApp.Services
                     {
                         if (!_isEnabled) return;
                         
-                        SendKey(keyCode, true);
+                        if (!SendKey(keyCode, true))
+                        {
+                            _isEnabled = false;
+                            SendStatusMessage("按键执行失败，已停止序列", true);
+                            EnableStatusChanged?.Invoke(this, false);
+                            return;
+                        }
                         Thread.Sleep(_keyInterval);
-                        SendKey(keyCode, false);
+                        
+                        if (!SendKey(keyCode, false))
+                        {
+                            _isEnabled = false;
+                            SendStatusMessage("按键释放失败，已停止序列", true);
+                            EnableStatusChanged?.Invoke(this, false);
+                            return;
+                        }
                         Thread.Sleep(_keyInterval);
                     }
                 }
@@ -181,8 +200,11 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"执行按键时发生错误：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                string errorMsg = $"执行按键时发生错误：{ex.Message}";
+                System.Diagnostics.Debug.WriteLine(errorMsg);
+                SendStatusMessage(errorMsg, true);
                 _isEnabled = false;
+                EnableStatusChanged?.Invoke(this, false);
             }
         }
 
@@ -211,7 +233,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"模拟按键异常：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                SendStatusMessage($"模拟按键异常：{ex.Message}", true);
             }
         }
 
@@ -354,6 +376,7 @@ namespace WpfApp.Services
                 if (ret != 1)
                 {
                     System.Diagnostics.Debug.WriteLine($"按键操作失败，键码：{keyCode}，状态：{(isKeyDown ? "按下" : "释放")}，返回值：{ret}");
+                    SendStatusMessage($"按键操作失败: {keyCode}", true);
                     return false;
                 }
                 return true;
@@ -361,6 +384,7 @@ namespace WpfApp.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"按键操作异常：{ex}");
+                SendStatusMessage($"按键操作异常: {ex.Message}", true);
                 return false;
             }
         }
@@ -372,7 +396,7 @@ namespace WpfApp.Services
 
             try
             {
-                // 使用优化后的映射获取DD键码
+                // 用优化后的映射获取DD键码
                 DDKeyCode ddKeyCode = KeyCodeMapping.GetDDKeyCode(virtualKeyCode, this);
                 if (ddKeyCode == DDKeyCode.None) return false;
 
@@ -592,6 +616,13 @@ namespace WpfApp.Services
                 return null;
             }
         }
+
+        // 添加发送状态消息的方法
+        private void SendStatusMessage(string message, bool isError = false)
+        {
+            System.Diagnostics.Debug.WriteLine($"[DDDriver] {(isError ? "错误" : "信息")}: {message}");
+            StatusMessageChanged?.Invoke(this, new StatusMessageEventArgs(message, isError));
+        }
     }
 
     // 重命名鼠标按键枚举
@@ -602,5 +633,17 @@ namespace WpfApp.Services
         Middle, // 中键
         XButton1, // 侧键1
         XButton2 // 侧键2
+    }
+
+    // 添加事件定义
+    public class StatusMessageEventArgs : EventArgs
+    {
+        public string Message { get; }
+        public bool IsError { get; }
+        public StatusMessageEventArgs(string message, bool isError = false)
+        {
+            Message = message;
+            IsError = isError;
+        }
     }
 } 

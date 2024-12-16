@@ -12,8 +12,6 @@
             </ResourceDictionary.MergedDictionaries>
             
             <converters:IntToStringConverter x:Key="IntToStringConverter"/>
-            <!-- <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
-            <converters:BoolToStatusTextConverter x:Key="BoolToStatusTextConverter"/> -->
             <converters:BoolToColorConverter x:Key="BoolToColorConverter" 
                 TrueValue="#4CAF50"
                 FalseValue="#757575"/> <!-- 启用时绿的，禁用时灰色 -->

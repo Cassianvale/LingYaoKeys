@@ -99,11 +99,11 @@ namespace WpfApp.Services
             { DDKeyCode.NUMPAD_DECIMAL, "Num ." },
             
             // 鼠标按键
-            { DDKeyCode.LBUTTON, "Left Click" },
-            { DDKeyCode.RBUTTON, "Right Click" },
-            { DDKeyCode.MBUTTON, "Middle Click" },
-            { DDKeyCode.XBUTTON1, "Mouse X1" },
-            { DDKeyCode.XBUTTON2, "Mouse X2" }
+            { DDKeyCode.LBUTTON, "LBUTTON" },
+            { DDKeyCode.RBUTTON, "RBUTTON" },
+            { DDKeyCode.MBUTTON, "MBUTTON" },
+            { DDKeyCode.XBUTTON1, "XBUTTON1" },
+            { DDKeyCode.XBUTTON2, "XBUTTON2" }
         };
 
         // 获取显示名称

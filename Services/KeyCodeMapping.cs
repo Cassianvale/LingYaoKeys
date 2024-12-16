@@ -4,105 +4,120 @@ namespace WpfApp.Services
 {
     public static class KeyCodeMapping
     {
-        // 修改映射表的值类型为DDKeyCode
-        private static readonly Dictionary<int, DDKeyCode> _virtualToDDKeyMap = new()
-        {
-            // 字母键 (VK 0x41-0x5A)
-            {0x41, DDKeyCode.A},
-            {0x42, DDKeyCode.B},
-            {0x43, DDKeyCode.C},
-            {0x44, DDKeyCode.D},
-            {0x45, DDKeyCode.E},
-            {0x46, DDKeyCode.F},
-            {0x47, DDKeyCode.G},
-            {0x48, DDKeyCode.H},
-            {0x49, DDKeyCode.I},
-            {0x4A, DDKeyCode.J},
-            {0x4B, DDKeyCode.K},
-            {0x4C, DDKeyCode.L},
-            {0x4D, DDKeyCode.M},
-            {0x4E, DDKeyCode.N},
-            {0x4F, DDKeyCode.O},
-            {0x50, DDKeyCode.P},
-            {0x51, DDKeyCode.Q},
-            {0x52, DDKeyCode.R},
-            {0x53, DDKeyCode.S},
-            {0x54, DDKeyCode.T},
-            {0x55, DDKeyCode.U},
-            {0x56, DDKeyCode.V},
-            {0x57, DDKeyCode.W},
-            {0x58, DDKeyCode.X},
-            {0x59, DDKeyCode.Y},
-            {0x5A, DDKeyCode.Z},
-        };
+        // 使用惰性初始化避免静态构造函数异常
+        private static readonly Lazy<Dictionary<int, DDKeyCode>> _virtualToDDKeyMap = 
+            new Lazy<Dictionary<int, DDKeyCode>>(() => InitializeKeyMap());
 
-        public static IReadOnlyDictionary<int, DDKeyCode> VirtualToDDKeyMap => _virtualToDDKeyMap;
+        public static Dictionary<int, DDKeyCode> VirtualToDDKeyMap => _virtualToDDKeyMap.Value;
 
-        // 修改返回类型
-        public static DDKeyCode GetDDKeyCode(int virtualKeyCode, DDDriverService ddService)
+        private static Dictionary<int, DDKeyCode> InitializeKeyMap()
         {
-            if (VirtualToDDKeyMap.TryGetValue(virtualKeyCode, out DDKeyCode ddCode))
+            try
             {
-                return ddCode;
+                var map = new Dictionary<int, DDKeyCode>
+                {
+                    // 数字键 (主键盘)
+                    { 0x31, DDKeyCode.NUM_1 }, // 1
+                    { 0x32, DDKeyCode.NUM_2 }, // 2
+                    { 0x33, DDKeyCode.NUM_3 }, // 3
+                    { 0x34, DDKeyCode.NUM_4 }, // 4
+                    { 0x35, DDKeyCode.NUM_5 }, // 5
+                    { 0x36, DDKeyCode.NUM_6 }, // 6
+                    { 0x37, DDKeyCode.NUM_7 }, // 7
+                    { 0x38, DDKeyCode.NUM_8 }, // 8
+                    { 0x39, DDKeyCode.NUM_9 }, // 9
+                    { 0x30, DDKeyCode.NUM_0 }, // 0
+
+                    // 数字键盘
+                    { 0x60, DDKeyCode.NUMPAD_0 }, // 小键盘 0
+                    { 0x61, DDKeyCode.NUMPAD_1 }, // 小键盘 1
+                    { 0x62, DDKeyCode.NUMPAD_2 }, // 小键盘 2
+                    { 0x63, DDKeyCode.NUMPAD_3 }, // 小键盘 3
+                    { 0x64, DDKeyCode.NUMPAD_4 }, // 小键盘 4
+                    { 0x65, DDKeyCode.NUMPAD_5 }, // 小键盘 5
+                    { 0x66, DDKeyCode.NUMPAD_6 }, // 小键盘 6
+                    { 0x67, DDKeyCode.NUMPAD_7 }, // 小键盘 7
+                    { 0x68, DDKeyCode.NUMPAD_8 }, // 小键盘 8
+                    { 0x69, DDKeyCode.NUMPAD_9 }, // 小键盘 9
+
+                    // 功能键
+                    { 0x70, DDKeyCode.F1 },  // F1
+                    { 0x71, DDKeyCode.F2 },  // F2
+                    { 0x72, DDKeyCode.F3 },  // F3
+                    { 0x73, DDKeyCode.F4 },  // F4
+                    { 0x74, DDKeyCode.F5 },  // F5
+                    { 0x75, DDKeyCode.F6 },  // F6
+                    { 0x76, DDKeyCode.F7 },  // F7
+                    { 0x77, DDKeyCode.F8 },  // F8
+                    { 0x78, DDKeyCode.F9 },  // F9
+                    { 0x79, DDKeyCode.F10 }, // F10
+                    { 0x7A, DDKeyCode.F11 }, // F11
+                    { 0x7B, DDKeyCode.F12 }, // F12
+
+                    // 其他常用键
+                    { 0x0D, DDKeyCode.ENTER },     // Enter
+                    { 0x1B, DDKeyCode.ESC },       // Esc
+                    { 0x08, DDKeyCode.BACKSPACE },      // Backspace
+                    { 0x09, DDKeyCode.TAB },       // Tab
+                    { 0x20, DDKeyCode.SPACE },     // Space
+                    { 0x2E, DDKeyCode.DELETE },    // Delete
+                    { 0x24, DDKeyCode.HOME },      // Home
+                    { 0x23, DDKeyCode.END },       // End
+                    { 0x21, DDKeyCode.PAGE_UP },     // Page Up
+                    { 0x22, DDKeyCode.PAGE_DOWN },      // Page Down
+
+                    // 修饰键
+                    { 0xA0, DDKeyCode.LEFT_SHIFT },   // Left Shift
+                    { 0xA1, DDKeyCode.RIGHT_SHIFT },  // Right Shift
+                    { 0xA2, DDKeyCode.LEFT_CTRL },    // Left Control
+                    { 0xA3, DDKeyCode.RIGHT_CTRL },   // Right Control
+                    { 0xA4, DDKeyCode.LEFT_ALT },     // Left Alt
+                    { 0xA5, DDKeyCode.RIGHT_ALT },    // Right Alt
+                    { 0x5B, DDKeyCode.LEFT_WIN },     // Left Windows
+                };
+
+                System.Diagnostics.Debug.WriteLine("键码映射表初始化完成");
+                return map;
             }
-
-            // 如果在映射表中找不到，尝试使用驱动转换
-            var result = ddService.ConvertVirtualKeyToDDCode(virtualKeyCode);
-            if (result.HasValue)
+            catch (Exception ex)
             {
-                // 缓存结果
-                CachedResults[virtualKeyCode] = (DDKeyCode)result.Value;
-                return (DDKeyCode)result.Value;
+                System.Diagnostics.Debug.WriteLine($"初始化键码映射表时发生异常: {ex}");
+                throw;
             }
-
-            return DDKeyCode.None;
         }
 
-        // 缓存查询结果
-        private static readonly Dictionary<int, DDKeyCode> CachedResults = new();
-
-        // 清理缓存
-        public static void ClearCache()
+        public static DDKeyCode GetDDKeyCode(int virtualKeyCode, DDDriverService ddDriver)
         {
-            CachedResults.Clear();
-        }
-
-        // 获取虚拟键码的描述
-        public static string GetVirtualKeyDescription(int virtualKeyCode)
-        {
-            if (VirtualToDDKeyMap.TryGetValue(virtualKeyCode, out DDKeyCode ddCode))
+            try
             {
-                return ddCode.ToDisplayName();
+                // 1. 先尝试从映射表中获取
+                if (VirtualToDDKeyMap.TryGetValue(virtualKeyCode, out DDKeyCode ddKeyCode))
+                {
+                    return ddKeyCode;
+                }
+
+                // 2. 如果是数字键盘，使用特殊处理
+                if (virtualKeyCode >= 0x60 && virtualKeyCode <= 0x69)
+                {
+                    int numValue = virtualKeyCode - 0x60;
+                    return (DDKeyCode)(200 + numValue); // NUM_0 到 NUM_9 的枚举值从200开始
+                }
+
+                // 3. 尝试使用驱动的转换功能
+                var ddCode = ddDriver.ConvertVirtualKeyToDDCode(virtualKeyCode);
+                if (ddCode.HasValue && ddCode.Value > 0)
+                {
+                    return (DDKeyCode)ddCode.Value;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"无法转换虚拟键码: 0x{virtualKeyCode:X2}");
+                return DDKeyCode.None;
             }
-            return $"VK 0x{virtualKeyCode:X2}";
-        }
-
-        // 检查是否是修饰键
-        public static bool IsModifierKey(int virtualKeyCode)
-        {
-            return virtualKeyCode switch
+            catch (Exception ex)
             {
-                0x10 => true, // VK_SHIFT
-                0x11 => true, // VK_CONTROL
-                0x12 => true, // VK_MENU (Alt)
-                0x5B => true, // VK_LWIN
-                _ => false
-            };
-        }
-
-        static KeyCodeMapping()
-        {
-            // 添加数字键盘的映射
-            _virtualToDDKeyMap.Add(0x60, DDKeyCode.NUM_0);
-            _virtualToDDKeyMap.Add(0x61, DDKeyCode.NUM_1);
-            _virtualToDDKeyMap.Add(0x62, DDKeyCode.NUM_2);
-            _virtualToDDKeyMap.Add(0x63, DDKeyCode.NUM_3);
-            _virtualToDDKeyMap.Add(0x64, DDKeyCode.NUM_4);
-            _virtualToDDKeyMap.Add(0x65, DDKeyCode.NUM_5);
-            _virtualToDDKeyMap.Add(0x66, DDKeyCode.NUM_6);
-            _virtualToDDKeyMap.Add(0x67, DDKeyCode.NUM_7);
-            _virtualToDDKeyMap.Add(0x68, DDKeyCode.NUM_8);
-            _virtualToDDKeyMap.Add(0x69, DDKeyCode.NUM_9);
+                System.Diagnostics.Debug.WriteLine($"转换虚拟键码时发生异常: {ex}");
+                return DDKeyCode.None;
+            }
         }
     }
 } 

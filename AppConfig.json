@@ -1,0 +1,14 @@
+{
+  "AppInfo": {
+    "Name": "jx3wpf",
+    "Title": "剑网3按键助手",
+    "Version": "1.0.0",
+    "Copyright": "© 2024"
+  },
+  "UI": {
+    "MainWindow": {
+      "DefaultWidth": 600,
+      "DefaultHeight": 450
+    }
+  }
+} 
