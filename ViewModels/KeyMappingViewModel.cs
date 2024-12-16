@@ -126,7 +126,7 @@ namespace WpfApp.ViewModels
                     try
                     {
                         System.Diagnostics.Debug.WriteLine($"开始热键触发，当前模式: {SelectedKeyMode}");
-                        if (!IsHotkeyEnabled && KeyList.Any()) // 添加按键列表检查
+                        if (!IsHotkeyEnabled && KeyList.Any())
                         {
                             StartKeyMapping();
                         }
@@ -138,7 +138,7 @@ namespace WpfApp.ViewModels
                     catch (Exception ex)
                     {
                         System.Diagnostics.Debug.WriteLine($"启动按键映射异常: {ex.Message}");
-                        IsHotkeyEnabled = false; // 确保状态正确
+                        IsHotkeyEnabled = false;
                     }
                 });
             };
@@ -156,10 +156,18 @@ namespace WpfApp.ViewModels
             var config = _configService.LoadConfig();
             _keyList = new ObservableCollection<KeyItem>();
             
+            // 加载开始热键
             if (config.startKey.HasValue)
             {
                 SetStartHotkey(config.startKey.Value, config.startMods);
                 System.Diagnostics.Debug.WriteLine($"已加载开始热键: {config.startKey.Value}, 修饰键: {config.startMods}");
+            }
+
+            // 加载停止热键
+            if (config.stopKey.HasValue)
+            {
+                SetStopHotkey(config.stopKey.Value, config.stopMods);
+                System.Diagnostics.Debug.WriteLine($"已加载停止热键: {config.stopKey.Value}, 修饰键: {config.stopMods}");
             }
             
             // 设置跟踪监听器
@@ -255,11 +263,27 @@ namespace WpfApp.ViewModels
                 return;
             }
 
-            _stopHotkey = keyCode;
-            _stopModifiers = modifiers;
-            UpdateHotkeyText(keyCode, modifiers, false);
-            _hotkeyService.RegisterStopHotkey(keyCode, modifiers);
-            System.Diagnostics.Debug.WriteLine($"设置停止热键: {keyCode}, 修饰键: {modifiers}");
+            try
+            {
+                _stopHotkey = keyCode;
+                _stopModifiers = modifiers;
+                UpdateHotkeyText(keyCode, modifiers, false);
+                
+                bool result = _hotkeyService.RegisterStopHotkey(keyCode, modifiers);
+                if (!result)
+                {
+                    System.Diagnostics.Debug.WriteLine($"注册停止热键失败: {keyCode}, 修饰键: {modifiers}");
+                    MessageBox.Show("停止热键注册失败，请尝试其他按键", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"设置停止热键: {keyCode}, 修饰键: {modifiers}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"设置停止热键异常: {ex.Message}");
+                MessageBox.Show($"设置停止热键失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private bool CanAddKey()
@@ -306,32 +330,41 @@ namespace WpfApp.ViewModels
 
         public void SaveConfig()
         {
-            var selectedKeys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
-            
-            if (_startHotkey.HasValue && selectedKeys.Contains(_startHotkey.Value))
+            try
             {
-                MessageBox.Show("启动热键与按键列表存在冲突，请修改后再保存", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
+                var selectedKeys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
+                
+                // 检查热键冲突
+                if (_startHotkey.HasValue && selectedKeys.Contains(_startHotkey.Value))
+                {
+                    MessageBox.Show("启动热键与按键列表存在冲突，请修改后再保存", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
 
-            if (_stopHotkey.HasValue && selectedKeys.Contains(_stopHotkey.Value))
+                if (_stopHotkey.HasValue && selectedKeys.Contains(_stopHotkey.Value))
+                {
+                    MessageBox.Show("停止热键与按键列表存在冲突，请修改后再保存", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                _configService.SaveConfig(
+                    _startHotkey,
+                    _startModifiers,
+                    _stopHotkey,  // 确保停止热键被保存
+                    _stopModifiers,
+                    selectedKeys,
+                    SelectedKeyMode,
+                    KeyInterval,
+                    true  // soundEnabled
+                );
+
+                System.Diagnostics.Debug.WriteLine($"配置已保存 - 开始热键: {_startHotkey}, 停止热键: {_stopHotkey}");
+            }
+            catch (Exception ex)
             {
-                MessageBox.Show("停止热键与按键列表存在冲突，请修改后再保存", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
+                System.Diagnostics.Debug.WriteLine($"保存配置异常: {ex.Message}");
+                MessageBox.Show($"保存配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-
-            _configService.SaveConfig(
-                _startHotkey,
-                _startModifiers,
-                _stopHotkey,
-                _stopModifiers,
-                selectedKeys,
-                SelectedKeyMode,
-                KeyInterval,
-                true  // soundEnabled
-            );
-
-            System.Diagnostics.Debug.WriteLine("配置已保存");
         }
 
         public void StartKeyMapping()
@@ -363,7 +396,7 @@ namespace WpfApp.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"启动按键映射失败: {ex.Message}");
-                IsHotkeyEnabled = false; // 确保错误时状态正确
+                IsHotkeyEnabled = false; // 确保错误���状态正确
             }
         }
 
