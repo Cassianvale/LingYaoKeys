@@ -377,8 +377,14 @@ namespace WpfApp.ViewModels
                 if (keys.Count == 0)
                 {
                     System.Diagnostics.Debug.WriteLine("警告：按键列表为空");
-                    IsHotkeyEnabled = false; // 确保状态正确
+                    IsHotkeyEnabled = false;
                     return;
+                }
+
+                // 打印所有要执行的按键
+                foreach (var key in keys)
+                {
+                    System.Diagnostics.Debug.WriteLine($"按键列表项: {key} ({(int)key})");
                 }
 
                 // 设置热键服务的按键序列
@@ -389,14 +395,14 @@ namespace WpfApp.ViewModels
                 _ddDriver.IsSequenceMode = SelectedKeyMode == 0;
                 _ddDriver.SetKeyInterval(KeyInterval);
                 _ddDriver.IsEnabled = true;
-                IsHotkeyEnabled = true; // 更新UI状态
+                IsHotkeyEnabled = true;
 
                 System.Diagnostics.Debug.WriteLine($"按键映射已启动: 模式={SelectedKeyMode}, 按键数={keys.Count}, 间隔={KeyInterval}ms");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"启动按键映射失败: {ex.Message}");
-                IsHotkeyEnabled = false; // 确保错误���状态正确
+                IsHotkeyEnabled = false;
             }
         }
 

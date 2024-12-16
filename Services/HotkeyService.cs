@@ -163,9 +163,8 @@ namespace WpfApp.Services
                         System.Diagnostics.Debug.WriteLine("触发开始热键");
                         if (!_isSequenceRunning)
                         {
-                            StartSequence();
+                            StartHotkeyPressed?.Invoke();
                         }
-                        StartHotkeyPressed?.Invoke();
                         handled = true;
                         break;
 
@@ -366,7 +365,25 @@ namespace WpfApp.Services
                             break;
                         }
                         
-                        bool success = await Task.Run(() => _ddDriverService.SimulateKeyPress(ddKeyCode));
+                        System.Diagnostics.Debug.WriteLine($"准备执行按键: {ddKeyCode} ({(int)ddKeyCode})");
+                        
+                        bool success = await Task.Run(() => 
+                        {
+                            if (!_ddDriverService.SendKey(ddKeyCode, true))
+                            {
+                                System.Diagnostics.Debug.WriteLine($"按键按下失败: {ddKeyCode}");
+                                return false;
+                            }
+                            Thread.Sleep(_keyInterval);
+                            
+                            if (!_ddDriverService.SendKey(ddKeyCode, false))
+                            {
+                                System.Diagnostics.Debug.WriteLine($"按键释放失败: {ddKeyCode}");
+                                return false;
+                            }
+                            return true;
+                        });
+
                         if (!success)
                         {
                             System.Diagnostics.Debug.WriteLine($"按键执行失败: {ddKeyCode}，停止序列");

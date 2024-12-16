@@ -153,7 +153,7 @@ namespace WpfApp.Services
             _timer = null;
         }
 
-        // 定时器回调
+        // 定时器��调
         private void TimerCallback(object? state)
         {
             if (!_isEnabled || !_isInitialized) return;
@@ -308,7 +308,7 @@ namespace WpfApp.Services
             }
         }
 
-        // 鼠标移动(绝对坐标)，以屏幕左上角为原点
+        // 鼠标移动(绝对坐标)���以屏幕左上角为原点
         public bool MoveMouse(int x, int y)
         {
             if (!_isInitialized || _dd.mov == null)
@@ -348,7 +348,7 @@ namespace WpfApp.Services
                 int ret = _dd.whl(isForward ? 1 : 2);
                 if (ret != 1)
                 {
-                    System.Diagnostics.Debug.WriteLine($"鼠标滚轮操作失败，返回值：{ret}");
+                    System.Diagnostics.Debug.WriteLine($"鼠标滚轮操作失败，返回值��{ret}");
                     return false;
                 }
                 return true;
@@ -371,14 +371,38 @@ namespace WpfApp.Services
 
             try
             {
-                int ddCode = (int)keyCode;  // 显式转换
-                int ret = _dd.key(ddCode, isKeyDown ? 1 : 2);
+                // 添加详细的日志
+                System.Diagnostics.Debug.WriteLine($"准备发送按键 - DD键码: {keyCode} ({(int)keyCode}), 状态: {(isKeyDown ? "按下" : "释放")}");
+
+                // 尝试转换为Windows虚拟键码
+                int vkCode = 0;
+                foreach (var pair in KeyCodeMapping.VirtualToDDKeyMap)
+                {
+                    if (pair.Value == keyCode)
+                    {
+                        vkCode = pair.Key;
+                        break;
+                    }
+                }
+
+                if (vkCode == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"无法找到对应的虚拟键码: {keyCode}");
+                    return false;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"转换后的虚拟键码: 0x{vkCode:X2}");
+
+                // 使用虚拟键码调用驱动
+                int ret = _dd.key(vkCode, isKeyDown ? 1 : 2);
                 if (ret != 1)
                 {
-                    System.Diagnostics.Debug.WriteLine($"按键操作失败，键码：{keyCode}，状态：{(isKeyDown ? "按下" : "释放")}，返回值：{ret}");
+                    System.Diagnostics.Debug.WriteLine($"按键操作失败，虚拟键码：0x{vkCode:X2}，状态：{(isKeyDown ? "按下" : "释放")}，返回值：{ret}");
                     SendStatusMessage($"按键操作失败: {keyCode}", true);
                     return false;
                 }
+
+                System.Diagnostics.Debug.WriteLine($"按键操作成功 - 虚拟键码: 0x{vkCode:X2}");
                 return true;
             }
             catch (Exception ex)
