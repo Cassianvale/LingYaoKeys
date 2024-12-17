@@ -100,6 +100,7 @@ namespace WpfApp.ViewModels
             System.Diagnostics.Debug.WriteLine($"--------------------------------");
         }
 
+        // 订阅DDDriverService的事件，用于更新状态栏消息
         private void OnDriverStatusMessageChanged(object? sender, StatusMessageEventArgs e)
         {
             Application.Current.Dispatcher.Invoke(() =>

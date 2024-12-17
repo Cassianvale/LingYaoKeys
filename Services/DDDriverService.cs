@@ -5,7 +5,26 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.IO;
 
-// 封装CDD驱动服务
+/// <summary>
+/// DD虚拟键盘驱动服务类
+/// 核心功能：
+/// 1. 驱动初始化与状态管理
+///    - 加载DD驱动动态链接库
+///    - 初始化驱动环境
+///    - 管理驱动启用/禁用状态
+///    - 提供驱动状态变化事件通知
+///
+/// 2. 按键操作控制
+///    - 模拟按键按下/释放
+///    - 执行按键组合操作
+///    - 支持按键序列自动执行
+///    - 控制按键触发间隔时间
+///
+/// 3. 按键模式管理
+///    - 顺序模式：按设定顺序循环执行按键序列
+///    - 按压模式：按住触发键时持续执行指定按键
+///    - 模式切换与状态维护
+/// </summary>
 namespace WpfApp.Services
 {
     public class DDDriverService
@@ -23,6 +42,7 @@ namespace WpfApp.Services
         public event EventHandler<bool>? InitializationStatusChanged;
         public event EventHandler<bool>? EnableStatusChanged;
         public event EventHandler<StatusMessageEventArgs>? StatusMessageChanged;
+        public event EventHandler<int>? KeyIntervalChanged;
 
         // DD驱动服务构造函数
         public DDDriverService()
@@ -105,15 +125,15 @@ namespace WpfApp.Services
         // 启动定时器
         private void StartTimer()
         {
-            _timer?.Dispose();
-            _timer = new Timer(TimerCallback, null, 0, 10);
+            _timer?.Dispose(); // 先释放旧的定时器
+            _timer = new Timer(TimerCallback, null, 0, 10); // 创建新的定时器
         }
 
         // 停止定时器
         private void StopTimer()
         {
-            _timer?.Dispose();
-            _timer = null;
+            _timer?.Dispose();  // 释放定时器
+            _timer = null;       // 将定时器设置为null
         }
 
         // 定时器回调
@@ -341,8 +361,7 @@ namespace WpfApp.Services
                 
                 // 记录返回值但不影响执行结果
                 System.Diagnostics.Debug.WriteLine($"按键操作返回值: {ret} - DD键码: {(int)keyCode}");
-                
-                // DD驱动的key函数可能返回各种值，但实际按键仍然成功执行
+
                 // 只有在完全无法执行时才返回false
                 return true;
             }
@@ -377,12 +396,15 @@ namespace WpfApp.Services
         }
 
         // 模拟按键按下和释放的完整过程
-        public bool SimulateKeyPress(DDKeyCode keyCode, int delayMs = 50)
+        public bool SimulateKeyPress(DDKeyCode keyCode, int? customDelay = null)
         {
             if (!_isInitialized) return false;
             
             try
             {
+                // 使用自定义延迟或配置的间隔
+                int delayMs = customDelay ?? _keyInterval;
+                
                 // 按下按键
                 if (!SendKey(keyCode, true))
                 {
@@ -427,6 +449,7 @@ namespace WpfApp.Services
             }
         }
 
+        // 顺序模式&按压模式逻辑
         // 添加属性用于设置按键模式和按键列表
         public bool IsSequenceMode
         {
@@ -434,14 +457,16 @@ namespace WpfApp.Services
             set => _isSequenceMode = value;
         }
 
+        // 设置按键列表
         public void SetKeyList(List<DDKeyCode> keyList)
         {
             _keyList = keyList ?? new List<DDKeyCode>();
         }
 
+        // 设置按键间隔
         public void SetKeyInterval(int interval)
         {
-            _keyInterval = Math.Max(1, interval);
+            KeyInterval = Math.Max(1, interval);
         }
 
         // 添加方法用于控制按压模式
@@ -544,8 +569,8 @@ namespace WpfApp.Services
             return _dd.key((int)keyCode, 3) == 1; // 3表示检查按键状态
         }
 
-        // 新增：执行按键序列
-        public async Task ExecuteKeySequenceAsync(IEnumerable<DDKeyCode> keySequence, int interval)
+        // 执行按键序列
+        public async Task ExecuteKeySequenceAsync(IEnumerable<DDKeyCode> keySequence, int? customInterval = null)
         {
             if (!_isInitialized) return;
 
@@ -558,9 +583,9 @@ namespace WpfApp.Services
                     await Task.Run(() =>
                     {
                         SendKey(keyCode, true);
-                        Thread.Sleep(interval);
+                        Thread.Sleep(customInterval ?? _keyInterval);
                         SendKey(keyCode, false);
-                        Thread.Sleep(interval);
+                        Thread.Sleep(customInterval ?? _keyInterval);
                     });
                 }
                 catch (Exception ex)
@@ -571,7 +596,7 @@ namespace WpfApp.Services
             }
         }
 
-        // 新增：检查驱动是否就绪
+        // 检查驱动是否就绪
         public bool IsReady => _isInitialized && _dd.key != null;
 
         // 将Windows虚拟键码转换为DD键码
@@ -600,11 +625,26 @@ namespace WpfApp.Services
             }
         }
 
-        // 添加发送状态消息的方法
+        // 发送状态消息的方法
         private void SendStatusMessage(string message, bool isError = false)
         {
             System.Diagnostics.Debug.WriteLine($"[DDDriver] {(isError ? "错误" : "信息")}: {message}");
             StatusMessageChanged?.Invoke(this, new StatusMessageEventArgs(message, isError));
+        }
+
+        // 修改现有的按键间隔字段和属性
+        public int KeyInterval
+        {
+            get => _keyInterval;
+            set
+            {
+                if (value != _keyInterval && value >= 1)
+                {
+                    _keyInterval = value;
+                    KeyIntervalChanged?.Invoke(this, value);
+                    System.Diagnostics.Debug.WriteLine($"按键间隔已更新为: {value}ms");
+                }
+            }
         }
     }
 
@@ -618,7 +658,7 @@ namespace WpfApp.Services
         XButton2 // 侧键2
     }
 
-    // 添加事件定义
+    // 添加事件定义，向UI传递消息
     public class StatusMessageEventArgs : EventArgs
     {
         public string Message { get; }

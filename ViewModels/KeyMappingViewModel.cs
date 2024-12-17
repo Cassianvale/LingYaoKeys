@@ -9,6 +9,34 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Windows;
 
+/// <summary>
+/// 按键映射核心业务逻辑层
+/// 核心功能：
+/// 1. 热键管理
+///    - 配置开始/停止热键
+///    - 注册和响应全局热键
+///    - 热键状态监控
+/// 
+/// 2. 按键列表管理
+///    - 添加/删除按键
+///    - 按键冲突检测
+///    - 按键序列维护
+/// 
+/// 3. 映射模式控制
+///    - 顺序模式：按设定顺序循环触发按键
+///    - 按压模式：按住热键时持续触发
+///    - 按键间隔时间控制
+/// 
+/// 4. 配置持久化
+///    - 加载已保存的配置
+///    - 保存当前配置到文件
+///    - 配置有效性验证
+/// 
+/// 5. 驱动交互
+///    - 与DD驱动服务通信
+///    - 控制按键映射的启动/停止
+///    - 监控驱动状态变化
+/// </summary>
 namespace WpfApp.ViewModels
 {
     public class KeyMappingViewModel : ViewModelBase
@@ -30,12 +58,14 @@ namespace WpfApp.ViewModels
         private bool _isHotkeyEnabled;
         private string _hotkeyStatus;
 
+        // 按键列表
         public ObservableCollection<KeyItem> KeyList
         {
             get => _keyList;
             set => SetProperty(ref _keyList, value);
         }
 
+        // 当前按键文本
         public string CurrentKeyText
         {
             get => _currentKeyText;
@@ -46,25 +76,31 @@ namespace WpfApp.ViewModels
             }
         }
 
+        // 开始热键文本
         public string StartHotkeyText
         {
             get => _startHotkeyText;
             set => SetProperty(ref _startHotkeyText, value);
         }
 
+        // 停止热键文本
         public string StopHotkeyText
         {
             get => _stopHotkeyText;
             set => SetProperty(ref _stopHotkeyText, value);
         }
 
+        // 按键间隔
         public int KeyInterval
         {
             get => _keyInterval;
             set => SetProperty(ref _keyInterval, value);
         }
 
+        // 添加按键命令
         public ICommand AddKeyCommand { get; }
+
+        // 删除选中的按键命令
         public ICommand DeleteSelectedKeysCommand { get; }
 
         // 按键模式选项
@@ -87,6 +123,7 @@ namespace WpfApp.ViewModels
             }
         }
 
+        // 热键是否启用
         public bool IsHotkeyEnabled
         {
             get => _isHotkeyEnabled;
@@ -103,6 +140,19 @@ namespace WpfApp.ViewModels
             set => SetProperty(ref _hotkeyStatus, value);
         }
 
+        /// <summary>
+        /// 按键映射视图模型类
+        /// </summary>
+        /// <remarks>
+        /// 主要职责:
+        /// 1. 管理按键映射的核心业务逻辑
+        /// 2. 处理热键注册和响应
+        /// 3. 维护按键序列和映射状态
+        /// 4. 与驱动服务和配置服务交互
+        /// </remarks>
+        /// <param name="ddDriver">DD驱动服务实例,用于模拟按键操作</param>
+        /// <param name="configService">配置服务实例,用于加载和保存配置</param>
+        /// <param name="hotkeyService">热键服务实例,用于注册和响应全局热键</param>
         public KeyMappingViewModel(DDDriverService ddDriver, ConfigService configService, HotkeyService hotkeyService)
         {
             _ddDriver = ddDriver;
@@ -173,6 +223,7 @@ namespace WpfApp.ViewModels
             };
         }
 
+        // 设置当前按键
         public void SetCurrentKey(DDKeyCode keyCode)
         {
             System.Diagnostics.Debug.WriteLine($"设置当前按键: {keyCode}");
@@ -180,6 +231,7 @@ namespace WpfApp.ViewModels
             CurrentKeyText = keyCode.ToDisplayName();
         }
 
+        // 设置开始热键
         public void SetStartHotkey(DDKeyCode keyCode, ModifierKeys modifiers)
         {
             if (IsKeyInList(keyCode))
@@ -201,6 +253,7 @@ namespace WpfApp.ViewModels
             System.Diagnostics.Debug.WriteLine($"设置开始热键: {keyCode}, 修饰键: {modifiers}");
         }
 
+        // 更新热键显示文本
         private void UpdateHotkeyText(DDKeyCode keyCode, ModifierKeys modifiers, bool isStart)
         {
             StringBuilder keyText = new StringBuilder();
@@ -220,6 +273,7 @@ namespace WpfApp.ViewModels
                 StopHotkeyText = keyText.ToString();
         }
 
+        // 设置停止热键
         public void SetStopHotkey(DDKeyCode keyCode, ModifierKeys modifiers)
         {
             if (IsKeyInList(keyCode))
@@ -257,11 +311,13 @@ namespace WpfApp.ViewModels
             }
         }
 
+        // 检查是否可以添加按键
         private bool CanAddKey()
         {
             return _currentKey.HasValue;
         }
 
+        // 添加按键
         private void AddKey()
         {
             System.Diagnostics.Debug.WriteLine($"尝试添加按键，当前按键: {_currentKey}");
@@ -293,6 +349,7 @@ namespace WpfApp.ViewModels
             KeyList.Add(new KeyItem(_currentKey.Value));
         }
 
+        // 删除选中的按键
         private void DeleteSelectedKeys()
         {
             var selectedKeys = KeyList.Where(k => k.IsSelected).ToList();
@@ -302,6 +359,7 @@ namespace WpfApp.ViewModels
             }
         }
 
+        // 保存配置
         public void SaveConfig()
         {
             try
@@ -341,6 +399,7 @@ namespace WpfApp.ViewModels
             }
         }
 
+        // 启动按键映射
         public void StartKeyMapping()
         {
             if (_ddDriver == null) return;
@@ -361,7 +420,7 @@ namespace WpfApp.ViewModels
                     System.Diagnostics.Debug.WriteLine($"按键列表项: {key} ({(int)key})");
                 }
 
-                // 设置热键服务的按键序列
+                // 设置按键列表和间隔时间
                 _hotkeyService.SetKeySequence(keys, KeyInterval);
                 
                 // 设置驱动服务
@@ -380,6 +439,7 @@ namespace WpfApp.ViewModels
             }
         }
 
+        // 停止按键映射
         public void StopKeyMapping()
         {
             try
@@ -396,15 +456,19 @@ namespace WpfApp.ViewModels
             }
         }
 
+        // 设置按压模式
         public void SetHoldMode(bool isHold)
         {
             _ddDriver?.SetHoldMode(isHold);
         }
 
+        // 检查按键是否已在列表中
         private bool IsKeyInList(DDKeyCode keyCode)
         {
             return KeyList.Any(k => k.KeyCode == keyCode);
         }
+
+        // 开始热键按下事件处理
                private void OnStartHotkeyPressed()
         {
             try
@@ -441,22 +505,8 @@ namespace WpfApp.ViewModels
                 IsHotkeyEnabled = false;
             }
         }
-        private void OnStartHotkeyReleased()
-        {
-            try
-            {
-                if (SelectedKeyMode == 1) // 按压模式
-                {
-                    System.Diagnostics.Debug.WriteLine("释放按压模式");
-                    _ddDriver.SetHoldMode(false);
-                    IsHotkeyEnabled = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"释放热键异常: {ex}");
-            }
-        }
+
+        // 停止热键按下事件处理
         private void OnStopHotkeyPressed()
         {
             try
