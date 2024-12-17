@@ -15,6 +15,7 @@
             <converters:BoolToColorConverter x:Key="BoolToColorConverter" 
                 TrueValue="#4CAF50"
                 FalseValue="#757575"/> <!-- 启用时绿的，禁用时灰色 -->
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

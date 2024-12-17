@@ -94,7 +94,8 @@
                          LostFocus="HotkeyInputBox_LostFocus"/>
             </DockPanel>
 
-            <DockPanel Margin="0,0,0,10">
+            <DockPanel Margin="0,0,0,10" 
+                       Visibility="{Binding IsSequenceMode, Converter={StaticResource BoolToVisibilityConverter}}">
                 <TextBlock Text="停止键" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,10,0"/>
                 <TextBox Style="{StaticResource ModernTextBox}"
                          Tag="空"
