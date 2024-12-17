@@ -411,12 +411,6 @@ namespace WpfApp.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine($"开始热键按下 - 当前模式: {SelectedKeyMode}");
                 
-                // 验证驱动状态
-                if (!_ddDriver.ValidateDriver())
-                {
-                    System.Diagnostics.Debug.WriteLine("驱动状态验证失败");
-                    return;
-                }
                 // 检查按键列表
                 var keys = KeyList.Select(k => k.KeyCode).ToList();
                 if (!keys.Any())

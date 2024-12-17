@@ -56,7 +56,16 @@ namespace WpfApp.Services
                     return false;
                 }
 
-                // 3. 设置初始化标志
+                // 3. 初始化驱动
+                ret = _dd.btn(0);
+                if (ret != 1)
+                {
+                    System.Diagnostics.Debug.WriteLine("驱动初始化失败");
+                    MessageBox.Show("驱动初始化失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    SendStatusMessage("驱动初始化失败", true);
+                    return false;
+                }
+                // 5. 设置初始化标志
                 _isInitialized = true;
                 _loadedDllPath = dllPath;
                 InitializationStatusChanged?.Invoke(this, true);
@@ -68,12 +77,6 @@ namespace WpfApp.Services
                 System.Diagnostics.Debug.WriteLine($"驱动加载异常: {ex}");
                 return false;
             }
-        }
-
-        // 修改验证方法
-        public bool ValidateDriver()
-        {
-            return _isInitialized;
         }
 
         // 是否启用
@@ -332,19 +335,12 @@ namespace WpfApp.Services
                 
                 int ddCode = (int)keyCode;
                 System.Diagnostics.Debug.WriteLine($"发送按键 - DD键码: {keyCode} ({ddCode}), 状态: {(isKeyDown ? "按下" : "释放")}");
-                
-                // 确保驱动就绪
-                if (!ValidateDriver())
-                {
-                    System.Diagnostics.Debug.WriteLine("驱动状态验证失败");
-                    return false;
-                }
 
                 // 直接使用DD键码
                 int ret = _dd.key(ddCode, isKeyDown ? 1 : 2);
                 
                 // 记录返回值但不影响执行结果
-                System.Diagnostics.Debug.WriteLine($"按键操作返回值: {ret}");
+                System.Diagnostics.Debug.WriteLine($"按键操作返回值: {ret} - DD键码: {(int)keyCode}");
                 
                 // DD驱动的key函数可能返回各种值，但实际按键仍然成功执行
                 // 只有在完全无法执行时才返回false
