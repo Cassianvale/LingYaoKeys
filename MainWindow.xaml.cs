@@ -49,19 +49,7 @@ namespace WpfApp
 
         protected override void OnClosed(EventArgs e)
         {
-            try 
-            {
-                // 先清理ViewModel
-                _viewModel.Cleanup();
-                
-                // 确保驱动服务被正确释放
-                App.DDDriver.Dispose();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"窗口关闭异常: {ex}");
-            }
-            
+            _viewModel.Cleanup();
             base.OnClosed(e);
         }
     }

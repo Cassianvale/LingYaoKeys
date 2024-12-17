@@ -41,25 +41,39 @@ namespace WpfApp.Services
             {
                 System.Diagnostics.Debug.WriteLine($"开始加载驱动文件: {dllPath}");
                 
-                // 1. 清理现有实例
+                // 1. 确保之前的实例被清理
                 if(_isInitialized)
                 {
+                    System.Diagnostics.Debug.WriteLine("清理现有驱动实例");
                     _dd = new CDD();
                     _isInitialized = false;
                 }
 
-                // 2. 简单的加载和初始化 - 只检查Load返回值
+                // 2. 加载驱动
                 int ret = _dd.Load(dllPath);
+                System.Diagnostics.Debug.WriteLine($"DD.Load()返回值: {ret}");
+                
                 if (ret != 1)
                 {
                     System.Diagnostics.Debug.WriteLine($"驱动加载失败: {ret}");
                     return false;
                 }
 
-                // 3. 设置初始化标志
+                // 3. 初始化驱动
+                ret = _dd.btn(0);
+                if (ret != 1)
+                {
+                    System.Diagnostics.Debug.WriteLine("驱动初始化失败");
+                    MessageBox.Show("驱动初始化失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    SendStatusMessage("驱动初始化失败", true);
+                    return false;
+                }
+
+                // 5. 设置初始化标志
                 _isInitialized = true;
                 _loadedDllPath = dllPath;
                 InitializationStatusChanged?.Invoke(this, true);
+                
                 SendStatusMessage("驱动加载成功");
                 return true;
             }
@@ -73,7 +87,31 @@ namespace WpfApp.Services
         // 修改验证方法
         public bool ValidateDriver()
         {
-            return _isInitialized;
+            if (!_isInitialized)
+            {
+                System.Diagnostics.Debug.WriteLine("驱动未初始化");
+                return false;
+            }
+
+            try
+            {
+                // 检查btn函数指针是否为空
+                if (_dd.btn == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("btn函数指针为空");
+                    return false;
+                }
+
+                // 调用btn函数
+                int ret = _dd.btn(0);
+                System.Diagnostics.Debug.WriteLine($"驱动状态检查返回值: {ret}");
+                return ret == 1;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"驱动验证时发生异常：{ex}");
+                return false;
+            }
         }
 
         // 是否启用
@@ -329,25 +367,25 @@ namespace WpfApp.Services
                     System.Diagnostics.Debug.WriteLine($"无效的DD键码: {keyCode} ({(int)keyCode})");
                     return false;
                 }
-                
                 int ddCode = (int)keyCode;
                 System.Diagnostics.Debug.WriteLine($"发送按键 - DD键码: {keyCode} ({ddCode}), 状态: {(isKeyDown ? "按下" : "释放")}");
-                
                 // 确保驱动就绪
                 if (!ValidateDriver())
                 {
                     System.Diagnostics.Debug.WriteLine("驱动状态验证失败");
                     return false;
                 }
-
                 // 直接使用DD键码
                 int ret = _dd.key(ddCode, isKeyDown ? 1 : 2);
-                
-                // 记录返回值但不影响执行结果
-                System.Diagnostics.Debug.WriteLine($"按键操作返回值: {ret}");
-                
-                // DD驱动的key函数可能返回各种值，但实际按键仍然成功执行
-                // 只有在完全无法执行时才返回false
+
+                if (ret != 1)
+                {
+                    System.Diagnostics.Debug.WriteLine($"按键操作失败 - 返回值: {ret}");
+                    SendStatusMessage($"按键操作失败: {keyCode}", true);
+                    return false;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"按键操作成功 - DD键码: {(int)keyCode}");
                 return true;
             }
             catch (Exception ex)
@@ -409,26 +447,8 @@ namespace WpfApp.Services
         // 释放资源
         public void Dispose()
         {
-            try
-            {
-                StopTimer();
-                _timer?.Dispose();
-                _timer = null;
-
-                // 清理所有状态
-                _isEnabled = false;
-                _isInitialized = false;
-                _isSequenceMode = false;
-                _isHoldMode = false;
-                _keyList.Clear();
-
-                // 重新创建驱动实例
-                _dd = new CDD();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Dispose异常: {ex}");
-            }
+            _timer?.Dispose();
+            // add dispose code here
         }
 
         // 添加属性用于设置按键模式和按键列表
