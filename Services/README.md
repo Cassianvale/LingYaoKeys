@@ -1,9 +1,6 @@
 
 ## windows 下使用 C# 实现驱动级键鼠模拟 
 
-### 在Form加载时就进行热键注册
-
-
 ### 驱动级键鼠模拟函数
 ```C#
 [DllImport("DD64.dll")]
@@ -74,13 +71,33 @@ Dim ddcode As int32 = DD_todc(27);
 参数： 字符串, (注意，这个参数不是int32 类型)  
 例子： DD_str("MyEmail@aa.bb.cc !@#$")  
 
+### 键码映射链路
+1. 用户输入阶段
+- 用户在UI上选择或按下按键
+- KeyMappingViewModel接收按键输入
+- 转换为DDKeyCode枚举值
 
-1. 用户按下物理按键
-2. WPF捕获并转换为Key枚举值
-3. KeyCodeMapping将WPF Key转换为DD键码
-4. 验证DD键码有效性
-5. DDDriverService检查驱动状态
-6. 转换为整数键码
-7. 调用DD驱动的key函数
-8. DD驱动执行按键操作
-9. 返回执行结果
+2. 键码转换验证阶段
+- KeyCodeMapping负责Windows虚拟键码和DD键码的双向转换
+- 验证DDKeyCode是否有效
+- 验证是否与启动或停止热键相同
+- 验证是否已存在于按键列表中
+- 处理特殊键码映射
+
+3. 驱动调用
+- DDDriverService将DDKeyCode转换为DD驱动识别的整数键码
+- 调用DD驱动的key函数执行按键操作
+- 处理按键按下和释放状态
+- 处理鼠标移动和滚轮操作
+
+4. 结果处理
+- 驱动返回执行结果
+- DDDriverService处理执行状态，通过事件机制通知上层     
+
+5. 状态更新
+- ViewModel接收执行状态
+- 更新UI状态
+
+6. 显示转换
+- DDKeyCodeExtensions 负责将 DDKeyCode 转换为UI显示的文本
+
