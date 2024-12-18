@@ -41,8 +41,17 @@ namespace WpfApp.ViewModels
         public Page? CurrentPage
         {
             get => _currentPage;
-            set => SetProperty(ref _currentPage, value);
+            set
+            {
+                if (_currentPage != value)
+                {
+                    _currentPage = value;
+                    OnPropertyChanged();
+                }
+            }
         }
+
+        public object? CurrentViewModel => CurrentPage?.DataContext;
 
         public string StatusMessage
         {

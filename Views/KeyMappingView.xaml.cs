@@ -7,6 +7,7 @@ using WpfApp.ViewModels;
 using WpfApp.Services;
 using System.Windows.Media;
 using System.Windows.Controls.Primitives;
+using WpfApp.Styles;
 
 // 提供按键映射视图
 namespace WpfApp.Views
@@ -27,6 +28,13 @@ namespace WpfApp.Views
             
             // 监听 DataContext 变化
             this.DataContextChanged += KeyMappingView_DataContextChanged;
+
+            // 检查样式是否正确应用
+            if (StartHotkeyInput != null) // 假设这是你的TextBox名称
+            {
+                var hasFocusManagement = ControlStyles.GetAutoFocusManagement(StartHotkeyInput);
+                _logger.LogDebug("KeyMappingView", $"StartHotkeyInput AutoFocusManagement: {hasFocusManagement}");
+            }
         }
 
         // 添加 DataContext 变化事件处理

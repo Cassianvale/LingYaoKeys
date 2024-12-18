@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfApp"
+        xmlns:converters="clr-namespace:WpfApp.Converters"
         xmlns:viewModels="clr-namespace:WpfApp.ViewModels"
         xmlns:views="clr-namespace:WpfApp.Views"
         mc:Ignorable="d"
@@ -61,7 +62,7 @@
             
             <!-- 热键状态 -->
             <StatusBarItem Grid.Column="1" Margin="10,0">
-                <TextBlock Text="{Binding CurrentPage.DataContext.HotkeyStatus}" />
+                <TextBlock Text="{Binding CurrentViewModel, Converter={StaticResource ViewModelToHotkeyStatusConverter}}" />
             </StatusBarItem>
             
             <!-- 版本信息 -->
