@@ -364,7 +364,7 @@ namespace WpfApp.Services
             }
         }
 
-        // 新增记录按压时长的方法
+        // 记录按键按压时长
         private void RecordKeyPressDuration(TimeSpan duration)
         {
             _keyPressDurations.Enqueue(duration);
@@ -374,7 +374,7 @@ namespace WpfApp.Services
             }
         }
 
-        // 修改记录间隔的方法
+        // 记录按键间隔
         private void RecordKeyInterval(TimeSpan interval)
         {
             if (interval.TotalMilliseconds > 0)
@@ -569,7 +569,7 @@ namespace WpfApp.Services
             }
         }
 
-        // 新增从虚拟键码发送按键的方法
+        // 从虚拟键码发送按键的方法
         public bool SendVirtualKey(int virtualKeyCode, bool isKeyDown)
         {
             if (!_isInitialized || _dd.key == null) return false;
@@ -625,24 +625,66 @@ namespace WpfApp.Services
         {
             try
             {
-                StopKeySequenceAsync();
+                _logger.LogDebug("Dispose", "开始释放驱动资源");
+                
+                // 先停止所有正在进行的操作
+                IsEnabled = false;
+                
+                // 等待任务完成
+                if (_sequenceTask != null)
+                {
+                    _cancellationTokenSource?.Cancel();
+                    try
+                    {
+                        _sequenceTask.Wait(1000); // 等待最多1秒
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning("Dispose", $"等待序列任务完成超时: {ex.Message}");
+                    }
+                }
+
+                // 确保所有按键都被释放
+                if (_isInitialized && _dd.key != null)
+                {
+                    try
+                    {
+                        // 创建一个按键列表的副本来进行遍历
+                        if (_keyList != null && _keyList.Any())
+                        {
+                            var keyListCopy = new List<DDKeyCode>(_keyList);
+                            foreach (var keyCode in keyListCopy)
+                            {
+                                _dd.key((int)keyCode, 2); // 释放所有按键
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning("Dispose", $"释放按键状态异常: {ex.Message}");
+                    }
+                }
+
+                // 清理资源
                 _cancellationTokenSource?.Dispose();
                 _sequenceTask = null;
-
+                
                 // 清理所有状态
                 _isEnabled = false;
-                _isInitialized = false;
                 _isSequenceMode = false;
                 _isHoldMode = false;
                 _keyList.Clear();
                 _currentKeyIndex = 0;
 
-                // 重新创建驱动实例
+                // 最后再清理初始化状态和驱动实例
+                _isInitialized = false;
                 _dd = new CDD();
+
+                _logger.LogDebug("Dispose", "驱动资源释放完成");
             }
             catch (Exception ex)
             {
-                _logger.LogError("Dispose", "释放资源异常", ex);
+                _logger.LogError("Dispose", "释放资源时发生异常", ex);
             }
         }
 
