@@ -19,6 +19,10 @@ namespace WpfApp
 
             try
             {
+                _logger.LogDebug("App", $"日志系统初始化完成, 配置: " +
+                    $"Level={AppConfigService.Config.Logging.LogLevel}, " +
+                    $"MaxSize={AppConfigService.Config.Logging.FileSettings.MaxFileSize/1024/1024}MB");
+                
                 _logger.LogInitialization("App", "应用程序启动...");
                 
                 // 初始化驱动服务

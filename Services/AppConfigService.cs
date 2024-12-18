@@ -31,19 +31,23 @@ namespace WpfApp.Services
                 {
                     string json = File.ReadAllText(ConfigPath);
                     _config = JsonConvert.DeserializeObject<AppConfig>(json);
-                    _logger.LogInitialization("App", $"从配置文件加载窗口尺寸: {_config?.UI.MainWindow.DefaultWidth}x{_config?.UI.MainWindow.DefaultHeight}");
+                    
+                    _logger.LogDebug("Config", $"从配置文件加载窗口尺寸: {_config?.UI.MainWindow.DefaultWidth}x{_config?.UI.MainWindow.DefaultHeight}");
+                    
+                    _logger.LogInitialization("Config", "配置文件加载成功");
+                    
                     ValidateConfig();
                 }
                 else
                 {
                     _config = new AppConfig();
-                    _logger.LogInitialization("App", "创建默认配置");
+                    _logger.LogInitialization("Config", "使用默认配置");
                     SaveConfig();
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError("App", $"加载配置文件失败: {ex.Message}");
+                _logger.LogError("Config", $"加载配置文件失败: {ex.Message}");
                 _config = new AppConfig();
             }
         }
@@ -57,21 +61,21 @@ namespace WpfApp.Services
             // 验证并修正窗口尺寸
             if (_config.UI.MainWindow.DefaultWidth < 500)
             {
-                _logger.LogWarning("App", $"窗口宽度 {_config.UI.MainWindow.DefaultWidth} 小于最小值，已修正为 600");
+                _logger.LogWarning("Config", $"窗口宽度 {_config.UI.MainWindow.DefaultWidth} 小于最小值，已修正为 600");
                 _config.UI.MainWindow.DefaultWidth = 600;
                 sizeChanged = true;
             }
             
             if (_config.UI.MainWindow.DefaultHeight < 400)
             {
-                _logger.LogWarning("App", $"窗口高度 {_config.UI.MainWindow.DefaultHeight} 小于最小值，已修正为 450");
+                _logger.LogWarning("Config", $"窗口高度 {_config.UI.MainWindow.DefaultHeight} 小于最小值，已修正为 450");
                 _config.UI.MainWindow.DefaultHeight = 450;
                 sizeChanged = true;
             }
 
             if (sizeChanged)
             {
-                _logger.LogInitialization("App", $"最终窗口尺寸: {_config.UI.MainWindow.DefaultWidth}x{_config.UI.MainWindow.DefaultHeight}");
+                _logger.LogDebug("Config", $"最终窗口尺寸: {_config.UI.MainWindow.DefaultWidth}x{_config.UI.MainWindow.DefaultHeight}");
                 SaveConfig();
             }
         }

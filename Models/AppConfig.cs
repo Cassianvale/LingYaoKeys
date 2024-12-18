@@ -7,6 +7,7 @@ namespace WpfApp.Models
     {
         public AppInfo AppInfo { get; set; } = new AppInfo();
         public UIConfig UI { get; set; } = new UIConfig();
+        public LoggingConfig Logging { get; set; } = new LoggingConfig();
     }
 
     public class AppInfo
@@ -26,5 +27,30 @@ namespace WpfApp.Models
     {
         public int DefaultWidth { get; set; } = 600;
         public int DefaultHeight { get; set; } = 450;
+    }
+
+    public class LoggingConfig
+    {
+        public bool Enabled { get; set; } = true;
+        public string LogLevel { get; set; } = "Debug";
+        public FileSettings FileSettings { get; set; } = new FileSettings();
+        public LogCategories Categories { get; set; } = new LogCategories();
+    }
+
+    public class FileSettings
+    {
+        public string Directory { get; set; } = "Logs";
+        public int MaxFileSize { get; set; } = 10;  // 以MB为单位
+        public int MaxFileCount { get; set; } = 10;
+        public string RollingInterval { get; set; } = "Day";
+        public int RetainDays { get; set; } = 7;
+    }
+
+    public class LogCategories
+    {
+        public bool KeyOperation { get; set; } = true;
+        public bool Performance { get; set; } = true;
+        public bool Driver { get; set; } = true;
+        public bool Config { get; set; } = true;
     }
 } 
