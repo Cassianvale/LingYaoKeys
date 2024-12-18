@@ -253,11 +253,27 @@ namespace WpfApp.ViewModels
                 return;
             }
 
-            _startHotkey = keyCode;
-            _startModifiers = modifiers;
-            UpdateHotkeyText(keyCode, modifiers, true);
-            _hotkeyService.RegisterStartHotkey(keyCode, modifiers);
-            _logger.LogDebug("Hotkey", $"设置开始热键: {keyCode}, 修饰键: {modifiers}");
+            try
+            {
+                _startHotkey = keyCode;
+                _startModifiers = modifiers;
+                UpdateHotkeyText(keyCode, modifiers, true);
+                
+                bool result = _hotkeyService.RegisterStartHotkey(keyCode, modifiers);
+                if (!result && !_hotkeyService.IsMouseButton(keyCode))
+                {
+                    _logger.LogError("KeyMapping", $"注册开始热键失败: {keyCode}");
+                    MessageBox.Show("开始热键注册失败，请尝试其他按键", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                
+                _logger.LogDebug("KeyMapping", $"设置开始热键: {keyCode}, 修饰键: {modifiers}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("KeyMapping", "设置开始热键失败", ex);
+                MessageBox.Show($"设置开始热键失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         // 更新热键显示文本

@@ -442,6 +442,7 @@ namespace WpfApp.Views
 
                 if (keyCode.HasValue)
                 {
+                    _logger.LogDebug("HotkeyInput", $"检测到鼠标按键: {keyCode.Value}");
                     HandleHotkeyInput(textBox, keyCode.Value, Keyboard.Modifiers, true);
                     e.Handled = true; // 阻止事件继续传播
                 }
@@ -463,6 +464,7 @@ namespace WpfApp.Views
 
                 if (keyCode.HasValue)
                 {
+                    _logger.LogDebug("HotkeyInput", $"检测到鼠标按键: {keyCode.Value}");
                     HandleHotkeyInput(textBox, keyCode.Value, Keyboard.Modifiers, false);
                     e.Handled = true; // 阻止事件继续传播
                 }

@@ -196,7 +196,15 @@ namespace WpfApp.Services
             {
                 int code = (int)keyCode;
                 
-                // 检查键码范围
+                // 添加鼠标按键的验证
+                if (keyCode == DDKeyCode.MBUTTON || 
+                    keyCode == DDKeyCode.XBUTTON1 || 
+                    keyCode == DDKeyCode.XBUTTON2)
+                {
+                    return true;
+                }
+                
+                // 检查其他键码范围
                 bool isValid = code switch
                 {
                     >= 100 and <= 112 => true,   // 功能键 F1-F12
@@ -207,9 +215,10 @@ namespace WpfApp.Services
                     >= 600 and <= 607 => true,   // 控制键区
                     >= 700 and <= 712 => true,   // 编辑键区
                     >= 800 and <= 816 => true,   // 小键盘区
-                    1 or 4 or 16 or 64 or 256 => true, // 鼠标按键
+                    1 or 4 or 16 or 64 or 256 => true, // 基本鼠标按键
                     _ => false
                 };
+
                 if (!isValid)
                 {
                     _logger.LogError("KeyCodeMapping", $"无效的DD键码: {keyCode} ({code})");
