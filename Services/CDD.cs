@@ -16,6 +16,8 @@ namespace WpfApp.Services
 
     class CDD
     {
+        private readonly LogManager _logger = LogManager.Instance;
+
         [DllImport("Kernel32")]
         private static extern IntPtr LoadLibrary(string dllfile);
 
@@ -60,7 +62,7 @@ namespace WpfApp.Services
                 m_hinst = LoadLibrary(dllfile);
                 if (m_hinst.Equals(IntPtr.Zero))
                 {
-                    System.Diagnostics.Debug.WriteLine("LoadLibrary failed");
+                    _logger.LogError("CDD", "LoadLibrary failed");
                     return -2;
                 }
 
@@ -68,7 +70,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Load exception: {ex}");
+                _logger.LogError("CDD", "Load exception", ex);
                 return -2;
             }
         }
@@ -81,7 +83,7 @@ namespace WpfApp.Services
                 IntPtr ptr = GetProcAddress(hinst, "DD_btn");
                 if (ptr.Equals(IntPtr.Zero))
                 {
-                    System.Diagnostics.Debug.WriteLine("Failed to get DD_btn address");
+                    _logger.LogError("CDD", "Failed to get DD_btn address");
                     return -1;
                 }
                 btn = Marshal.GetDelegateForFunctionPointer<pDD_btn>(ptr);
@@ -89,7 +91,7 @@ namespace WpfApp.Services
                 ptr = GetProcAddress(hinst, "DD_whl");
                 if (ptr.Equals(IntPtr.Zero))
                 {
-                    System.Diagnostics.Debug.WriteLine("Failed to get DD_whl address");
+                    _logger.LogError("CDD", "Failed to get DD_whl address");
                     return -1;
                 }
                 whl = Marshal.GetDelegateForFunctionPointer<pDD_whl>(ptr);
@@ -97,7 +99,7 @@ namespace WpfApp.Services
                 ptr = GetProcAddress(hinst, "DD_mov");
                 if (ptr.Equals(IntPtr.Zero))
                 {
-                    System.Diagnostics.Debug.WriteLine("Failed to get DD_mov address");
+                    _logger.LogError("CDD", "Failed to get DD_mov address");
                     return -1;
                 }
                 mov = Marshal.GetDelegateForFunctionPointer<pDD_mov>(ptr);
@@ -105,7 +107,7 @@ namespace WpfApp.Services
                 ptr = GetProcAddress(hinst, "DD_key");
                 if (ptr.Equals(IntPtr.Zero))
                 {
-                    System.Diagnostics.Debug.WriteLine("Failed to get DD_key address");
+                    _logger.LogError("CDD", "Failed to get DD_key address");
                     return -1;
                 }
                 key = Marshal.GetDelegateForFunctionPointer<pDD_key>(ptr);
@@ -113,7 +115,7 @@ namespace WpfApp.Services
                 ptr = GetProcAddress(hinst, "DD_movR");
                 if (ptr.Equals(IntPtr.Zero))
                 {
-                    System.Diagnostics.Debug.WriteLine("Failed to get DD_movR address");
+                    _logger.LogError("CDD", "Failed to get DD_movR address");
                     return -1;
                 }
                 movR = Marshal.GetDelegateForFunctionPointer<pDD_movR>(ptr);
@@ -121,7 +123,7 @@ namespace WpfApp.Services
                 ptr = GetProcAddress(hinst, "DD_str");
                 if (ptr.Equals(IntPtr.Zero))
                 {
-                    System.Diagnostics.Debug.WriteLine("Failed to get DD_str address");
+                    _logger.LogError("CDD", "Failed to get DD_str address");
                     return -1;
                 }
                 str = Marshal.GetDelegateForFunctionPointer<pDD_str>(ptr);
@@ -137,7 +139,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"GetDDfunAddress exception: {ex}");
+                _logger.LogError("CDD", "GetDDfunAddress exception", ex);
                 return -1;
             }
         }

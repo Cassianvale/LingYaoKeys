@@ -12,7 +12,8 @@ using System.Windows.Controls.Primitives;
 namespace WpfApp.Views
 {
     public partial class KeyMappingView : Page
-    {
+    {   
+        private readonly LogManager _logger = LogManager.Instance;
         private const string KEY_ERROR = "无法识别按键，请检查输入法是否关闭";
         private bool isErrorShown = false;
 
@@ -239,7 +240,7 @@ namespace WpfApp.Views
         {
             if (textBox == null)
             {
-                System.Diagnostics.Debug.WriteLine("HandleHotkeyInput: textBox is null");
+                _logger.LogWarning("HotkeyInput", "HandleHotkeyInput: textBox is null");
                 return;
             }
 
@@ -249,8 +250,9 @@ namespace WpfApp.Views
                 return;
             }
 
-            // 打印处理热键输入的调试信息
-            System.Diagnostics.Debug.WriteLine($"HandleHotkeyInput - keyCode: {keyCode}, 修饰键: {modifiers}, isStartHotkey: {isStartHotkey}");
+            // 记录热键输入处理
+            _logger.LogDebug("HotkeyInput", 
+                $"处理热键输入 - keyCode: {keyCode}, 修饰键: {modifiers}, isStartHotkey: {isStartHotkey}");
 
             // 区分当前处理的是开始热键还是停止热键
             if (isStartHotkey)
@@ -278,23 +280,23 @@ namespace WpfApp.Views
         // 处理开始热键
         private void StartHotkeyInput_KeyDown(object sender, KeyEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("StartHotkeyInput_KeyDown 已触发");
-            System.Diagnostics.Debug.WriteLine($"Key: {e.Key}, SystemKey: {e.SystemKey}, KeyStates: {e.KeyStates}");
+            _logger.LogDebug("HotkeyInput", "StartHotkeyInput_KeyDown 已触发");
+            _logger.LogDebug("HotkeyInput", $"Key: {e.Key}, SystemKey: {e.SystemKey}, KeyStates: {e.KeyStates}");
             StartHotkeyInput_PreviewKeyDown(sender, e);
         }
 
         private void StartHotkeyInput_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("StartHotkeyInput_MouseDown 已触发");
-            System.Diagnostics.Debug.WriteLine($"ChangedButton: {e.ChangedButton}");
+            _logger.LogDebug("HotkeyInput", "StartHotkeyInput_MouseDown 已触发");
+            _logger.LogDebug("HotkeyInput", $"ChangedButton: {e.ChangedButton}");
             StartHotkeyInput_PreviewMouseDown(sender, e);
         }
 
         // 处理开始热键的鼠标释放
         private void StartHotkeyInput_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("StartHotkeyInput_PreviewMouseUp 已触发");
-            System.Diagnostics.Debug.WriteLine($"ChangedButton: {e.ChangedButton}");
+            _logger.LogDebug("HotkeyInput", "StartHotkeyInput_PreviewMouseUp 已触发");
+            _logger.LogDebug("HotkeyInput", $"ChangedButton: {e.ChangedButton}");
         }
 
         private void StartHotkeyInput_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -307,7 +309,7 @@ namespace WpfApp.Views
                 
                 if (e.Key == Key.ImeProcessed && e.SystemKey == Key.None)
                 {
-                    System.Diagnostics.Debug.WriteLine("IME input detected, showing error");
+                    _logger.LogDebug("HotkeyInput", "检测到IME输入，显示错误");
                     if (!isErrorShown)
                     {
                         ShowError(textBox);
@@ -333,7 +335,7 @@ namespace WpfApp.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Exception in StartHotkeyInput_PreviewKeyDown: {ex}");
+                _logger.LogError("HotkeyInput", "StartHotkeyInput_PreviewKeyDown 处理异常", ex);
             }
         }
 
@@ -342,38 +344,46 @@ namespace WpfApp.Views
         {
             if (sender is not TextBox textBox) return;
             
-            e.Handled = true;
-            
-            if (e.Key == Key.ImeProcessed && e.SystemKey == Key.None)
+            try
             {
-                if (!isErrorShown)
+                e.Handled = true;
+                
+                if (e.Key == Key.ImeProcessed && e.SystemKey == Key.None)
                 {
-                    ShowError(textBox);
+                    _logger.LogDebug("HotkeyInput", "检测到IME输入，显示错误");
+                    if (!isErrorShown)
+                    {
+                        ShowError(textBox);
+                    }
+                    return;
                 }
-                return;
-            }
 
-            var key = e.Key == Key.ImeProcessed ? e.SystemKey : e.Key;
-            
-            if (key == Key.System || key == Key.None)
-            {
-                return;
-            }
-
-            // 获取当前修饰键状态
-            var modifiers = Keyboard.Modifiers;
-            
-            if (TryConvertToDDKeyCode(key, out DDKeyCode ddKeyCode))
-            {
-                if (IsModifierKey(ddKeyCode))
+                var key = e.Key == Key.ImeProcessed ? e.SystemKey : e.Key;
+                
+                if (key == Key.System || key == Key.None)
                 {
                     return;
                 }
-                HandleHotkeyInput(textBox, ddKeyCode, modifiers, false);
+
+                // 获取当前修饰键状态
+                var modifiers = Keyboard.Modifiers;
+                
+                if (TryConvertToDDKeyCode(key, out DDKeyCode ddKeyCode))
+                {
+                    if (IsModifierKey(ddKeyCode))
+                    {
+                        return;
+                    }
+                    HandleHotkeyInput(textBox, ddKeyCode, modifiers, false);
+                }
+                else if (!isErrorShown)
+                {
+                    ShowError(textBox);
+                }
             }
-            else if (!isErrorShown)
+            catch (Exception ex)
             {
-                ShowError(textBox);
+                _logger.LogError("HotkeyInput", "StopHotkeyInput_PreviewKeyDown 处理异常", ex);
             }
         }
 
@@ -426,32 +436,59 @@ namespace WpfApp.Views
 
         private void HandleStartHotkey(bool isKeyDown)
         {
-            if (ViewModel == null) return;
-            
-            if (ViewModel.SelectedKeyMode == 0) // 顺序模式
+            if (ViewModel == null)
             {
-                if (isKeyDown) // 按下时启动
+                _logger.LogWarning("HotkeyHandler", "ViewModel is null");
+                return;
+            }
+            
+            try
+            {
+                if (ViewModel.SelectedKeyMode == 0) // 顺序模式
                 {
-                    ViewModel.StartKeyMapping();
+                    _logger.LogDebug("HotkeyHandler", $"顺序模式 - 按键{(isKeyDown ? "按下" : "释放")}");
+                    if (isKeyDown) // 按下时启动
+                    {
+                        ViewModel.StartKeyMapping();
+                    }
+                }
+                else // 按压模式
+                {
+                    _logger.LogDebug("HotkeyHandler", $"按压模式 - 按键{(isKeyDown ? "按下" : "释放")}");
+                    if (isKeyDown)
+                    {
+                        ViewModel.StartKeyMapping();
+                        ViewModel.SetHoldMode(true);
+                    }
+                    else
+                    {
+                        ViewModel.SetHoldMode(false);
+                    }
                 }
             }
-            else // 按压模式
+            catch (Exception ex)
             {
-                if (isKeyDown)
-                {
-                    ViewModel.StartKeyMapping();
-                    ViewModel.SetHoldMode(true);
-                }
-                else
-                {
-                    ViewModel.SetHoldMode(false);
-                }
+                _logger.LogError("HotkeyHandler", "处理开始热键异常", ex);
             }
         }
 
         private void HandleStopHotkey()
         {
-            ViewModel?.StopKeyMapping();
+            try
+            {
+                if (ViewModel == null)
+                {
+                    _logger.LogWarning("HotkeyHandler", "ViewModel is null");
+                    return;
+                }
+                
+                _logger.LogDebug("HotkeyHandler", "处理停止热键");
+                ViewModel.StopKeyMapping();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("HotkeyHandler", "处理停止热键异常", ex);
+            }
         }
     }
 } 
