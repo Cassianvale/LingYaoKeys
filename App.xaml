@@ -16,6 +16,7 @@
                 TrueValue="#4CAF50"
                 FalseValue="#757575"/> <!-- 启用时绿的，禁用时灰色 -->
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+            <converters:ViewModelToHotkeyStatusConverter x:Key="ViewModelToHotkeyStatusConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
