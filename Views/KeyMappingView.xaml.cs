@@ -15,13 +15,28 @@ namespace WpfApp.Views
     {   
         private readonly LogManager _logger = LogManager.Instance;
         private const string KEY_ERROR = "无法识别按键，请检查输入法是否关闭";
+        private const string HOTKEY_CONFLICT = "无法设置与热键相同的按键";
         private bool isErrorShown = false;
+        private HotkeyService? _hotkeyService;
 
         private KeyMappingViewModel ViewModel => (KeyMappingViewModel)DataContext;
 
         public KeyMappingView()
         {
             InitializeComponent();
+            
+            // 监听 DataContext 变化
+            this.DataContextChanged += KeyMappingView_DataContextChanged;
+        }
+
+        // 添加 DataContext 变化事件处理
+        private void KeyMappingView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.NewValue is KeyMappingViewModel viewModel)
+            {
+                _hotkeyService = viewModel.GetHotkeyService();
+                _logger.LogDebug("KeyMappingView", "已获取HotkeyService实例");
+            }
         }
 
         private void KeyInputBox_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -35,7 +50,7 @@ namespace WpfApp.Views
             {
                 if (!isErrorShown)
                 {
-                    ShowError(textBox);
+                    ShowError(textBox, KEY_ERROR);
                 }
                 return;
             }
@@ -49,15 +64,22 @@ namespace WpfApp.Views
                 return;
             }
             
-            // 转换并设置按键
+            // 转换并检查按键
             if (TryConvertToDDKeyCode(key, out DDKeyCode ddKeyCode))
             {
+                // 检查是否与热键冲突
+                if (ViewModel.IsHotkeyConflict(ddKeyCode))
+                {
+                    ShowError(textBox, HOTKEY_CONFLICT);
+                    return;
+                }
+
                 ViewModel?.SetCurrentKey(ddKeyCode);
                 isErrorShown = false;
             }
             else if (!isErrorShown)
             {
-                ShowError(textBox);
+                ShowError(textBox, KEY_ERROR);
             }
         }
 
@@ -161,15 +183,28 @@ namespace WpfApp.Views
             if (sender is TextBox textBox)
             {
                 isErrorShown = false;
+                if (_hotkeyService != null)
+                {
+                    _hotkeyService.IsInputFocused = true;
+                    _logger.LogDebug("KeyMappingView", $"按键输入框获得焦点: {textBox.Name}");
+                }
             }
         }
 
         // 处理按键输入框失去焦点
         private void KeyInputBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            if (sender is TextBox textBox && string.IsNullOrEmpty(textBox.Text))
+            if (sender is TextBox textBox)
             {
-                isErrorShown = false;
+                if (string.IsNullOrEmpty(textBox.Text))
+                {
+                    isErrorShown = false;
+                }
+                if (_hotkeyService != null)
+                {
+                    _hotkeyService.IsInputFocused = false;
+                    _logger.LogDebug("KeyMappingView", $"按键输入框失去焦点: {textBox.Name}");
+                }
             }
         }
 
@@ -181,19 +216,11 @@ namespace WpfApp.Views
         }
 
         // 显示错误信息
-        private void ShowError(TextBox? textBox)
+        private void ShowError(TextBox textBox, string message)
         {
-            if (textBox == null) return;
-            
+            textBox.Text = message;
+            textBox.SelectAll();
             isErrorShown = true;
-            if (textBox.Name == "StartHotkeyInput")
-            {
-                ViewModel.StartHotkeyText = KEY_ERROR;
-            }
-            else if (textBox.Name == "StopHotkeyInput")
-            {
-                ViewModel.StopHotkeyText = KEY_ERROR;
-            }
         }
 
         // 处理热键输入框获得焦点
@@ -202,15 +229,28 @@ namespace WpfApp.Views
             if (sender is TextBox textBox)
             {
                 isErrorShown = false;
+                if (_hotkeyService != null)
+                {
+                    _hotkeyService.IsInputFocused = true;
+                    _logger.LogDebug("KeyMappingView", $"输入框获得焦点: {textBox.Name}");
+                }
             }
         }
 
         // 处理热键输入框失去焦点
         private void HotkeyInputBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            if (sender is TextBox textBox && string.IsNullOrEmpty(textBox.Text))
+            if (sender is TextBox textBox)
             {
-                isErrorShown = false;
+                if (string.IsNullOrEmpty(textBox.Text))
+                {
+                    isErrorShown = false;
+                }
+                if (_hotkeyService != null)
+                {
+                    _hotkeyService.IsInputFocused = false;
+                    _logger.LogDebug("KeyMappingView", $"输入框失去焦点: {textBox.Name}");
+                }
             }
         }
 
@@ -312,7 +352,7 @@ namespace WpfApp.Views
                     _logger.LogDebug("HotkeyInput", "检测到IME输入，显示错误");
                     if (!isErrorShown)
                     {
-                        ShowError(textBox);
+                        ShowError(textBox, KEY_ERROR);
                     }
                     return;
                 }
@@ -330,7 +370,7 @@ namespace WpfApp.Views
                 }
                 else if (!isErrorShown)
                 {
-                    ShowError(textBox);
+                    ShowError(textBox, KEY_ERROR);
                 }
             }
             catch (Exception ex)
@@ -353,7 +393,7 @@ namespace WpfApp.Views
                     _logger.LogDebug("HotkeyInput", "检测到IME输入，显示错误");
                     if (!isErrorShown)
                     {
-                        ShowError(textBox);
+                        ShowError(textBox, KEY_ERROR);
                     }
                     return;
                 }
@@ -378,7 +418,7 @@ namespace WpfApp.Views
                 }
                 else if (!isErrorShown)
                 {
-                    ShowError(textBox);
+                    ShowError(textBox, KEY_ERROR);
                 }
             }
             catch (Exception ex)
@@ -487,7 +527,26 @@ namespace WpfApp.Views
             }
             catch (Exception ex)
             {
-                _logger.LogError("HotkeyHandler", "处理停止热键异常", ex);
+                _logger.LogError("HotkeyHandler", "处理理停止热键异常", ex);
+            }
+        }
+
+        // 添加数字输入框焦点事件处理
+        private void NumberInput_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (_hotkeyService != null)
+            {
+                _hotkeyService.IsInputFocused = true;
+                _logger.LogDebug("KeyMappingView", "数字输入框获得焦点");
+            }
+        }
+
+        private void NumberInput_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (_hotkeyService != null)
+            {
+                _hotkeyService.IsInputFocused = false;
+                _logger.LogDebug("KeyMappingView", "数字输入框失去焦点");
             }
         }
     }

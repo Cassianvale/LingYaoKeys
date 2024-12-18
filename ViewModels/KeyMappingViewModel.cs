@@ -253,12 +253,6 @@ namespace WpfApp.ViewModels
                 return;
             }
 
-            if (_stopHotkey.HasValue && _stopHotkey.Value == keyCode && _stopModifiers == modifiers)
-            {
-                MessageBox.Show("该按键已被设置为停止键，请选择其他按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
             _startHotkey = keyCode;
             _startModifiers = modifiers;
             UpdateHotkeyText(keyCode, modifiers, true);
@@ -292,12 +286,6 @@ namespace WpfApp.ViewModels
             if (IsKeyInList(keyCode))
             {
                 MessageBox.Show("该按键已在按键列表中，请选择其他按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            if (_startHotkey.HasValue && _startHotkey.Value == keyCode && _startModifiers == modifiers)
-            {
-                MessageBox.Show("该按键已被设置为启动键，请选择其他按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -343,13 +331,13 @@ namespace WpfApp.ViewModels
 
             if (_startHotkey.HasValue && _currentKey.Value == _startHotkey.Value)
             {
-                MessageBox.Show("该按键已被设置为启动热键，请选择其他按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("该按键已被设置为热键，请选择其他按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             if (_stopHotkey.HasValue && _currentKey.Value == _stopHotkey.Value)
             {
-                MessageBox.Show("该按键已被设置为停止热键，请选择其他按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("该按键已被设置为热键，请选择其他按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -549,6 +537,36 @@ namespace WpfApp.ViewModels
             catch (Exception ex)
             {
                 _logger.LogError("Hotkey", "停止按键映射异常", ex);
+            }
+        }
+
+        // 获取热键服务
+        public HotkeyService GetHotkeyService()
+        {
+            return _hotkeyService;
+        }
+
+        // 添加热键冲突检测方法
+        public bool IsHotkeyConflict(DDKeyCode keyCode)
+        {
+            try
+            {
+                bool isStartConflict = _startHotkey.HasValue && keyCode == _startHotkey.Value;
+                bool isStopConflict = _stopHotkey.HasValue && keyCode == _stopHotkey.Value;
+                
+                if (isStartConflict || isStopConflict)
+                {
+                    _logger.LogDebug("KeyMapping", 
+                        $"检测到热键冲突 - 按键: {keyCode}, 启动键冲突: {isStartConflict}, 停止键冲突: {isStopConflict}");
+                    return true;
+                }
+                
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("KeyMapping", "检查热键冲突时发生异常", ex);
+                return false;
             }
         }
     }
