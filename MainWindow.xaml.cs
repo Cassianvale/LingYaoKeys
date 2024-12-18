@@ -9,6 +9,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using WpfApp.ViewModels;
+using WpfApp.Services;
 
 namespace WpfApp
 {
@@ -17,6 +18,7 @@ namespace WpfApp
     /// </summary>
     public partial class MainWindow : Window
     {
+        private readonly LogManager _logger = LogManager.Instance;
         private readonly MainViewModel _viewModel;
 
         public MainWindow()
@@ -24,27 +26,18 @@ namespace WpfApp
             // 在InitializeComponent之前设置DataContext
             _viewModel = new MainViewModel(App.DDDriver, this);
             DataContext = _viewModel;
-            
-            InitializeComponent();
-
-            // 添加调试信息
-            System.Diagnostics.Debug.WriteLine($"MainWindow初始化 - 配置尺寸: {_viewModel.Config.UI.MainWindow.DefaultWidth}x{_viewModel.Config.UI.MainWindow.DefaultHeight}");
-
-            // 窗口加载完成后再次检查尺寸
-            Loaded += (s, e) =>
-            {
-                System.Diagnostics.Debug.WriteLine($"MainWindow加载完成 - 实际尺寸: {Width}x{Height}");
-            };
-
-            // 确保窗口尺寸正确
+            // 加载窗口尺寸
             Width = _viewModel.Config.UI.MainWindow.DefaultWidth;
             Height = _viewModel.Config.UI.MainWindow.DefaultHeight;
+            InitializeComponent();
+
         }
 
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
-            System.Diagnostics.Debug.WriteLine($"MainWindow源初始化 - 实际尺寸: {Width}x{Height}");
+            _logger.LogInitialization("App", 
+                $"窗口源初始化 - 实际尺寸: {Width}x{Height}");
         }
 
         protected override void OnClosed(EventArgs e)
@@ -56,10 +49,12 @@ namespace WpfApp
                 
                 // 确保驱动服务被正确释放
                 App.DDDriver.Dispose();
+                
+                _logger.LogDebug("MainWindow", "窗口关闭 - 资源清理完成");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"窗口关闭异常: {ex}");
+                _logger.LogError("MainWindow", "窗口关闭异常", ex);
             }
             
             base.OnClosed(e);

@@ -4,6 +4,7 @@ namespace WpfApp.Services
 {
     public static class KeyCodeMapping
     {
+        private static readonly LogManager _logger = LogManager.Instance;
         // 使用惰性初始化避免静态构造函数异常
         private static readonly Lazy<Dictionary<int, DDKeyCode>> _virtualToDDKeyMap = 
             new Lazy<Dictionary<int, DDKeyCode>>(() => InitializeKeyMap());
@@ -146,12 +147,12 @@ namespace WpfApp.Services
                     { 0x5A, DDKeyCode.Z }  // Z
                 };
 
-                System.Diagnostics.Debug.WriteLine("键码映射表初始化完成");
+                _logger.LogInitialization("KeyCodeMapping", "键码映射表初始化完成");
                 return map;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"初始化键码映射表时发生异常: {ex}");
+                _logger.LogError("KeyCodeMapping", $"初始化键码映射表时发生异常: {ex}");
                 throw;
             }
         }
@@ -180,12 +181,12 @@ namespace WpfApp.Services
                     return (DDKeyCode)ddCode.Value;
                 }
 
-                System.Diagnostics.Debug.WriteLine($"无法转换虚拟键码: 0x{virtualKeyCode:X2}");
+                _logger.LogError("KeyCodeMapping", $"无法转换虚拟键码: 0x{virtualKeyCode:X2}");
                 return DDKeyCode.None;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"转换虚拟键码时发生异常: {ex}");
+                _logger.LogError("KeyCodeMapping", $"转换虚拟键码时发生异常: {ex}");
                 return DDKeyCode.None;
             }
         }
@@ -211,13 +212,13 @@ namespace WpfApp.Services
                 };
                 if (!isValid)
                 {
-                    System.Diagnostics.Debug.WriteLine($"无效的DD键码: {keyCode} ({code})");
+                    _logger.LogError("KeyCodeMapping", $"无效的DD键码: {keyCode} ({code})");
                 }
                 return isValid;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"键码验证异常: {ex}");
+                _logger.LogError("KeyCodeMapping", $"键码验证异常: {ex}");
                 return false;
             }
         }

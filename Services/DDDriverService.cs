@@ -4,6 +4,9 @@ using System.Windows;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.IO;
+using System.Diagnostics;
+using System.Text;
+using System.Linq;
 
 /// <summary>
 /// DD虚拟键盘驱动服务类
@@ -31,18 +34,31 @@ namespace WpfApp.Services
     {
         private CDD _dd;
         private bool _isInitialized;
-        private string? _loadedDllPath;
         private bool _isEnabled;
-        private Timer? _timer;
         private bool _isSequenceMode;
         private List<DDKeyCode> _keyList = new List<DDKeyCode>();
         private bool _isHoldMode;
         private int _keyInterval = 50;
+        private int _currentKeyIndex = 0;
+        private readonly object _lockObject = new object();
+        private Task? _sequenceTask;
+        private CancellationTokenSource? _cancellationTokenSource;
+        private readonly Stopwatch _sequenceStopwatch = new Stopwatch();
+        private readonly Stopwatch _operationTimer = new Stopwatch();
+        private readonly Queue<TimeSpan> _keyPressDurations = new Queue<TimeSpan>();
+        private readonly Queue<TimeSpan> _keyIntervals = new Queue<TimeSpan>();
+        private DateTime _cycleStartTime;
+        private int _totalKeyPresses;
+        private const int MAX_TIMING_SAMPLES = 100;
 
         public event EventHandler<bool>? InitializationStatusChanged;
         public event EventHandler<bool>? EnableStatusChanged;
         public event EventHandler<StatusMessageEventArgs>? StatusMessageChanged;
         public event EventHandler<int>? KeyIntervalChanged;
+        private readonly LogManager _logger = LogManager.Instance;
+
+        // 性能统计事件
+        public event EventHandler<PerformanceMetrics>? PerformanceMetricsUpdated;
 
         // DD驱动服务构造函数
         public DDDriverService()
@@ -59,7 +75,7 @@ namespace WpfApp.Services
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine($"开始加载驱动文件: {dllPath}");
+                _logger.LogInitialization("开始", $"加载驱动文件: {dllPath}");
                 
                 // 1. 清理现有实例
                 if(_isInitialized)
@@ -68,11 +84,11 @@ namespace WpfApp.Services
                     _isInitialized = false;
                 }
 
-                // 2. 简单的加载和初始化 - 只检查Load返回值
+                // 2. 加载驱动 - 只检查Load返回值
                 int ret = _dd.Load(dllPath);
                 if (ret != 1)
                 {
-                    System.Diagnostics.Debug.WriteLine($"驱动加载失败: {ret}");
+                    _logger.LogError("LoadDllFile", $"驱动加载失败，返回值: {ret}");
                     return false;
                 }
 
@@ -80,21 +96,21 @@ namespace WpfApp.Services
                 ret = _dd.btn(0);
                 if (ret != 1)
                 {
-                    System.Diagnostics.Debug.WriteLine("驱动初始化失败");
+                    _logger.LogError("LoadDllFile", "驱动初始化失败");
                     MessageBox.Show("驱动初始化失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     SendStatusMessage("驱动初始化失败", true);
                     return false;
                 }
+
                 // 5. 设置初始化标志
                 _isInitialized = true;
-                _loadedDllPath = dllPath;
                 InitializationStatusChanged?.Invoke(this, true);
                 SendStatusMessage("驱动加载成功");
                 return true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"驱动加载异常: {ex}");
+                _logger.LogError("LoadDllFile", "驱动加载异常", ex);
                 return false;
             }
         }
@@ -112,74 +128,262 @@ namespace WpfApp.Services
                     
                     if (_isEnabled)
                     {
-                        StartTimer();
+                        // 使用 Fire-and-forget 模式启动序列
+                        _ = StartKeySequenceAsync().ContinueWith(t =>
+                        {
+                            if (t.Exception != null)
+                            {
+                                _logger.LogError("StartKeySequence", "按键序列启动异常", t.Exception);
+                                _isEnabled = false;
+                            }
+                        });
                     }
                     else
                     {
-                        StopTimer();
+                        // 使用 Fire-and-forget 模式停止序列
+                        _ = StopKeySequenceAsync().ContinueWith(t =>
+                        {
+                            if (t.Exception != null)
+                            {
+                                _logger.LogError("StartKeySequence", "按键序列停止异常", t.Exception);
+                            }
+                        });
                     }
                 }
             }
         }
 
-        // 启动定时器
-        private void StartTimer()
+        // 异步启动序列
+        private async Task StartKeySequenceAsync()
         {
-            _timer?.Dispose(); // 先释放旧的定时器
-            _timer = new Timer(TimerCallback, null, 0, 10); // 创建新的定时器
-        }
-
-        // 停止定时器
-        private void StopTimer()
-        {
-            _timer?.Dispose();  // 释放定时器
-            _timer = null;       // 将定时器设置为null
-        }
-
-        // 定时器回调
-        private void TimerCallback(object? state)
-        {
-            if (!_isEnabled || !_isInitialized) return;
-
-            try 
+            try
             {
+                await StopKeySequenceAsync();
+                InitializeSequence();
+                LogSequenceStart();
+
+                _cancellationTokenSource = new CancellationTokenSource();
+                var token = _cancellationTokenSource.Token;
+
                 if (_isSequenceMode)
                 {
-                    foreach (var keyCode in _keyList)
+                    _sequenceTask = Task.Run(async () =>
                     {
-                        if (!_isEnabled) break;
-                        System.Diagnostics.Debug.WriteLine($"发送按键: {keyCode} ({(int)keyCode})");
-                        
-                        if (!SendKey(keyCode, true))
+                        while (!token.IsCancellationRequested && _keyList.Count > 0)
                         {
-                            System.Diagnostics.Debug.WriteLine($"按键按下失败: {keyCode}");
-                            continue;
+                            try
+                            {
+                                await ExecuteSequenceCycle(token);
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                break;
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError("StartKeySequence", "按键序列执行异常", ex);
+                                break;
+                            }
                         }
-                        Thread.Sleep(_keyInterval);
-                        
-                        if (!SendKey(keyCode, false))
-                        {
-                            System.Diagnostics.Debug.WriteLine($"按键释放失败: {keyCode}");
-                        }
-                        Thread.Sleep(_keyInterval);
-                    }
+                    }, token);
+
+                    await Task.Delay(1);
                 }
                 else if (_isHoldMode)
                 {
-                    foreach (var keyCode in _keyList)
-                    {
-                        if (!_isEnabled) break;
-                        SendKey(keyCode, true);
+                    await ExecuteHoldMode(token);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("StartKeySequence", "启动按键序列异常", ex);
+                _isEnabled = false;
+            }
+        }
 
+        // 初始化序列
+        private void InitializeSequence()
+        {
+            _sequenceStopwatch.Restart();
+            _operationTimer.Restart();
+            _keyPressDurations.Clear();
+            _keyIntervals.Clear();
+            _totalKeyPresses = 0;
+            _cycleStartTime = DateTime.Now;
+        }
+
+        // 序列周期执行
+        private async Task ExecuteSequenceCycle(CancellationToken token)
+        {
+            var cycleStart = DateTime.Now;
+            DDKeyCode keyCode;
+            
+            lock (_lockObject)
+            {
+                keyCode = _keyList[_currentKeyIndex];
+                _currentKeyIndex = (_currentKeyIndex + 1) % _keyList.Count;
+            }
+
+            await Task.Run(() => ExecuteKeyCycle(keyCode));
+            
+            var elapsed = DateTime.Now - cycleStart;
+            var remainingDelay = _keyInterval - (int)elapsed.TotalMilliseconds;
+            
+            if (remainingDelay > 0)
+            {
+                await Task.Delay(remainingDelay, token);
+            }
+            
+            var actualInterval = DateTime.Now - _cycleStartTime;
+            RecordKeyInterval(actualInterval);
+            
+            _cycleStartTime = DateTime.Now;
+        }
+
+        // 按压模式执行
+        private async Task ExecuteHoldMode(CancellationToken token)
+        {
+            _sequenceTask = Task.Run(async () =>
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    try
+                    {
+                        foreach (var keyCode in _keyList)
+                        {
+                            if (token.IsCancellationRequested) break;
+                            await Task.Run(() => SendKey(keyCode, true));
+                        }
+                        await Task.Delay(10, token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError("StartKeySequence", "按压模式执行异常", ex);
+                        break;
+                    }
+                }
+            }, token);
+
+            await Task.Delay(1);
+        }
+
+        // 异步停止
+        private async Task StopKeySequenceAsync()
+        {
+            try
+            {
+                _sequenceStopwatch.Stop();
+                LogSequenceEnd();
+
+                if (_cancellationTokenSource != null)
+                {
+                    await Task.Run(() => _cancellationTokenSource.Cancel());
+                    _cancellationTokenSource.Dispose();
+                    _cancellationTokenSource = null;
+                }
+
+                if (_sequenceTask != null)
+                {
+                    try
+                    {
+                        await Task.WhenAny(_sequenceTask, Task.Delay(1000)); // 设置超时时间
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError("StopKeySequence", "等待序列任务完成异常", ex);
+                    }
+                    _sequenceTask = null;
+                }
+
+                _currentKeyIndex = 0;
+
+                // 创建一个按键列表的副本来进行遍历
+                // 确保即使某个按键释放失败，其他按键的释放操作仍会继续
+                if (_keyList != null && _keyList.Any())
+                {
+                    // 创建一个副本来避免集合修改冲突
+                    var keyListCopy = _keyList.ToList();
+                    foreach (var keyCode in keyListCopy)
+                    {
+                        try 
+                        {
+                            await Task.Run(() => SendKey(keyCode, false));
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError("StopKeySequence", $"释放按键 {keyCode} 失败", ex);
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"定时器回调异常: {ex}");
+                _logger.LogError("StopKeySequence", "停止按键序列异常", ex);
+            }
+        }
 
-                _isEnabled = false;
+        // 添加一个新的方法用于执行单个按键的完整周期
+        private bool ExecuteKeyCycle(DDKeyCode keyCode)
+        {
+            try
+            {
+                _cycleStartTime = DateTime.Now;
+                var keyDownTime = _cycleStartTime;
+                
+                // 按下按键
+                if (!SendKey(keyCode, true))
+                {
+                    _logger.LogWarning("ExecuteKeyCycle", $"按键按下失败: {keyCode}");
+                    return false;
+                }
+                
+                // 释放按键
+                var keyUpTime = DateTime.Now;
+                if (!SendKey(keyCode, false))
+                {
+                    _logger.LogWarning("ExecuteKeyCycle", $"按键释放失败: {keyCode}");
+                    return false;
+                }
 
+                // 记录按压时长
+                var pressDuration = keyUpTime - keyDownTime;
+                RecordKeyPressDuration(pressDuration);
+
+                _totalKeyPresses++;
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("ExecuteKeyCycle", "执行按键周期异常", ex);
+                return false;
+            }
+        }
+
+        // 新增记录按压时长的方法
+        private void RecordKeyPressDuration(TimeSpan duration)
+        {
+            _keyPressDurations.Enqueue(duration);
+            if (_keyPressDurations.Count > MAX_TIMING_SAMPLES)
+            {
+                _keyPressDurations.Dequeue();
+            }
+        }
+
+        // 修改记录间隔的方法
+        private void RecordKeyInterval(TimeSpan interval)
+        {
+            if (interval.TotalMilliseconds > 0)
+            {
+                _keyIntervals.Enqueue(interval);
+                if (_keyIntervals.Count > MAX_TIMING_SAMPLES)
+                {
+                    _keyIntervals.Dequeue();
+                }
             }
         }
 
@@ -217,7 +421,7 @@ namespace WpfApp.Services
         {
             if (!_isInitialized || _dd.str == null)
             {
-                System.Diagnostics.Debug.WriteLine("驱动未初始化或str函数指针为空");
+                _logger.LogError("SimulateText", "驱动未初始化或str函数指针为空");
                 return false;
             }
             try
@@ -226,7 +430,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"模拟文本输入异常：{ex}");
+                _logger.LogError("SimulateText", "模拟文本输入异常", ex);
                 return false;
             }
         }
@@ -236,7 +440,7 @@ namespace WpfApp.Services
         {
             if (!_isInitialized || _dd.btn == null)
             {
-                System.Diagnostics.Debug.WriteLine("驱动未初始化或btn函数指针为空");
+                _logger.LogError("MouseOperation", "驱动未初始化或btn函数指针为空");
                 return false;
             }
 
@@ -259,7 +463,7 @@ namespace WpfApp.Services
                 int ret = _dd.btn(down);
                 if (ret != 1)
                 {
-                    System.Diagnostics.Debug.WriteLine($"鼠标按下失败，返回值：{ret}");
+                    _logger.LogWarning("MouseOperation", $"鼠标按下失败，返回值：{ret}");
                     return false;
                 }
 
@@ -270,7 +474,7 @@ namespace WpfApp.Services
                 ret = _dd.btn(up);
                 if (ret != 1)
                 {
-                    System.Diagnostics.Debug.WriteLine($"鼠标释放失败，返回值：{ret}");
+                    _logger.LogWarning("MouseOperation", $"鼠标释放失败，返回值：{ret}");
                     return false;
                 }
 
@@ -278,7 +482,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"鼠标点击异常：{ex}");
+                _logger.LogError("MouseOperation", "鼠标点击异常", ex);
                 return false;
             }
         }
@@ -288,7 +492,7 @@ namespace WpfApp.Services
         {
             if (!_isInitialized || _dd.mov == null)
             {
-                System.Diagnostics.Debug.WriteLine("驱动未初始化或mov函数指针为空");
+                _logger.LogError("MoveMouse", "驱动未初始化或mov函数指针为空");
                 return false;
             }
 
@@ -297,14 +501,14 @@ namespace WpfApp.Services
                 int ret = _dd.mov(x, y);
                 if (ret != 1)
                 {
-                    System.Diagnostics.Debug.WriteLine($"鼠标移动失败，返回值：{ret}");
+                    _logger.LogWarning("MoveMouse", $"鼠标移动失败，返回值：{ret}");
                     return false;
                 }
                 return true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"鼠标移动异常：{ex}");
+                _logger.LogError("MoveMouse", "鼠标移动异常", ex);
                 return false;
             }
         }
@@ -314,7 +518,7 @@ namespace WpfApp.Services
         {
             if (!_isInitialized || _dd.whl == null)
             {
-                System.Diagnostics.Debug.WriteLine("驱动未初始化或whl函数指针为空");
+                _logger.LogError("MouseWheel", "驱动未初始化或whl函数指针为空");
                 return false;
             }
 
@@ -323,14 +527,14 @@ namespace WpfApp.Services
                 int ret = _dd.whl(isForward ? 1 : 2);
                 if (ret != 1)
                 {
-                    System.Diagnostics.Debug.WriteLine($"鼠标滚轮操作失败，返回值：{ret}");
+                    _logger.LogWarning("MouseWheel", $"鼠标滚轮操作失败，返回值：{ret}");
                     return false;
                 }
                 return true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"鼠标滚轮操作异常：{ex}");
+                _logger.LogError("MouseWheel", "鼠标滚轮操作异常", ex);
                 return false;
             }
         }
@@ -340,35 +544,27 @@ namespace WpfApp.Services
         {
             if (!_isInitialized || _dd.key == null)
             {
-                System.Diagnostics.Debug.WriteLine("驱动未初始化或key函数指针为空");
+                _logger.LogError("SendKey", "驱动未初始化或key函数指针为空");
                 return false;
             }
 
             try
             {
-                // 验证键码
                 if (!KeyCodeMapping.IsValidDDKeyCode(keyCode))
                 {
-                    System.Diagnostics.Debug.WriteLine($"无效的DD键码: {keyCode} ({(int)keyCode})");
+                    _logger.LogError("SendKey", $"无效的DD键码: {keyCode} ({(int)keyCode})");
                     return false;
                 }
                 
                 int ddCode = (int)keyCode;
-                System.Diagnostics.Debug.WriteLine($"发送按键 - DD键码: {keyCode} ({ddCode}), 状态: {(isKeyDown ? "按下" : "释放")}");
-
-                // 直接使用DD键码
                 int ret = _dd.key(ddCode, isKeyDown ? 1 : 2);
                 
-                // 记录返回值但不影响执行结果
-                System.Diagnostics.Debug.WriteLine($"按键操作返回值: {ret} - DD键码: {(int)keyCode}");
-
-                // 只有在完全无法执行时才返回false
+                _logger.LogKeyOperation(keyCode, isKeyDown, ret);
                 return true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"按键操作异常：{ex}");
-                SendStatusMessage($"按键操作异常: {ex.Message}", true);
+                _logger.LogError("SendKey", "按键操作异常", ex);
                 return false;
             }
         }
@@ -390,7 +586,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"虚拟按键操作异常：{ex}");
+                _logger.LogError("SendVirtualKey", "虚拟按键操作异常", ex);
                 return false;
             }
         }
@@ -419,7 +615,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"模拟按键异常：{ex}");
+                _logger.LogError("SimulateKeyPress", "模拟按键异常", ex);
                 return false;
             }
         }
@@ -429,9 +625,9 @@ namespace WpfApp.Services
         {
             try
             {
-                StopTimer();
-                _timer?.Dispose();
-                _timer = null;
+                StopKeySequenceAsync();
+                _cancellationTokenSource?.Dispose();
+                _sequenceTask = null;
 
                 // 清理所有状态
                 _isEnabled = false;
@@ -439,13 +635,14 @@ namespace WpfApp.Services
                 _isSequenceMode = false;
                 _isHoldMode = false;
                 _keyList.Clear();
+                _currentKeyIndex = 0;
 
                 // 重新创建驱动实例
                 _dd = new CDD();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Dispose异常: {ex}");
+                _logger.LogError("Dispose", "释放资源异常", ex);
             }
         }
 
@@ -461,6 +658,7 @@ namespace WpfApp.Services
         public void SetKeyList(List<DDKeyCode> keyList)
         {
             _keyList = keyList ?? new List<DDKeyCode>();
+            _currentKeyIndex = 0;
         }
 
         // 设置按键间隔
@@ -478,11 +676,11 @@ namespace WpfApp.Services
                 _isEnabled = isHold;
                 if (isHold)
                 {
-                    StartTimer();
+                    StartKeySequenceAsync();
                 }
                 else
                 {
-                    StopTimer();
+                    StopKeySequenceAsync();
                 }
             }
         }
@@ -527,7 +725,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"模拟组合键异常：{ex}");
+                _logger.LogError("SimulateKeyWithModifiers", "模拟组合键异常", ex);
                 // 确保释放所有按键
                 foreach (var modifier in modifierKeys)
                 {
@@ -557,7 +755,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"检查修饰键状态异常：{ex}");
+                _logger.LogError("IsModifierKeyPressed", "检查修饰键状态异常", ex);
                 return false;
             }
         }
@@ -590,7 +788,7 @@ namespace WpfApp.Services
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"执行按键序列异常: {ex.Message}");
+                    _logger.LogError("ExecuteKeySequence", "执行按键序列异常", ex);
                     break;
                 }
             }
@@ -604,7 +802,7 @@ namespace WpfApp.Services
         {
             if (!_isInitialized || _dd.todc == null)
             {
-                System.Diagnostics.Debug.WriteLine("驱动未初始化或todc函数指针为空");
+                _logger.LogError("ConvertVirtualKeyToDDCode", "驱动未初始化或todc函数指针为空");
                 return null;
             }
 
@@ -613,14 +811,14 @@ namespace WpfApp.Services
                 int ddCode = _dd.todc(vkCode);
                 if (ddCode <= 0)
                 {
-                    System.Diagnostics.Debug.WriteLine($"虚拟键码转换失败: {vkCode}");
+                    _logger.LogWarning("ConvertVirtualKeyToDDCode", $"虚拟键码转换失败: {vkCode}");
                     return null;
                 }
                 return ddCode;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"虚拟键码转换异常: {ex}");
+                _logger.LogError("ConvertVirtualKeyToDDCode", "虚拟键码转换异常", ex);
                 return null;
             }
         }
@@ -628,8 +826,10 @@ namespace WpfApp.Services
         // 发送状态消息的方法
         private void SendStatusMessage(string message, bool isError = false)
         {
-            System.Diagnostics.Debug.WriteLine($"[DDDriver] {(isError ? "错误" : "信息")}: {message}");
-            StatusMessageChanged?.Invoke(this, new StatusMessageEventArgs(message, isError));
+            if (isError)
+                _logger.LogError("DDDriver", message);
+            else
+                _logger.LogDriverEvent("Status", message);
         }
 
         // 修改现有的按键间隔字段和属性
@@ -642,9 +842,57 @@ namespace WpfApp.Services
                 {
                     _keyInterval = value;
                     KeyIntervalChanged?.Invoke(this, value);
-                    System.Diagnostics.Debug.WriteLine($"按键间隔已更新为: {value}ms");
+                    _logger.LogSequenceEvent("KeyInterval", $"按键间隔已更新为: {value}ms");
                 }
             }
+        }
+
+        // 添加性能统计相关方法
+        private void UpdatePerformanceMetrics()
+        {
+            var metrics = new PerformanceMetrics
+            {
+                AverageKeyPressTime = CalculateAverage(_keyPressDurations),
+                AverageKeyInterval = CalculateAverage(_keyIntervals),
+                TotalExecutionTime = _sequenceStopwatch.Elapsed,
+                TotalKeyPresses = _totalKeyPresses,
+                CurrentSequence = string.Join(", ", _keyList)
+            };
+
+            PerformanceMetricsUpdated?.Invoke(this, metrics);
+        }
+
+        // 添加辅助计算方法
+        private double CalculateAverage(Queue<TimeSpan> timings)
+        {
+            return timings.Count > 0 ? timings.Average(t => t.TotalMilliseconds) : 0;
+        }
+
+        private void LogSequenceStart()
+        {
+            var details = $"模式: {(_isSequenceMode ? "顺序模式" : "按压模式")} | " +
+                         $"按键列表: {string.Join(", ", _keyList)} | " +
+                         $"间隔: {_keyInterval}ms";
+            _logger.LogSequenceEvent("开始", details);
+        }
+
+        private void LogSequenceEnd()
+        {
+            var avgPressDuration = _keyPressDurations.Count > 0 
+                ? _keyPressDurations.Average(t => t.TotalMilliseconds) 
+                : 0;
+            
+            var avgInterval = _keyIntervals.Count > 0 
+                ? _keyIntervals.Average(t => t.TotalMilliseconds) 
+                : 0;
+
+            var details = $"\n├─ 执行时间: {_sequenceStopwatch.Elapsed.TotalSeconds:F2}s\n" +
+                         $"├─ 总按键次数: {_totalKeyPresses}\n" +
+                         $"├─ 平均按压时长: {avgPressDuration:F2}ms\n" +
+                         $"├─ 平均实际间隔: {avgInterval:F2}ms\n" +
+                         $"└─ 设定间隔: {_keyInterval}ms";
+            
+            _logger.LogSequenceEvent("结束", details);
         }
     }
 

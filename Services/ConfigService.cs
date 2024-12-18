@@ -9,6 +9,7 @@ namespace WpfApp.Services
 {
     public class ConfigService
     {
+        private readonly LogManager _logger = LogManager.Instance;
         private const string CONFIG_FILE = "config.ini";
         private const string SECTION_HOTKEYS = "Hotkeys";
         private const string SECTION_KEYLIST = "KeyList";
@@ -43,7 +44,7 @@ namespace WpfApp.Services
                 WritePrivateProfileString(SECTION_SETTINGS, "Interval", "50", configPath);
                 WritePrivateProfileString(SECTION_SETTINGS, "SoundEnabled", "True", configPath);
 
-                System.Diagnostics.Debug.WriteLine($"已创建默认配置文件: {configPath}");
+                _logger.LogDebug("Config", $"已创建默认配置文件: {configPath}");
             }
         }
 
@@ -69,24 +70,24 @@ namespace WpfApp.Services
             bool soundEnabled)
         {
             string configPath = GetConfigFilePath();
-            System.Diagnostics.Debug.WriteLine($"正在保存配置到: {configPath}");
+            _logger.LogDebug("Config", $"正在保存配置到: {configPath}");
             
             // 确保目录存在
             string? directory = Path.GetDirectoryName(configPath);
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);
-                System.Diagnostics.Debug.WriteLine($"创建配置目录: {directory}");
+                _logger.LogDebug("Config", $"创建配置目录: {directory}");
             }
 
             // 打印保存的配置内容
-            System.Diagnostics.Debug.WriteLine($"保存配置内容:");
-            System.Diagnostics.Debug.WriteLine($"- 启动热键: {startHotkey}, 修饰键: {startModifiers}");
-            System.Diagnostics.Debug.WriteLine($"- 停止热键: {stopHotkey}, 修饰键: {stopModifiers}");
-            System.Diagnostics.Debug.WriteLine($"- 按键列表数量: {keyList.Count}");
-            System.Diagnostics.Debug.WriteLine($"- 按键模式: {keyMode}");
-            System.Diagnostics.Debug.WriteLine($"- 按键间隔: {interval}");
-            System.Diagnostics.Debug.WriteLine($"- 声音提示: {soundEnabled}");
+            _logger.LogDebug("Config", $"保存配置内容:");
+            _logger.LogDebug("Config", $"- 启动热键: {startHotkey}, 修饰键: {startModifiers}");
+            _logger.LogDebug("Config", $"- 停止热键: {stopHotkey}, 修饰键: {stopModifiers}");
+            _logger.LogDebug("Config", $"- 按键列表数量: {keyList.Count}");
+            _logger.LogDebug("Config", $"- 按键模式: {keyMode}");
+            _logger.LogDebug("Config", $"- 按键间隔: {interval}");
+            _logger.LogDebug("Config", $"- 声音提示: {soundEnabled}");
 
             // 保存热键设置
             WritePrivateProfileString(SECTION_HOTKEYS, "StartKey", startHotkey?.ToString() ?? "", configPath);

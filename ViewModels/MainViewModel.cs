@@ -7,7 +7,6 @@ using System.IO;
 using System.Threading;
 using WpfApp.Services;
 using WpfApp.ViewModels;
-using System.Diagnostics;
 using WpfApp.Models;
 
 namespace WpfApp.ViewModels
@@ -20,6 +19,7 @@ namespace WpfApp.ViewModels
         private readonly KeyMappingViewModel _keyMappingViewModel;
         private readonly SyncSettingsViewModel _syncSettingsViewModel;
         private readonly HotkeyService _hotkeyService;
+        private readonly LogManager _logger = LogManager.Instance;
         private string _statusMessage = "就绪";
         private AppConfig? _config;
 
@@ -30,7 +30,6 @@ namespace WpfApp.ViewModels
                 if (_config == null)
                 {
                     _config = AppConfigService.Config;
-                    System.Diagnostics.Debug.WriteLine($"MainViewModel初始化配置 - 窗口尺寸: {_config.UI.MainWindow.DefaultWidth}x{_config.UI.MainWindow.DefaultHeight}");
                 }
                 return _config;
             }
@@ -66,10 +65,6 @@ namespace WpfApp.ViewModels
             // 订阅状态消息事件
             _ddDriver.StatusMessageChanged += OnDriverStatusMessageChanged;
             
-            // 确保配置已加载
-            var config = Config;
-            System.Diagnostics.Debug.WriteLine($"MainViewModel构造函数 - 窗口尺寸: {config.UI.MainWindow.DefaultWidth}x{config.UI.MainWindow.DefaultHeight}");
-            
             // 初始化时设置默认页面
             Navigate("FrontKeys");
         }
@@ -82,22 +77,27 @@ namespace WpfApp.ViewModels
                 "SyncSettings" => new SyncSettingsView { DataContext = _syncSettingsViewModel },
                 _ => CurrentPage
             };
+            
+            if (CurrentPage != null)
+            {
+                _logger.LogDebug("Navigation", $"页面切换到: {parameter}");
+            }
         }
 
         public void Cleanup()
         {
-            System.Diagnostics.Debug.WriteLine("开始清理资源...");
+            _logger.LogDebug("MainViewModel", "开始清理资源...");
             SaveConfig(); // 只在这里保存一次配置
             _hotkeyService?.Dispose();
-            System.Diagnostics.Debug.WriteLine("资源清理完成");
+            _logger.LogDebug("MainViewModel", "资源清理完成");
         }
 
         public void SaveConfig()
         {
-            System.Diagnostics.Debug.WriteLine("开始保存应用程序配置...");
+            _logger.LogDebug("MainViewModel", "开始保存应用程序配置...");
             _keyMappingViewModel.SaveConfig();
-            System.Diagnostics.Debug.WriteLine("配置保存完成");
-            System.Diagnostics.Debug.WriteLine($"--------------------------------");
+            _logger.LogDebug("MainViewModel", "配置保存完成");
+            _logger.LogDebug("MainViewModel", "--------------------------------");
         }
 
         // 订阅DDDriverService的事件，用于更新状态栏消息
@@ -107,10 +107,14 @@ namespace WpfApp.ViewModels
             {
                 StatusMessage = e.Message;
                 
-                // 如果是错误消息，可以让它显示更长时间
+                // 如果是错误消息，记录到日志
                 if (e.IsError)
                 {
-                    // 可以选择性地添加视觉反馈，比如改变状态栏颜色等
+                    _logger.LogError("MainViewModel", $"驱动状态错误: {e.Message}");
+                }
+                else
+                {
+                    _logger.LogDebug("MainViewModel", $"驱动状态更新: {e.Message}");
                 }
             });
         }
