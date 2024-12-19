@@ -8,6 +8,9 @@ using System.Threading;
 using WpfApp.Services;
 using WpfApp.ViewModels;
 using WpfApp.Models;
+using System.Windows.Media;
+using System.Windows.Threading;
+using System;
 
 namespace WpfApp.ViewModels
 {
@@ -21,7 +24,10 @@ namespace WpfApp.ViewModels
         private readonly HotkeyService _hotkeyService;
         private readonly LogManager _logger = LogManager.Instance;
         private string _statusMessage = "就绪";
+        private Brush _statusMessageColor = Brushes.Black;
         private AppConfig? _config;
+        private readonly DispatcherTimer _statusMessageTimer;
+        private const int STATUS_MESSAGE_TIMEOUT = 3000; // 3秒后消失
 
         public AppConfig Config
         {
@@ -59,14 +65,33 @@ namespace WpfApp.ViewModels
             set => SetProperty(ref _statusMessage, value);
         }
 
+        public Brush StatusMessageColor
+        {
+            get => _statusMessageColor;
+            set => SetProperty(ref _statusMessageColor, value);
+        }
+
         public ICommand NavigateCommand { get; }
 
         public MainViewModel(DDDriverService ddDriver, Window mainWindow)
         {
+            // 首先初始化定时器
+            _statusMessageTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(STATUS_MESSAGE_TIMEOUT)
+            };
+            _statusMessageTimer.Tick += (s, e) =>
+            {
+                _statusMessageTimer.Stop();
+                StatusMessage = "就绪";
+                StatusMessageColor = Brushes.Black;
+            };
+
+            // 其他初始化
             _ddDriver = ddDriver;
             _mainWindow = mainWindow;
             _hotkeyService = new HotkeyService(mainWindow, ddDriver);
-            _keyMappingViewModel = new KeyMappingViewModel(_ddDriver, App.ConfigService, _hotkeyService);
+            _keyMappingViewModel = new KeyMappingViewModel(_ddDriver, App.ConfigService, _hotkeyService, this);
             _syncSettingsViewModel = new SyncSettingsViewModel();
             
             NavigateCommand = new RelayCommand<string>(Navigate);
@@ -96,8 +121,9 @@ namespace WpfApp.ViewModels
         public void Cleanup()
         {
             _logger.LogDebug("MainViewModel", "开始清理资源...");
-            SaveConfig(); // 只在这里保存一次配置
+            SaveConfig();
             _hotkeyService?.Dispose();
+            _statusMessageTimer.Stop(); // 停止定时器
             _logger.LogDebug("MainViewModel", "资源清理完成");
         }
 
@@ -114,8 +140,15 @@ namespace WpfApp.ViewModels
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
+                // 停止之前的定时器
+                _statusMessageTimer.Stop();
+
                 StatusMessage = e.Message;
+                StatusMessageColor = e.IsError ? Brushes.Red : Brushes.Black;
                 
+                // 启动定时器
+                _statusMessageTimer.Start();
+
                 // 如果是错误消息，记录到日志
                 if (e.IsError)
                 {
@@ -125,6 +158,22 @@ namespace WpfApp.ViewModels
                 {
                     _logger.LogDebug("MainViewModel", $"驱动状态更新: {e.Message}");
                 }
+            });
+        }
+
+        public void UpdateStatusMessage(string message, bool isError = false)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                // 停止之前的定时器
+                _statusMessageTimer.Stop();
+
+                // 更新消息
+                StatusMessage = message;
+                StatusMessageColor = isError ? Brushes.Red : Brushes.Black;
+
+                // 启动定时器
+                _statusMessageTimer.Start();
             });
         }
     }

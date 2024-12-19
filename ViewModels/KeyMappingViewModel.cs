@@ -59,6 +59,7 @@ namespace WpfApp.ViewModels
         private string _hotkeyStatus;
         private bool _isSequenceMode = true; // 默认为顺序模式
         private readonly LogManager _logger = LogManager.Instance;
+        private readonly MainViewModel _mainViewModel;
 
         // 按键列表
         public ObservableCollection<KeyItem> KeyList
@@ -178,11 +179,14 @@ namespace WpfApp.ViewModels
         /// <param name="ddDriver">DD驱动服务实例,用于模拟按键操作</param>
         /// <param name="configService">配置服务实例,用于加载和保存配置</param>
         /// <param name="hotkeyService">热键服务实例,用于注册和响应全局热键</param>
-        public KeyMappingViewModel(DDDriverService ddDriver, ConfigService configService, HotkeyService hotkeyService)
+        /// <param name="mainViewModel">主视图模型实例,用于更新状态消息</param>
+        public KeyMappingViewModel(DDDriverService ddDriver, ConfigService configService, 
+            HotkeyService hotkeyService, MainViewModel mainViewModel)
         {
             _ddDriver = ddDriver;
             _configService = configService;
             _hotkeyService = hotkeyService;
+            _mainViewModel = mainViewModel;
 
             // 订阅驱动服务的状态变化
             _ddDriver.EnableStatusChanged += (s, enabled) =>
@@ -258,7 +262,7 @@ namespace WpfApp.ViewModels
         {
             if (IsKeyInList(keyCode))
             {
-                MessageBox.Show("该按键已在按键列表中，请选择其他按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                _mainViewModel.UpdateStatusMessage("该按键已在按键列表中，请选择其他按键", true);
                 return;
             }
 
@@ -272,16 +276,17 @@ namespace WpfApp.ViewModels
                 if (!result && !_hotkeyService.IsMouseButton(keyCode))
                 {
                     _logger.LogError("KeyMapping", $"注册开始热键失败: {keyCode}");
-                    MessageBox.Show("开始热键注册失败，请尝试其他按键", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    _mainViewModel.UpdateStatusMessage("开始热键注册失败，请尝试其他按键", true);
                     return;
                 }
                 
+                _mainViewModel.UpdateStatusMessage($"已设置开始热键: {keyCode.ToDisplayName()}");
                 _logger.LogDebug("KeyMapping", $"设置开始热键: {keyCode}, 修饰键: {modifiers}");
             }
             catch (Exception ex)
             {
                 _logger.LogError("KeyMapping", "设置开始热键失败", ex);
-                MessageBox.Show($"设置开始热键失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                _mainViewModel.UpdateStatusMessage($"设置开始热键失败: {ex.Message}", true);
             }
         }
 
@@ -310,7 +315,7 @@ namespace WpfApp.ViewModels
         {
             if (IsKeyInList(keyCode))
             {
-                MessageBox.Show("该按键已在按键列表中，请选择其他按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                _mainViewModel.UpdateStatusMessage("该按键已在按键列表中，请选择其他按键", true);
                 return;
             }
 
@@ -324,16 +329,17 @@ namespace WpfApp.ViewModels
                 if (!result)
                 {
                     _logger.LogError("Hotkey", $"注册停止热键失败: {keyCode}, 修饰键: {modifiers}");
-                    MessageBox.Show("停止热键注册失败，请尝试其他按键", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    _mainViewModel.UpdateStatusMessage("停止热键注册失败，请尝试其他按键", true);
                     return;
                 }
                 
+                _mainViewModel.UpdateStatusMessage($"已设置停止热键: {keyCode.ToDisplayName()}");
                 _logger.LogDebug("Hotkey", $"设置停止热键: {keyCode}, 修饰键: {modifiers}");
             }
             catch (Exception ex)
             {
                 _logger.LogError("Hotkey", "设置停止热键失败", ex);
-                MessageBox.Show($"设置停止热键失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                _mainViewModel.UpdateStatusMessage($"设置停止热键失败: {ex.Message}", true);
             }
         }
 
@@ -356,23 +362,24 @@ namespace WpfApp.ViewModels
 
             if (_startHotkey.HasValue && _currentKey.Value == _startHotkey.Value)
             {
-                MessageBox.Show("该按键已被设置为热键，请选择其他按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                _mainViewModel.UpdateStatusMessage("该按键已被设置为启动热键，请选择其他按键", true);
                 return;
             }
 
             if (_stopHotkey.HasValue && _currentKey.Value == _stopHotkey.Value)
             {
-                MessageBox.Show("该按键已被设置为热键，请选择其他按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                _mainViewModel.UpdateStatusMessage("该按键已被设置为停止热键，请选择其他按键", true);
                 return;
             }
 
             if (IsKeyInList(_currentKey.Value))
             {
-                MessageBox.Show("该按键已在列表中，请选择其他按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                _mainViewModel.UpdateStatusMessage("该按键已在列表中，请选择其他按键", true);
                 return;
             }
 
             KeyList.Add(new KeyItem(_currentKey.Value));
+            _mainViewModel.UpdateStatusMessage("按键添加成功");
         }
 
         // 删除选中的按键
