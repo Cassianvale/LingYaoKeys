@@ -42,32 +42,10 @@
                Content="{Binding CurrentPage}" />
 
         <!-- 状态栏 -->
-        <StatusBar Grid.Row="2" Background="#F5F5F5">
-            <StatusBar.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                    </Grid>
-                </ItemsPanelTemplate>
-            </StatusBar.ItemsPanel>
-            
-            <!-- 状态信息 -->
+        <StatusBar Grid.Row="2" Height="24">
             <StatusBarItem>
-                <TextBlock Text="{Binding StatusMessage}" />
-            </StatusBarItem>
-            
-            <!-- 热键状态 -->
-            <StatusBarItem Grid.Column="1" Margin="10,0">
-                <TextBlock Text="{Binding CurrentViewModel, Converter={StaticResource ViewModelToHotkeyStatusConverter}}" />
-            </StatusBarItem>
-            
-            <!-- 版本信息 -->
-            <StatusBarItem Grid.Column="2">
-                <TextBlock Text="{Binding VersionInfo}" Margin="0,0,5,0"/>
+                <TextBlock Text="{Binding StatusMessage}" 
+                           Foreground="{Binding StatusMessageColor}"/>
             </StatusBarItem>
         </StatusBar>
     </Grid>
