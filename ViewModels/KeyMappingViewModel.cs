@@ -121,7 +121,7 @@ namespace WpfApp.ViewModels
         public List<string> KeyModes { get; } = new List<string> 
         { 
             "顺序模式",
-            // "按压模式" // v1.0.0暂时注释掉按压模式
+            "按压模式"
         };
 
         // 选中的按键模式

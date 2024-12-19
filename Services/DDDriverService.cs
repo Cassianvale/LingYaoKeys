@@ -7,6 +7,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Text;
 using System.Linq;
+using WpfApp.Services.KeyModes;
 
 /// <summary>
 /// DD虚拟键盘驱动服务类
@@ -45,28 +46,22 @@ namespace WpfApp.Services
         private CancellationTokenSource? _cancellationTokenSource;
         private readonly Stopwatch _sequenceStopwatch = new Stopwatch();
         private readonly Stopwatch _operationTimer = new Stopwatch();
-        private readonly Queue<TimeSpan> _keyPressDurations = new Queue<TimeSpan>();
-        private readonly Queue<TimeSpan> _keyIntervals = new Queue<TimeSpan>();
         private DateTime _cycleStartTime;
-        private int _totalKeyPresses;
-        private const int MAX_TIMING_SAMPLES = 100;
         private readonly TaskManager _taskManager;
-        private const int MAX_CONCURRENT_TASKS = 2; // 限制最大并发任务数,1/2最好
+        private const int MAX_CONCURRENT_TASKS = 2; // 限制最大并发任务数,1或2最好
         private volatile bool _isRunning;
         private readonly object _stateLock = new object();
         private CancellationTokenSource? _cts;
         private readonly Stopwatch _performanceTimer = new Stopwatch();
         private long _lastKeyPressTime;
         private readonly object _metricsLock = new object();
+        private KeyModeBase? _currentKeyMode;
 
         public event EventHandler<bool>? InitializationStatusChanged;
         public event EventHandler<bool>? EnableStatusChanged;
         public event EventHandler<StatusMessageEventArgs>? StatusMessageChanged;
         public event EventHandler<int>? KeyIntervalChanged;
         private readonly LogManager _logger = LogManager.Instance;
-
-        // 性能统计事件
-        public event EventHandler<PerformanceMetrics>? PerformanceMetricsUpdated;
 
         // DD驱动服务构造函数
         public DDDriverService()
@@ -171,21 +166,12 @@ namespace WpfApp.Services
                 
                 lock (_stateLock)
                 {
-                    if (_isEnabled)
+                    if (_isEnabled && _currentKeyMode != null)
                     {
                         _isRunning = true;
-                        _cts = new CancellationTokenSource();
                         InitializeSequence();
+                        _ = _currentKeyMode.StartAsync();
                     }
-                }
-
-                if (_isSequenceMode)
-                {
-                    await RunSequenceModeAsync(_cts!.Token);
-                }
-                else if (_isHoldMode)
-                {
-                    await RunHoldModeAsync(_cts!.Token);
                 }
             }
             catch (Exception ex)
@@ -200,10 +186,6 @@ namespace WpfApp.Services
         {
             _sequenceStopwatch.Restart();
             _operationTimer.Restart();
-            _keyPressDurations.Clear();
-            _keyIntervals.Clear();
-            _totalKeyPresses = 0;
-            _cycleStartTime = DateTime.Now;
         }
 
         // 序列周期执行
@@ -242,10 +224,8 @@ namespace WpfApp.Services
             var actualInterval = DateTime.Now - cycleStartTime;
             if (actualInterval.TotalMilliseconds > 0)  // 添加有效性检查
             {
-                RecordKeyInterval(actualInterval);
+                _cycleStartTime = DateTime.Now;
             }
-            
-            _cycleStartTime = DateTime.Now;
         }
 
         // 按压模式执行
@@ -297,25 +277,15 @@ namespace WpfApp.Services
                 lock (_stateLock)
                 {
                     _isRunning = false;
-                    _cts?.Cancel();
-                    _cts?.Dispose();
-                    _cts = null;
                 }
 
-                // 等待所有任务完成
-                await Task.Delay(50); // 给予足够的时间让任务停止
-
-                // 释放所有按键
-                if (_keyList?.Any() == true)
+                if (_currentKeyMode != null)
                 {
-                    foreach (var key in _keyList.ToArray())
-                    {
-                        SendKey(key, false);
-                    }
+                    await _currentKeyMode.StopAsync();
+                    _currentKeyMode.LogMetrics();
                 }
 
                 _currentKeyIndex = 0;
-                LogSequenceEnd();
             }
             catch (Exception ex)
             {
@@ -334,45 +304,14 @@ namespace WpfApp.Services
                 if (!SendKey(keyCode, false)) return false;
 
                 long pressDuration = _performanceTimer.ElapsedMilliseconds - pressStartTime;
-                RecordKeyPressDuration(TimeSpan.FromMilliseconds(pressDuration));
+                _cycleStartTime = DateTime.Now;
 
-                _totalKeyPresses++;
                 return true;
             }
             catch (Exception ex)
             {
                 _logger.LogError("ExecuteKeyCycle", "按键执行异常", ex);
                 return false;
-            }
-        }
-
-        // 记录按键按压时长
-        private void RecordKeyPressDuration(TimeSpan duration)
-        {
-            if (duration.TotalMilliseconds <= 0) return;
-
-            lock (_metricsLock)
-            {
-                _keyPressDurations.Enqueue(duration);
-                while (_keyPressDurations.Count > MAX_TIMING_SAMPLES)
-                {
-                    _keyPressDurations.Dequeue();
-                }
-            }
-        }
-
-        // 记录按键间隔
-        private void RecordKeyInterval(TimeSpan interval)
-        {
-            if (interval.TotalMilliseconds <= 0) return;
-            
-            lock (_metricsLock)
-            {
-                _keyIntervals.Enqueue(interval);
-                while (_keyIntervals.Count > MAX_TIMING_SAMPLES)
-                {
-                    _keyIntervals.Dequeue();
-                }
             }
         }
 
@@ -643,8 +582,20 @@ namespace WpfApp.Services
         // 添加属性用于设置按键模式和按键列表
         public bool IsSequenceMode
         {
-            get => _isSequenceMode;
-            set => _isSequenceMode = value;
+            get => _currentKeyMode is SequenceKeyMode;
+            set
+            {
+                if (value)
+                {
+                    _currentKeyMode = new SequenceKeyMode(this);
+                }
+                else if (_isHoldMode)
+                {
+                    _currentKeyMode = new HoldKeyMode(this);
+                }
+                _currentKeyMode?.SetKeyList(_keyList);
+                _currentKeyMode?.SetKeyInterval(_keyInterval);
+            }
         }
 
         // 设置按键列表
@@ -664,16 +615,18 @@ namespace WpfApp.Services
         public void SetHoldMode(bool isHold)
         {
             _isHoldMode = isHold;
-            if (!_isSequenceMode)
+            if (!IsSequenceMode)
             {
-                _isEnabled = isHold;
                 if (isHold)
                 {
-                    StartKeySequenceAsync();
+                    _currentKeyMode = new HoldKeyMode(this);
+                    _currentKeyMode.SetKeyList(_keyList);
+                    _currentKeyMode.SetKeyInterval(_keyInterval);
+                    IsEnabled = true;
                 }
                 else
                 {
-                    StopKeySequenceAsync();
+                    IsEnabled = false;
                 }
             }
         }
@@ -838,159 +791,6 @@ namespace WpfApp.Services
                     _keyInterval = validValue;
                     KeyIntervalChanged?.Invoke(this, validValue);
                     _logger.LogSequenceEvent("KeyInterval", $"按键间隔已更新为: {validValue}ms");
-                }
-            }
-        }
-
-        // 添加性能统计相关方法
-        private void UpdatePerformanceMetrics()
-        {
-            var metrics = new PerformanceMetrics
-            {
-                AverageKeyPressTime = CalculateAverage(_keyPressDurations),
-                AverageKeyInterval = CalculateAverage(_keyIntervals),
-                TotalExecutionTime = _sequenceStopwatch.Elapsed,
-                TotalKeyPresses = _totalKeyPresses,
-                CurrentSequence = string.Join(", ", _keyList)
-            };
-
-            PerformanceMetricsUpdated?.Invoke(this, metrics);
-        }
-
-        // 添加辅助计算方法
-        private double CalculateAverage(Queue<TimeSpan> timings)
-        {
-            if (timings == null || timings.Count == 0)
-                return 0;
-
-            lock (_metricsLock)
-            {
-                double sum = 0;
-                int count = 0;
-                foreach (var timing in timings)
-                {
-                    if (timing.TotalMilliseconds > 0)
-                    {
-                        sum += timing.TotalMilliseconds;
-                        count++;
-                    }
-                }
-                return count > 0 ? sum / count : 0;
-            }
-        }
-
-        private void LogSequenceStart()
-        {
-            var details = $"模式: {(_isSequenceMode ? "顺序模式" : "按压模式")} | " +
-                         $"按键列表: {string.Join(", ", _keyList)} | " +
-                         $"间隔: {_keyInterval}ms";
-            _logger.LogSequenceEvent("开始", details);
-        }
-
-        private void LogSequenceEnd()
-        {
-            double avgPressDuration;
-            double avgInterval;
-
-            lock (_metricsLock)
-            {
-                avgPressDuration = CalculateAverage(_keyPressDurations);
-                avgInterval = CalculateAverage(_keyIntervals);
-            }
-
-            var details = $"\n├─ 执行时间: {_sequenceStopwatch.Elapsed.TotalSeconds:F2}s\n" +
-                         $"├─ 总按键次数: {_totalKeyPresses}\n" +
-                         $"├─ 平均按压时长: {avgPressDuration:F2}ms\n" +
-                         $"├─ 平均实际间隔: {avgInterval:F2}ms\n" +
-                         $"└─ 设定间隔: {_keyInterval}ms";
-            
-            _logger.LogSequenceEvent("结束", details);
-        }
-
-        // 优化的序列模式执行
-        private async Task RunSequenceModeAsync(CancellationToken token)
-        {
-            _performanceTimer.Restart();
-            _lastKeyPressTime = 0;
-
-            while (_isRunning && !token.IsCancellationRequested)
-            {
-                try
-                {
-                    DDKeyCode keyCode;
-                    lock (_lockObject)
-                    {
-                        if (_currentKeyIndex >= _keyList.Count)
-                        {
-                            _currentKeyIndex = 0;
-                        }
-                        keyCode = _keyList[_currentKeyIndex++];
-                    }
-
-                    long cycleStartTime = _performanceTimer.ElapsedMilliseconds;
-                    
-                    // 执行按键
-                    if (ExecuteKeyCycle(keyCode))
-                    {
-                        // 记录实际间隔
-                        long currentTime = _performanceTimer.ElapsedMilliseconds;
-                        if (_lastKeyPressTime > 0)
-                        {
-                            RecordKeyInterval(TimeSpan.FromMilliseconds(currentTime - _lastKeyPressTime));
-                        }
-                        _lastKeyPressTime = currentTime;
-                    }
-
-                    // 计算剩余延迟时间，确保最小间隔
-                    long elapsedTime = _performanceTimer.ElapsedMilliseconds - cycleStartTime;
-                    int remainingDelay = Math.Max(5, _keyInterval - (int)elapsedTime);
-
-                    if (remainingDelay > 0)
-                    {
-                        await Task.Delay(remainingDelay, token);
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError("RunSequenceMode", "序列执行异常", ex);
-                    if (!_isRunning) break;
-                }
-            }
-        }
-
-        // 优化的按压模式执行
-        private async Task RunHoldModeAsync(CancellationToken token)
-        {
-            while (_isRunning && !token.IsCancellationRequested)
-            {
-                try
-                {
-                    foreach (var keyCode in _keyList.ToArray())
-                    {
-                        if (!_isRunning || token.IsCancellationRequested) break;
-                        
-                        SendKey(keyCode, true);
-                        await Task.Delay(10, token);
-                        SendKey(keyCode, false);
-                    }
-                    
-                    if (_isRunning && !token.IsCancellationRequested)
-                    {
-                        await Task.Delay(_keyInterval, token);
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError("RunHoldMode", "按压模式异常", ex);
-                    if (!_isRunning) break;
                 }
             }
         }

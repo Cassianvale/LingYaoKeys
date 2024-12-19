@@ -118,8 +118,7 @@
                           ItemContainerStyle="{StaticResource ModernComboBoxItem}"
                           Width="90"
                           ItemsSource="{Binding KeyModes}"
-                          SelectedIndex="0"
-                          IsEnabled="False">  <!-- 暂时禁用模式选择 -->
+                          SelectedIndex="{Binding SelectedKeyMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding}"/>
