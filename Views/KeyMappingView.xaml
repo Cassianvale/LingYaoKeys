@@ -142,7 +142,9 @@
             </DockPanel>
 
             <DockPanel>
-                <CheckBox Content="声音提示" DockPanel.Dock="Left" IsChecked="True"/>
+                <CheckBox Content="声音提示" 
+                          DockPanel.Dock="Left" 
+                          IsChecked="{Binding IsSoundEnabled, Mode=TwoWay}"/>
                 <Button Style="{StaticResource RoundedShadowButtonSmall}"
                     Width="75" 
                     HorizontalAlignment="Right"

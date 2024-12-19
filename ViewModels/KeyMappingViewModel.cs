@@ -60,6 +60,8 @@ namespace WpfApp.ViewModels
         private bool _isSequenceMode = true; // 默认为顺序模式
         private readonly LogManager _logger = LogManager.Instance;
         private readonly MainViewModel _mainViewModel;
+        private bool _isSoundEnabled = true;
+        private readonly AudioService _audioService;
 
         // 按键列表
         public ObservableCollection<KeyItem> KeyList
@@ -166,6 +168,20 @@ namespace WpfApp.ViewModels
             }
         }
 
+        // 声音是否启用
+        public bool IsSoundEnabled
+        {
+            get => _isSoundEnabled;
+            set
+            {
+                if (SetProperty(ref _isSoundEnabled, value))
+                {
+                    // 保存设置
+                    _configService.SaveSetting("SoundEnabled", value);
+                }
+            }
+        }
+
         /// <summary>
         /// 按键映射视图模型类
         /// </summary>
@@ -187,6 +203,7 @@ namespace WpfApp.ViewModels
             _configService = configService;
             _hotkeyService = hotkeyService;
             _mainViewModel = mainViewModel;
+            _audioService = App.AudioService;
 
             // 订阅驱动服务的状态变化
             _ddDriver.EnableStatusChanged += (s, enabled) =>
@@ -246,6 +263,21 @@ namespace WpfApp.ViewModels
             _hotkeyService.SequenceModeStopped += () =>
             {
                 IsHotkeyEnabled = false;
+            };
+
+            // 加载声音设置
+            _isSoundEnabled = _configService.GetSetting("SoundEnabled", true);
+            
+            // 在状态改变时播放声音
+            PropertyChanged += async (s, e) =>
+            {
+                if (e.PropertyName == nameof(IsHotkeyEnabled) && IsSoundEnabled)
+                {
+                    if (IsHotkeyEnabled)
+                        await _audioService.PlayStartSound();
+                    else
+                        await _audioService.PlayStopSound();
+                }
             };
         }
 

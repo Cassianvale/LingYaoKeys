@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Input;
+using Newtonsoft.Json;
 
 namespace WpfApp.Services
 {
@@ -14,10 +15,13 @@ namespace WpfApp.Services
         private const string SECTION_HOTKEYS = "Hotkeys";
         private const string SECTION_KEYLIST = "KeyList";
         private const string SECTION_SETTINGS = "Settings";
+        private readonly string _configPath = "AppConfig.json";
+        private Dictionary<string, object> _settings;
 
         public ConfigService()
         {
             InitializeConfigFile();
+            _settings = LoadSettings();
         }
 
         private void InitializeConfigFile()
@@ -164,6 +168,54 @@ namespace WpfApp.Services
             bool soundEnabled = bool.TryParse(retVal.ToString(), out var se) ? se : true;
 
             return (startKey, startMods, stopKey, stopMods, keyList, keyMode, interval, soundEnabled);
+        }
+
+        private Dictionary<string, object> LoadSettings()
+        {
+            try
+            {
+                if (File.Exists(_configPath))
+                {
+                    string json = File.ReadAllText(_configPath);
+                    return JsonConvert.DeserializeObject<Dictionary<string, object>>(json) 
+                        ?? new Dictionary<string, object>();
+                }
+            }
+            catch (Exception ex)
+            {
+                LogManager.Instance.LogError("ConfigService", "加载设置失败", ex);
+            }
+            return new Dictionary<string, object>();
+        }
+
+        public T GetSetting<T>(string key, T defaultValue)
+        {
+            if (_settings.TryGetValue(key, out object value))
+            {
+                try
+                {
+                    return (T)Convert.ChangeType(value, typeof(T));
+                }
+                catch
+                {
+                    return defaultValue;
+                }
+            }
+            return defaultValue;
+        }
+
+        public void SaveSetting(string key, object value)
+        {
+            _settings[key] = value;
+            try
+            {
+                string json = JsonConvert.SerializeObject(_settings, Formatting.Indented);
+                File.WriteAllText(_configPath, json);
+            }
+            catch (Exception ex)
+            {
+                LogManager.Instance.LogError("ConfigService", "保存设置失败", ex);
+            }
         }
     }
 } 
