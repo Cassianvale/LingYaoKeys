@@ -50,7 +50,6 @@ namespace WpfApp.ViewModels
         private string _stopHotkeyText = string.Empty;
         private DDKeyCode? _startHotkey;
         private DDKeyCode? _stopHotkey;
-        private int _keyInterval = 50; // 默认按键间隔为50
         private int _selectedKeyMode;
         private ModifierKeys _startModifiers = ModifierKeys.None;
         private ModifierKeys _stopModifiers = ModifierKeys.None;
@@ -98,14 +97,13 @@ namespace WpfApp.ViewModels
         // 按键间隔
         public int KeyInterval
         {
-            get => _keyInterval;
+            get => _ddDriver.KeyInterval;
             set
             {
-                // 只在最终设置时验证最小值
-                int validValue = Math.Max(1, value);
-                if (SetProperty(ref _keyInterval, validValue))
+                if (_ddDriver.KeyInterval != value)
                 {
-                    _ddDriver.KeyInterval = validValue;
+                    _ddDriver.KeyInterval = value;
+                    OnPropertyChanged(nameof(KeyInterval));
                     SaveConfig();
                 }
             }
@@ -245,7 +243,7 @@ namespace WpfApp.ViewModels
             }
             
             // 设置其他选项
-            KeyInterval = config.interval;
+            _ddDriver.SetKeyInterval(config.interval);
             SelectedKeyMode = config.keyMode;
             IsSequenceMode = config.keyMode == 0;
             _logger.LogInitialization("ViewModel", $"Initialized key mode to: {config.keyMode}");
@@ -280,6 +278,12 @@ namespace WpfApp.ViewModels
                     else
                         await _audioService.PlayStopSound();
                 }
+            };
+
+            // 订阅DDDriverService的KeyInterval变化
+            _ddDriver.KeyIntervalChanged += (s, interval) =>
+            {
+                OnPropertyChanged(nameof(KeyInterval));
             };
         }
 

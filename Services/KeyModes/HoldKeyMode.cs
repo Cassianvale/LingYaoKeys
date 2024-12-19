@@ -34,7 +34,7 @@ namespace WpfApp.Services.KeyModes
                     
                     if (_isRunning && !_cts.Token.IsCancellationRequested)
                     {
-                        await Task.Delay(_keyInterval, _cts.Token);
+                        await Task.Delay(GetInterval(), _cts.Token);
                     }
                 }
             }
@@ -52,4 +52,4 @@ namespace WpfApp.Services.KeyModes
             }
         }
     }
-} 
+}

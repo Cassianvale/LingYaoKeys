@@ -13,8 +13,7 @@ namespace WpfApp.Services.KeyModes
         private int _totalKeyPresses;
         private const int MAX_TIMING_SAMPLES = 100;
         private readonly LogManager _logger;
-
-        public event EventHandler<PerformanceMetrics>? PerformanceMetricsUpdated;
+        
 
         public KeyModeMetrics()
         {

@@ -1,9 +1,8 @@
 {
   "AppInfo": {
-    "Name": "jx3wpf",
-    "Title": "按键助手",
-    "Version": "1.0.0",
-    "Copyright": "© 2024"
+    "Title": "JX3 WPF Tools",
+    "Version": "1.0.1",
+    "Copyright": "Copyright © 2024"
   },
   "UI": {
     "MainWindow": {

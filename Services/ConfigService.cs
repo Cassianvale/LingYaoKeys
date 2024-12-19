@@ -45,7 +45,7 @@ namespace WpfApp.Services
                 WritePrivateProfileString(SECTION_KEYLIST, "Count", "0", configPath);
 
                 WritePrivateProfileString(SECTION_SETTINGS, "KeyMode", "0", configPath);
-                WritePrivateProfileString(SECTION_SETTINGS, "Interval", "50", configPath);
+                WritePrivateProfileString(SECTION_SETTINGS, "Interval", "10", configPath);
                 WritePrivateProfileString(SECTION_SETTINGS, "SoundEnabled", "True", configPath);
 
                 _logger.LogDebug("Config", $"已创建默认配置文件: {configPath}");
@@ -127,7 +127,7 @@ namespace WpfApp.Services
                 // 返回默认配置
                 return (null, ModifierKeys.None, null, ModifierKeys.None, 
                         new List<DDKeyCode>(), new List<bool>(), 
-                        0, 50, true);
+                        0, 10, true);
             }
 
             StringBuilder retVal = new StringBuilder(255);
@@ -172,8 +172,8 @@ namespace WpfApp.Services
             GetPrivateProfileString(SECTION_SETTINGS, "KeyMode", "0", retVal, 255, configPath);
             int keyMode = int.TryParse(retVal.ToString(), out var km) ? km : 0;
 
-            GetPrivateProfileString(SECTION_SETTINGS, "Interval", "50", retVal, 255, configPath);
-            int interval = int.TryParse(retVal.ToString(), out var iv) ? iv : 50;
+            GetPrivateProfileString(SECTION_SETTINGS, "Interval", "10", retVal, 255, configPath);
+            int interval = int.TryParse(retVal.ToString(), out var iv) ? iv : 10;
 
             GetPrivateProfileString(SECTION_SETTINGS, "SoundEnabled", "True", retVal, 255, configPath);
             bool soundEnabled = bool.TryParse(retVal.ToString(), out var se) ? se : true;

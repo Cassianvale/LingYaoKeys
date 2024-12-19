@@ -12,7 +12,7 @@ namespace WpfApp.Converters
             {
                 return intValue.ToString();
             }
-            return "50";
+            return "10";
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
@@ -21,7 +21,7 @@ namespace WpfApp.Converters
             {
                 return result;
             }
-            return 50;
+            return 10;
         }
     }
 }

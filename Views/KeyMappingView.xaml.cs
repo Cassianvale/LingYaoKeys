@@ -1,3 +1,4 @@
+using System;
 using System.Windows.Controls;
 using System.Windows.Navigation;
 using System.Windows.Input;
@@ -495,43 +496,61 @@ namespace WpfApp.Views
                 {
                     if (int.TryParse(textBox.Text, out int value))
                     {
-                        if (value < 5)
+                        if (value <= 0)
                         {
-                            _logger.LogDebug("KeyMappingView", $"按键间隔值 {value} 小于最小值5，已自动调整");
-                            textBox.Text = "5";
+                            // 处理无效值（小于等于0）
+                            _logger.LogDebug("KeyMappingView", $"按键间隔值 {value} 无效，必须大于0");
                             if (DataContext is KeyMappingViewModel viewModel)
                             {
-                                viewModel.KeyInterval = 5;
-                                // 通过MainViewModel更新状态栏信息
+                                viewModel.KeyInterval = 1; // 设置为最小值
+                                textBox.Text = viewModel.KeyInterval.ToString(); // 显示实际设置的值
+                                
                                 if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
                                 {
-                                    mainViewModel.UpdateStatusMessage("按键间隔不能小于5毫秒", true);
+                                    mainViewModel.UpdateStatusMessage("按键间隔必须大于0毫秒", true);
                                 }
                             }
                         }
                         else
                         {
-                            // 值有效，直接更新到ViewModel
+                            // 值有效，更新到ViewModel
                             if (DataContext is KeyMappingViewModel viewModel)
                             {
+                                int oldValue = viewModel.KeyInterval;
                                 viewModel.KeyInterval = value;
+                                
+                                // 如果值被调整，显示提示信息
+                                if (oldValue != viewModel.KeyInterval)
+                                {
+                                    textBox.Text = viewModel.KeyInterval.ToString();
+                                    if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+                                    {
+                                        mainViewModel.UpdateStatusMessage($"按键间隔已自动调整为: {viewModel.KeyInterval}ms", true);
+                                    }
+                                }
                             }
                         }
                     }
                     else
                     {
-                        // 如果输入的不是有效数字，恢复为默认值
-                        _logger.LogDebug("KeyMappingView", "输入的不是有效数字，已恢复为默认值");
-                        textBox.Text = "50";
+                        // 输入的不是有效数字
+                        _logger.LogDebug("KeyMappingView", "输入的不是有效数字");
                         if (DataContext is KeyMappingViewModel viewModel)
                         {
-                            viewModel.KeyInterval = 50;
-                            // 通过MainViewModel更新状态栏信息
+                            textBox.Text = viewModel.KeyInterval.ToString(); // 恢复为当前值
                             if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
                             {
                                 mainViewModel.UpdateStatusMessage("请输入有效的数字", true);
                             }
                         }
+                    }
+                }
+                else
+                {
+                    // 输入框为空，恢复为当前值
+                    if (DataContext is KeyMappingViewModel viewModel)
+                    {
+                        textBox.Text = viewModel.KeyInterval.ToString();
                     }
                 }
             }

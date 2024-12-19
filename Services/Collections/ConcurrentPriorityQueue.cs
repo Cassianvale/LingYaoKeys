@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 
 namespace WpfApp.Services.Collections
 {
-    public class ConcurrentPriorityQueue<TKey, TValue>
+    public class ConcurrentPriorityQueue<TKey, TValue> where TKey : notnull
     {
         private readonly ConcurrentDictionary<TKey, (TValue Value, int Priority)> _items = new();
 

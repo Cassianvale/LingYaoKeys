@@ -7,6 +7,8 @@ using System.Security.Principal;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Runtime.InteropServices.ComTypes;
+using System.Collections.Generic;
+using System.Threading;
 
 // 提供快捷键服务
 namespace WpfApp.Services
@@ -41,8 +43,6 @@ namespace WpfApp.Services
         // 添加常量
         private const int WH_MOUSE_LL = 14;
         private const int WM_HOTKEY = 0x0312;
-        // private const int WM_XBUTTONUP = 0x020C;
-        // private const int WM_MBUTTONUP = 0x0208;
         private const int WM_XBUTTONDOWN = 0x020B;
         private const int WM_MBUTTONDOWN = 0x0207;
 
@@ -66,7 +66,6 @@ namespace WpfApp.Services
 
         private List<DDKeyCode> _keyList = new List<DDKeyCode>();
         private CancellationTokenSource? _sequenceCts;
-        private int _keyInterval = 50;
 
         // 添加字段保存虚拟键码
         private int _startVirtualKey;
@@ -454,9 +453,9 @@ namespace WpfApp.Services
             }
             
             _keyList = new List<DDKeyCode>(keyList);
-            _keyInterval = Math.Max(1, interval);
+            _ddDriverService.SetKeyInterval(interval);
             _logger.LogDebug("HotkeyService", 
-                $"更新按键序列 - 按键数量: {_keyList.Count}, 间隔: {_keyInterval}ms");
+                $"更新按键序列 - 按键数量: {_keyList.Count}, 间隔: {_ddDriverService.KeyInterval}ms");
         }
 
         private bool IsKeyPressed(DDKeyCode ddKeyCode)

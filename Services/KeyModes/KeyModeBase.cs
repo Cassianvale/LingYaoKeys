@@ -10,7 +10,6 @@ namespace WpfApp.Services.KeyModes
         protected readonly DDDriverService _driverService;
         protected readonly LogManager _logger;
         protected List<DDKeyCode> _keyList;
-        protected int _keyInterval;
         protected bool _isRunning;
         protected CancellationTokenSource? _cts;
         public readonly KeyModeMetrics Metrics;
@@ -20,7 +19,6 @@ namespace WpfApp.Services.KeyModes
             _driverService = driverService;
             _logger = LogManager.Instance;
             _keyList = new List<DDKeyCode>();
-            _keyInterval = 50;
             Metrics = new KeyModeMetrics();
         }
 
@@ -31,7 +29,7 @@ namespace WpfApp.Services.KeyModes
 
         public virtual void SetKeyInterval(int interval)
         {
-            _keyInterval = Math.Max(5, interval);
+            _driverService.SetKeyInterval(interval);
         }
 
         public abstract Task StartAsync();
@@ -56,12 +54,12 @@ namespace WpfApp.Services.KeyModes
 
         public virtual void LogMetrics()
         {
-            Metrics.LogSequenceEnd(_keyInterval);
+            Metrics.LogSequenceEnd(_driverService.KeyInterval);
         }
 
         protected virtual void LogModeStart()
         {
-            _logger.LogSequenceEvent("开始", $"模式: {GetType().Name} | 按键列表: {string.Join(", ", _keyList)} | 间隔: {_keyInterval}ms");
+            _logger.LogSequenceEvent("开始", $"模式: {GetType().Name} | 按键列表: {string.Join(", ", _keyList)} | 间隔: {_driverService.KeyInterval}ms");
         }
 
         protected virtual void LogModeEnd()
@@ -73,5 +71,7 @@ namespace WpfApp.Services.KeyModes
         {
             Metrics.StartTracking();
         }
+
+        protected int GetInterval() => _driverService.KeyInterval;
     }
 } 

@@ -59,7 +59,7 @@ namespace WpfApp.Services.KeyModes
 
                     // 计算剩余延迟时间
                     long elapsedTime = _performanceTimer.ElapsedMilliseconds - cycleStartTime;
-                    int remainingDelay = Math.Max(5, _keyInterval - (int)elapsedTime);
+                    int remainingDelay = Math.Max(1, GetInterval() - (int)elapsedTime);  // 保护机制
 
                     if (remainingDelay > 0)
                     {
