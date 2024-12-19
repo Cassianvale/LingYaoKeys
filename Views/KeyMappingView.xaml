@@ -133,6 +133,8 @@
                          Width="90"
                          IsReadOnly="False"
                          PreviewTextInput="NumberValidationTextBox"
+                         GotFocus="NumberInput_GotFocus"
+                         LostFocus="NumberInput_LostFocus"
                          Text="{Binding KeyInterval, 
                                 Mode=TwoWay, 
                                 UpdateSourceTrigger=PropertyChanged,

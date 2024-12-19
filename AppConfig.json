@@ -10,5 +10,22 @@
       "DefaultWidth": 600,
       "DefaultHeight": 450
     }
+  },
+  "Logging": {
+    "Enabled": true,
+    "LogLevel": "Debug",
+    "FileSettings": {
+      "Directory": "Logs",
+      "MaxFileSize": 10,
+      "MaxFileCount": 10,
+      "RollingInterval": "Day",
+      "RetainDays": 7
+    },
+    "Categories": {
+      "KeyOperation": true,
+      "Performance": true,
+      "Driver": true,
+      "Config": true
+    }
   }
 } 
