@@ -131,31 +131,126 @@ Adjust analysis depth based on:
 - Must follow C# coding standards
 - Must use MVVM mode to ensure separation of view and logic
 - Must use XAML to unify style
+- Must use WPF controls instead of WinForms controls
 - For smaller components, you must use inline functions, but separate complex logic into code-behind or service classes
 - If necessary, use dependency injection to manage services to reduce coupling between classes
-- Please use WPF controls instead of WinForms controls
 - The code must be unit tested to ensure its stability
 
-### File organization
-- Views/ directory contains all view files
-- Styles/ directory contains global style definitions
-- ViewModels/ directory contains corresponding view models
-- Models/ directory contains data models
-- Services/ directory contains business logic services
-- App_csharp/ directory contains csharp dd driver call sample code
-- Driver/ directory contains dd driver files
+## Project search priority
 
-### Retrieval priority
-1. *.xaml - XAML view file
-2. *ViewModel.cs - view model file
-3. *Service.cs - service class file
-4. *.styles.xaml - Style file
-5. App.xaml - Application configuration
+### Project structure
+jx3wpftools/
+├── Commands/ # MVVM command
+│   └── RelayCommand.cs # MVVM command implementation class
+│
+├── Converters/ # Value converter
+│   ├── BoolToVisibilityConverter.cs # Boolean to visibility
+│   ├── BoolToColorConverter.cs # Boolean to color
+│   └── IntToStringConverter.cs # Integer to string
+│
+├── Models/ # Data model
+│   ├── AppConfig.cs # Application configuration model
+│   └── KeyItem.cs # Key item model
+│
+├── Services/ # Service layer
+│   ├── DDDriverService.cs # DD driver service, handles underlying key operations
+│   ├── HotkeyService.cs # Hotkey service, manages global hotkeys
+│   ├── AppConfigService.cs # Application configuration service
+│   ├── CDD.cs # DD driver core class
+│   ├── ConfigService.cs # Configuration service
+│   ├── KeyCodeMapping.cs # Key mapping
+│   ├── LogManager.cs # Log management
+│   ├── DDKeyCodeExtensions.cs # DD key code extension
+│   └── DDKeyCode.cs # DD key code definition
+│
+├── Styles/ # Style definition
+│   ├── ControlStyles.xaml # Control style
+│   ├── ButtonStyles.xaml # Button style
+│   └── NavigationStyles.xaml # Navigation style
+│
+├── ViewModels/ # View model
+│   ├── KeyMappingViewModel.cs # Key mapping view model
+│   ├── MainViewModel.cs # Main window view model
+│   ├── ViewModelBase.cs # View model base class
+│   └── SyncSettingsViewModel.cs # Synchronization settings view model
+│
+├── Views/ # View layer
+│   ├── KeyMappingView.xaml(.cs) # Key mapping view
+│   ├── SyncSettingsView.xaml(.cs) # Synchronization settings view
+│   └── SyncSettingsPage.xaml # Synchronization settings page
+│
+├── dd/ # DD driver file directory
+│
+├── App.xaml(.cs) # Application definition and entry
+├── MainWindow.xaml(.cs) # Main window definition
+├── WpfApp.csproj # Project configuration file
+├── app.manifest # Application manifest
+└── WpfApp.sln # Solution file
 
-### Keyword priority
-- "KeyMapping" - Key mapping related
-- "Sync" - Synchronization function related
-- "Style" - Style definition
-- "Service" - Service class
-- "ViewModel" - View model
-- "View" - View component
+### First priority - View and view model core files
+Search order:
+1. All XAML view files (*.xaml)
+2. All view model files (*ViewModel.cs)
+3. Main window related files (MainWindow.xaml/.cs)
+Key path:
+csharp
+/Views/.xaml
+/ViewModels/ViewModel.cs
+/MainWindow.xaml(.cs)
+
+### Second priority - Service layer core files
+Search order:
+1. All service class files ( *Service.cs)
+2. DD driver core class (CDD.cs)
+3. Key mapping core file (KeyCodeMapping.cs)
+Key path:
+csharp
+/Services/Service.cs
+/Services/CDD.cs
+/Services/KeyCodeMapping.cs
+
+### Third priority - Styles and configuration files
+Search order:
+1. Style definition file (Styles/*.xaml)
+2. Application configuration (App.xaml)
+3. Application configuration file (AppConfig.j son)
+Key path:
+csharp
+/Styles/.xaml
+/App.xaml
+/AppConfig.json
+
+## Fourth priority - Models and tools
+Search order:
+1. Data model files (Models/*.cs)
+2. Converter files (Converters/*.cs)
+3. Command files (Commands/*.cs)
+Key path:
+csharp
+/Models/.cs
+/Converters/.cs
+/Commands/.cs
+
+## Fifth priority - Other supporting files
+Search order:
+1. Application manifest (*.manifest)
+2. Project configuration (*.csproj)
+3. Solution file (*.sln)
+Key path:
+csharp
+/.manifest
+/.csproj
+/.sln
+
+## Search rules
+1. Search in order of priority
+2. Files at the same level are sorted by relevance
+3. Prioritize directly related files
+4. Retrieve low-priority files only when needed
+5. Maintain contextual relevance
+
+## Code reference rules
+1. Use precise line number ranges
+2. Include file path information
+3. Specify code language type
+4. Maintain code snippet integrity
