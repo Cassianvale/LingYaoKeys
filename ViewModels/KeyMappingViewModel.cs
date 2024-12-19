@@ -96,7 +96,16 @@ namespace WpfApp.ViewModels
         public int KeyInterval
         {
             get => _keyInterval;
-            set => SetProperty(ref _keyInterval, value);
+            set
+            {
+                // 确保间隔不小于5ms
+                int validValue = Math.Max(5, value);
+                if (SetProperty(ref _keyInterval, validValue))
+                {
+                    _ddDriver.KeyInterval = validValue;
+                    SaveConfig();
+                }
+            }
         }
 
         // 添加按键命令

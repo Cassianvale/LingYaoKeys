@@ -29,12 +29,6 @@ namespace WpfApp.Views
             // 监听 DataContext 变化
             this.DataContextChanged += KeyMappingView_DataContextChanged;
 
-            // 检查样式是否正确应用
-            if (StartHotkeyInput != null) // 假设这是你的TextBox名称
-            {
-                var hasFocusManagement = ControlStyles.GetAutoFocusManagement(StartHotkeyInput);
-                _logger.LogDebug("KeyMappingView", $"StartHotkeyInput AutoFocusManagement: {hasFocusManagement}");
-            }
         }
 
         // 添加 DataContext 变化事件处理
@@ -481,7 +475,27 @@ namespace WpfApp.Views
 
         private void NumberValidationTextBox(object sender, TextCompositionEventArgs e)
         {
-            e.Handled = !int.TryParse(e.Text, out _);
+            // 只允许输入数字
+            if (!int.TryParse(e.Text, out int value))
+            {
+                e.Handled = true;
+                return;
+            }
+
+            // 获取当前文本框的完整内容
+            if (sender is TextBox textBox)
+            {
+                string newText = textBox.Text.Insert(textBox.CaretIndex, e.Text);
+                if (int.TryParse(newText, out int fullValue))
+                {
+                    // 验证值是否在有效范围内
+                    e.Handled = fullValue < 5;
+                    if (e.Handled)
+                    {
+                        MessageBox.Show("按键间隔不能小于5ms", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+                }
+            }
         }
 
         private void HandleStartHotkey(bool isKeyDown)
@@ -553,10 +567,25 @@ namespace WpfApp.Views
 
         private void NumberInput_LostFocus(object sender, RoutedEventArgs e)
         {
-            if (_hotkeyService != null)
+            if (sender is TextBox textBox)
             {
-                _hotkeyService.IsInputFocused = false;
-                _logger.LogDebug("KeyMappingView", "数字输入框失去焦点");
+                if (_hotkeyService != null)
+                {
+                    _hotkeyService.IsInputFocused = false;
+                }
+
+                // 验证并纠正值
+                if (int.TryParse(textBox.Text, out int value))
+                {
+                    if (value < 5)
+                    {
+                        textBox.Text = "5";
+                        if (DataContext is KeyMappingViewModel viewModel)
+                        {
+                            viewModel.KeyInterval = 5;
+                        }
+                    }
+                }
             }
         }
     }

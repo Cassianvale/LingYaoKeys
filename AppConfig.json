@@ -12,7 +12,7 @@
     }
   },
   "Logging": {
-    "Enabled": true,
+    "Enabled": false,
     "LogLevel": "Debug",
     "FileSettings": {
       "Directory": "Logs",
