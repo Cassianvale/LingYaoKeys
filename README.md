@@ -6,13 +6,7 @@
  在UI/UX与交互逻辑设计上，极简按键提供了优秀的范例，让我在学习过程中获益良多，特此致谢极简按键！  
  项目中我也融入了一些个人的理解和创新设计，希望能为同样热爱技术的朋友提供参考。  
  
-## 运行
-- `dotnet run`  
-
-## 打包  
-- `sh publish.sh`  
-
-## 下载
+## 直接下载
 
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/Cassianvale/jx3wpftools)](https://github.com/Cassianvale/jx3wpftools/releases/latest)
 
@@ -26,7 +20,17 @@
 ## 项目展示  
 ![image](https://github.com/Cassianvale/jx3wpftools/raw/main/Resource/img/home.png)  
 
-## 项目结构
+## 开发相关
+
+### 运行
+
+- `dotnet run`  
+
+### 打包
+
+- `sh publish.sh`  
+
+### 项目结构展示
 ```
 jx3wpftools/  
 ├── Commands/   # MVVM 命令  
