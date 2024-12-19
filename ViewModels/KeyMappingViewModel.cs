@@ -99,8 +99,8 @@ namespace WpfApp.ViewModels
             get => _keyInterval;
             set
             {
-                // 确保间隔不小于5ms
-                int validValue = Math.Max(5, value);
+                // 只在最终设置时验证最小值
+                int validValue = Math.Max(1, value);
                 if (SetProperty(ref _keyInterval, validValue))
                 {
                     _ddDriver.KeyInterval = validValue;

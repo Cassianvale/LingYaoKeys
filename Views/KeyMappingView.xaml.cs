@@ -475,24 +475,63 @@ namespace WpfApp.Views
 
         private void NumberValidationTextBox(object sender, TextCompositionEventArgs e)
         {
-            // 只允许输入数字
-            if (!int.TryParse(e.Text, out int value))
-            {
-                e.Handled = true;
-                return;
-            }
+            // 只验证输入是否为数字，允许输入任何整数
+            e.Handled = !int.TryParse(e.Text, out _);
+        }
 
-            // 获取当前文本框的完整内容
+        private void NumberInput_LostFocus(object sender, RoutedEventArgs e)
+        {
             if (sender is TextBox textBox)
             {
-                string newText = textBox.Text.Insert(textBox.CaretIndex, e.Text);
-                if (int.TryParse(newText, out int fullValue))
+                // 处理焦点状态
+                if (_hotkeyService != null)
                 {
-                    // 验证值是否在有效范围内
-                    e.Handled = fullValue < 5;
-                    if (e.Handled)
+                    _hotkeyService.IsInputFocused = false;
+                    _logger.LogDebug("KeyMappingView", "数字输入框失去焦点");
+                }
+
+                // 验证并纠正值
+                if (!string.IsNullOrEmpty(textBox.Text))
+                {
+                    if (int.TryParse(textBox.Text, out int value))
                     {
-                        MessageBox.Show("按键间隔不能小于5ms", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        if (value < 5)
+                        {
+                            _logger.LogDebug("KeyMappingView", $"按键间隔值 {value} 小于最小值5，已自动调整");
+                            textBox.Text = "5";
+                            if (DataContext is KeyMappingViewModel viewModel)
+                            {
+                                viewModel.KeyInterval = 5;
+                                // 通过MainViewModel更新状态栏信息
+                                if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+                                {
+                                    mainViewModel.UpdateStatusMessage("按键间隔不能小于5毫秒", true);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // 值有效，直接更新到ViewModel
+                            if (DataContext is KeyMappingViewModel viewModel)
+                            {
+                                viewModel.KeyInterval = value;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // 如果输入的不是有效数字，恢复为默认值
+                        _logger.LogDebug("KeyMappingView", "输入的不是有效数字，已恢复为默认值");
+                        textBox.Text = "50";
+                        if (DataContext is KeyMappingViewModel viewModel)
+                        {
+                            viewModel.KeyInterval = 50;
+                            // 通过MainViewModel更新状态栏信息
+                            if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+                            {
+                                mainViewModel.UpdateStatusMessage("请输入有效的数字", true);
+                            }
+                        }
                     }
                 }
             }
@@ -562,30 +601,6 @@ namespace WpfApp.Views
             {
                 _hotkeyService.IsInputFocused = true;
                 _logger.LogDebug("KeyMappingView", "数字输入框获得焦点");
-            }
-        }
-
-        private void NumberInput_LostFocus(object sender, RoutedEventArgs e)
-        {
-            if (sender is TextBox textBox)
-            {
-                if (_hotkeyService != null)
-                {
-                    _hotkeyService.IsInputFocused = false;
-                }
-
-                // 验证并纠正值
-                if (int.TryParse(textBox.Text, out int value))
-                {
-                    if (value < 5)
-                    {
-                        textBox.Text = "5";
-                        if (DataContext is KeyMappingViewModel viewModel)
-                        {
-                            viewModel.KeyInterval = 5;
-                        }
-                    }
-                }
             }
         }
     }
