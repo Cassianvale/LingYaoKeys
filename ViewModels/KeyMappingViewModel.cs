@@ -222,6 +222,14 @@ namespace WpfApp.ViewModels
             var config = _configService.LoadConfig();
             _keyList = new ObservableCollection<KeyItem>();
             
+            // 加载按键列表和选中状态
+            for (int i = 0; i < config.keyList.Count; i++)
+            {
+                var keyItem = new KeyItem(config.keyList[i]);
+                keyItem.IsSelected = i < config.keySelections.Count ? config.keySelections[i] : true;
+                KeyList.Add(keyItem);
+            }
+            
             // 加载开始热键
             if (config.startKey.HasValue)
             {
@@ -234,12 +242,6 @@ namespace WpfApp.ViewModels
             {
                 SetStopHotkey(config.stopKey.Value, config.stopMods);
                 _logger.LogDebug("Config", $"已加载停止热键: {config.stopKey.Value}, 修饰键: {config.stopMods}");
-            }
-            
-            // 设置按键列表
-            foreach (var key in config.keyList)
-            {
-                KeyList.Add(new KeyItem(key));
             }
             
             // 设置其他选项
@@ -429,19 +431,20 @@ namespace WpfApp.ViewModels
         {
             try
             {
-                // 获取选中的按键列表
-                var selectedKeys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
+                // 获取所有按键和它们的选中状态
+                var keyList = KeyList.Select(k => k.KeyCode).ToList();
+                var keySelections = KeyList.Select(k => k.IsSelected).ToList();
                 
                 // 检查热键冲突
-                if (_startHotkey.HasValue && selectedKeys.Contains(_startHotkey.Value))
+                if (_startHotkey.HasValue && keyList.Contains(_startHotkey.Value))
                 {
-                    MessageBox.Show("启动热键与选中的按键列表存在冲突，请修改后再保存", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("启动热键与按键列表存在冲突，请修改后再保存", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                if (_stopHotkey.HasValue && selectedKeys.Contains(_stopHotkey.Value))
+                if (_stopHotkey.HasValue && keyList.Contains(_stopHotkey.Value))
                 {
-                    MessageBox.Show("停止热键与选中的按键列表存在冲突，请修改后再保存", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("停止热键与按键列表存在冲突，请修改后再保存", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -450,13 +453,15 @@ namespace WpfApp.ViewModels
                     _startModifiers,
                     _stopHotkey,
                     _stopModifiers,
-                    selectedKeys,  // 只保存选中的按键
+                    keyList,
+                    keySelections,  // 保存所有按键的选中状态
                     SelectedKeyMode,
                     KeyInterval,
-                    true
+                    IsSoundEnabled
                 );
 
-                _logger.LogDebug("Config", $"配置已保存 - 开始热键: {_startHotkey}, 停止热键: {_stopHotkey}, 选中按键数: {selectedKeys.Count}");
+                _logger.LogDebug("Config", $"配置已保存 - 开始热键: {_startHotkey}, 停止热键: {_stopHotkey}, " +
+                    $"按键数: {keyList.Count}, 选中按键数: {keySelections.Count(x => x)}");
             }
             catch (Exception ex)
             {

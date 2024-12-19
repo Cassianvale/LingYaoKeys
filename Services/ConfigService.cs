@@ -69,6 +69,7 @@ namespace WpfApp.Services
             DDKeyCode? startHotkey, ModifierKeys startModifiers,
             DDKeyCode? stopHotkey, ModifierKeys stopModifiers,
             List<DDKeyCode> keyList,
+            List<bool> keySelections,
             int keyMode,
             int interval,
             bool soundEnabled)
@@ -99,11 +100,12 @@ namespace WpfApp.Services
             WritePrivateProfileString(SECTION_HOTKEYS, "StopKey", stopHotkey?.ToString() ?? "", configPath);
             WritePrivateProfileString(SECTION_HOTKEYS, "StopModifiers", stopModifiers.ToString(), configPath);
 
-            // 保存按键列表
+            // 保存按键列表和选中状态
             WritePrivateProfileString(SECTION_KEYLIST, "Count", keyList.Count.ToString(), configPath);
             for (int i = 0; i < keyList.Count; i++)
             {
                 WritePrivateProfileString(SECTION_KEYLIST, $"Key{i}", keyList[i].ToString(), configPath);
+                WritePrivateProfileString(SECTION_KEYLIST, $"Selected{i}", keySelections[i].ToString(), configPath);
             }
 
             // 保存其他设置
@@ -115,6 +117,7 @@ namespace WpfApp.Services
         public (DDKeyCode? startKey, ModifierKeys startMods, 
                 DDKeyCode? stopKey, ModifierKeys stopMods,
                 List<DDKeyCode> keyList,
+                List<bool> keySelections,
                 int keyMode, int interval, bool soundEnabled) LoadConfig()
         {
             string configPath = GetConfigFilePath();
@@ -123,7 +126,8 @@ namespace WpfApp.Services
             {
                 // 返回默认配置
                 return (null, ModifierKeys.None, null, ModifierKeys.None, 
-                        new List<DDKeyCode>(), 0, 50, true);
+                        new List<DDKeyCode>(), new List<bool>(), 
+                        0, 50, true);
             }
 
             StringBuilder retVal = new StringBuilder(255);
@@ -143,17 +147,24 @@ namespace WpfApp.Services
             GetPrivateProfileString(SECTION_HOTKEYS, "StopModifiers", "None", retVal, 255, configPath);
             ModifierKeys stopMods = Enum.TryParse<ModifierKeys>(retVal.ToString(), out var stm) ? stm : ModifierKeys.None;
 
-            // 读取按键列表
+            // 读取按键列表和选中状态
             GetPrivateProfileString(SECTION_KEYLIST, "Count", "0", retVal, 255, configPath);
             int count = int.TryParse(retVal.ToString(), out var c) ? c : 0;
 
             List<DDKeyCode> keyList = new List<DDKeyCode>();
+            List<bool> keySelections = new List<bool>();
+
             for (int i = 0; i < count; i++)
             {
                 GetPrivateProfileString(SECTION_KEYLIST, $"Key{i}", "", retVal, 255, configPath);
                 if (Enum.TryParse<DDKeyCode>(retVal.ToString(), out var key))
                 {
                     keyList.Add(key);
+                    
+                    // 读取选中状态
+                    GetPrivateProfileString(SECTION_KEYLIST, $"Selected{i}", "True", retVal, 255, configPath);
+                    bool isSelected = bool.TryParse(retVal.ToString(), out var selected) ? selected : true;
+                    keySelections.Add(isSelected);
                 }
             }
 
@@ -167,7 +178,7 @@ namespace WpfApp.Services
             GetPrivateProfileString(SECTION_SETTINGS, "SoundEnabled", "True", retVal, 255, configPath);
             bool soundEnabled = bool.TryParse(retVal.ToString(), out var se) ? se : true;
 
-            return (startKey, startMods, stopKey, stopMods, keyList, keyMode, interval, soundEnabled);
+            return (startKey, startMods, stopKey, stopMods, keyList, keySelections, keyMode, interval, soundEnabled);
         }
 
         private Dictionary<string, object> LoadSettings()
