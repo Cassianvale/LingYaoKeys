@@ -12,6 +12,7 @@ namespace WpfApp
         private readonly LogManager _logger = LogManager.Instance;
         public static DDDriverService DDDriver { get; private set; } = new DDDriverService();
         public static ConfigService ConfigService { get; private set; } = new ConfigService();
+        public static AudioService AudioService { get; private set; } = new AudioService();
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -52,6 +53,9 @@ namespace WpfApp
                     return;
                 }
 
+                // 在创建主窗口之前初始化 AudioService
+                AudioService = new AudioService();
+                
                 // 创建并显示主窗口
                 _logger.LogInitialization("App", "创建主窗口...");
                 var mainWindow = new MainWindow();
@@ -76,6 +80,7 @@ namespace WpfApp
                 // 清理驱动资源
                 _logger.LogInitialization("App", "开始释放驱动资源...");
                 DDDriver.Dispose();
+                AudioService.Dispose();
                 _logger.LogInitialization("App", "驱动资源已释放");
             }
             catch (Exception ex)
