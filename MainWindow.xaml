@@ -10,7 +10,7 @@
         mc:Ignorable="d"
         Title="{Binding WindowTitle}"
         SizeToContent="Manual"
-        MinHeight="400"
+        MinHeight="420"
         MinWidth="500"
         WindowStartupLocation="CenterScreen">
 

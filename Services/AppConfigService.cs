@@ -61,15 +61,15 @@ namespace WpfApp.Services
             // 验证并修正窗口尺寸
             if (_config.UI.MainWindow.DefaultWidth < 500)
             {
-                _logger.LogWarning("Config", $"窗口宽度 {_config.UI.MainWindow.DefaultWidth} 小于最小值，已修正为 600");
-                _config.UI.MainWindow.DefaultWidth = 600;
+                _logger.LogWarning("Config", $"窗口宽度 {_config.UI.MainWindow.DefaultWidth} 小于最小值，已修正为 500");
+                _config.UI.MainWindow.DefaultWidth = 500;
                 sizeChanged = true;
             }
             
-            if (_config.UI.MainWindow.DefaultHeight < 400)
+            if (_config.UI.MainWindow.DefaultHeight < 420)
             {
-                _logger.LogWarning("Config", $"窗口高度 {_config.UI.MainWindow.DefaultHeight} 小于最小值，已修正为 450");
-                _config.UI.MainWindow.DefaultHeight = 450;
+                _logger.LogWarning("Config", $"窗口高度 {_config.UI.MainWindow.DefaultHeight} 小于最小值，已修正为 420");
+                _config.UI.MainWindow.DefaultHeight = 420;
                 sizeChanged = true;
             }
 

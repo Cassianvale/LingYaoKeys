@@ -7,8 +7,8 @@
   },
   "UI": {
     "MainWindow": {
-      "DefaultWidth": 600,
-      "DefaultHeight": 450
+      "DefaultWidth": 500,
+      "DefaultHeight": 420
     }
   },
   "Logging": {
