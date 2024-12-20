@@ -1,8 +1,11 @@
 {
+  "AppInfo": {
+    "Title": "灵曜按键"
+  },
   "UI": {
     "MainWindow": {
-      "DefaultWidth": 500,
-      "DefaultHeight": 420
+      "DefaultWidth": 600,
+      "DefaultHeight": 450
     }
   },
   "Logging": {
@@ -21,5 +24,20 @@
       "Driver": true,
       "Config": true
     }
-  }
-} 
+  },
+  "startKey": 510,
+  "startMods": 0,
+  "stopKey": 510,
+  "stopMods": 0,
+  "keyList": [
+    405
+  ],
+  "keySelections": [
+    true
+  ],
+  "keyMode": 0,
+  "interval": 1,
+  "soundEnabled": true,
+  "IsGameMode": true,
+  "KeyPressInterval": 5
+}

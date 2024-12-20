@@ -56,31 +56,31 @@ namespace WpfApp.Services
         {
             if (_config == null) return;
 
-            bool sizeChanged = false;
+            bool configChanged = false;
             
             // 验证并修正窗口尺寸
             if (_config.UI.MainWindow.DefaultWidth < 500)
             {
                 _logger.LogWarning("Config", $"窗口宽度 {_config.UI.MainWindow.DefaultWidth} 小于最小值，已修正为 500");
                 _config.UI.MainWindow.DefaultWidth = 500;
-                sizeChanged = true;
+                configChanged = true;
             }
             
             if (_config.UI.MainWindow.DefaultHeight < 420)
             {
                 _logger.LogWarning("Config", $"窗口高度 {_config.UI.MainWindow.DefaultHeight} 小于最小值，已修正为 420");
                 _config.UI.MainWindow.DefaultHeight = 420;
-                sizeChanged = true;
+                configChanged = true;
             }
 
-            if (sizeChanged)
+            if (configChanged)
             {
-                _logger.LogDebug("Config", $"最终窗口尺寸: {_config.UI.MainWindow.DefaultWidth}x{_config.UI.MainWindow.DefaultHeight}");
+                _logger.LogDebug("Config", $"配置已更新 - 窗口尺寸: {_config.UI.MainWindow.DefaultWidth}x{_config.UI.MainWindow.DefaultHeight}, 游戏模式: {_config.IsGameMode}");
                 SaveConfig();
             }
         }
 
-        private static void SaveConfig()
+        public static void SaveConfig()
         {
             try
             {

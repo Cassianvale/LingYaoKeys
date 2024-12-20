@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
+// 按键序列模式
 namespace WpfApp.Services.KeyModes
 {
     public class SequenceKeyMode : KeyModeBase
@@ -18,87 +19,48 @@ namespace WpfApp.Services.KeyModes
 
         public override async Task StartAsync()
         {
-            if (!_driverService.IsInitialized) return;
+            if (_keyList.Count == 0) return;
 
             _isRunning = true;
             _cts = new CancellationTokenSource();
-            _performanceTimer.Restart();
-            _lastKeyPressTime = 0;
-            _currentKeyIndex = 0;
-            PrepareStart();
-
-            LogModeStart();
-
+            
             try
             {
+                LogModeStart();
+                PrepareStart();
+
                 while (_isRunning && !_cts.Token.IsCancellationRequested)
                 {
-                    DDKeyCode keyCode;
-                    lock (this)
+                    foreach (var key in _keyList)
                     {
-                        if (_currentKeyIndex >= _keyList.Count)
+                        if (!_isRunning || _cts.Token.IsCancellationRequested) break;
+
+                        // 使用 SimulateKeyPress 替代直接的 SendKey 调用
+                        // 这样可以确保按键有足够的按下时间
+                        if (!_driverService.SimulateKeyPress(key, null, KeyPressInterval))
                         {
-                            _currentKeyIndex = 0;
+                            _logger.LogError("SequenceKeyMode", $"按键执行失败: {key}");
+                            continue;
                         }
-                        keyCode = _keyList[_currentKeyIndex++];
-                    }
 
-                    long cycleStartTime = _performanceTimer.ElapsedMilliseconds;
-                    
-                    // 执行按键
-                    if (ExecuteKeyCycle(keyCode))
-                    {
-                        // 记录实际间隔
-                        long currentTime = _performanceTimer.ElapsedMilliseconds;
-                        if (_lastKeyPressTime > 0)
-                        {
-                            Metrics.RecordKeyInterval(TimeSpan.FromMilliseconds(currentTime - _lastKeyPressTime));
-                        }
-                        _lastKeyPressTime = currentTime;
-                    }
-
-                    // 计算剩余延迟时间
-                    long elapsedTime = _performanceTimer.ElapsedMilliseconds - cycleStartTime;
-                    int remainingDelay = Math.Max(1, GetInterval() - (int)elapsedTime);  // 保护机制
-
-                    if (remainingDelay > 0)
-                    {
-                        await Task.Delay(remainingDelay, _cts.Token);
+                        Metrics.IncrementKeyCount();
+                        
+                        // 使用配置的间隔时间
+                        await Task.Delay(GetInterval(), _cts.Token);
                     }
                 }
             }
             catch (OperationCanceledException)
             {
-                // 正常取消，不需要处理
+                // 正常的取消操作，不需要特殊处理
             }
             catch (Exception ex)
             {
-                _logger.LogError("SequenceKeyMode", "序列执行异常", ex);
+                _logger.LogError("SequenceKeyMode", "按键序列执行异常", ex);
             }
             finally
             {
                 LogModeEnd();
-            }
-        }
-
-        private bool ExecuteKeyCycle(DDKeyCode keyCode)
-        {
-            try
-            {
-                long pressStartTime = _performanceTimer.ElapsedMilliseconds;
-
-                if (!_driverService.SendKey(keyCode, true)) return false;
-                if (!_driverService.SendKey(keyCode, false)) return false;
-
-                long pressDuration = _performanceTimer.ElapsedMilliseconds - pressStartTime;
-                Metrics.RecordKeyPressDuration(TimeSpan.FromMilliseconds(pressDuration));
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("ExecuteKeyCycle", "按键执行异常", ex);
-                return false;
             }
         }
     }

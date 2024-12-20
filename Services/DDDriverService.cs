@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Linq;
 using WpfApp.Services.KeyModes;
+using WpfApp.Services;
 
 /// <summary>
 /// DD虚拟键盘驱动服务类
@@ -36,20 +37,26 @@ namespace WpfApp.Services
         private CDD _dd;
         private bool _isInitialized;
         private bool _isEnabled;
-        private List<DDKeyCode> _keyList = new List<DDKeyCode>();
         private bool _isHoldMode;
-        private const int MIN_KEY_INTERVAL = 1;
-        private int _keyInterval = 5;
+        private KeyModeBase? _currentKeyMode;
+        private List<DDKeyCode> _keyList = new List<DDKeyCode>();
         private readonly object _stateLock = new object();
         private readonly Stopwatch _sequenceStopwatch = new Stopwatch();
-        private KeyModeBase? _currentKeyMode;
-        private readonly TaskManager _taskManager;
-        private const int MAX_CONCURRENT_TASKS = 1;
+        private readonly LogManager _logger = LogManager.Instance;
         public event EventHandler<bool>? InitializationStatusChanged;
         public event EventHandler<bool>? EnableStatusChanged;
         public event EventHandler<int>? KeyIntervalChanged;
         public event EventHandler<StatusMessageEventArgs>? StatusMessageChanged;
-        private readonly LogManager _logger = LogManager.Instance;
+        public event EventHandler<int>? KeyPressIntervalChanged;
+
+        private readonly TaskManager _taskManager;
+        private const int MAX_CONCURRENT_TASKS = 1; // 最大并发任务数
+        
+        private const int MIN_KEY_INTERVAL = 1;  // 默认最小按键间隔
+        private int _keyInterval = 5;   // 默认按键间隔
+        private int _keyPressInterval;   // 按键按下时长
+        public const int DEFAULT_KEY_PRESS_INTERVAL = 5; // 默认按键按下时长(毫秒)
+        private const int MIN_KEY_PRESS_INTERVAL = 0;  // 按键按下时长为0
 
         // DD驱动服务构造函数
         public DDDriverService()
@@ -58,6 +65,9 @@ namespace WpfApp.Services
             _isInitialized = false;
             _isEnabled = false;
             _taskManager = new TaskManager(MAX_CONCURRENT_TASKS);
+            
+            // 初始化时从配置加载，如果没有配置则使用默认值
+            _keyPressInterval = AppConfigService.Config.KeyPressInterval ?? DEFAULT_KEY_PRESS_INTERVAL;
         }
 
         // 添加公共属性用于检查初始化状态
@@ -85,12 +95,20 @@ namespace WpfApp.Services
                 }
 
                 // 3. 初始化驱动
-                ret = _dd.btn(0);
-                if (ret != 1)
+                if (_dd?.btn != null)
                 {
-                    _logger.LogError("LoadDllFile", "驱动初始化失败");
-                    MessageBox.Show("驱动初始化失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    SendStatusMessage("驱动初始化失败", true);
+                    ret = _dd.btn(0);
+                    if (ret != 1)
+                    {
+                        _logger.LogError("LoadDllFile", "驱动初始化失败");
+                        MessageBox.Show("驱动初始化失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        SendStatusMessage("驱动初始化失败", true);
+                        return false;
+                    }
+                }
+                else
+                {
+                    _logger.LogError("LoadDllFile", "驱动对象或 btn 方法为空");
                     return false;
                 }
 
@@ -408,8 +426,11 @@ namespace WpfApp.Services
             }
         }
 
-        // 模拟按键按下和释放的完整过程
-        public bool SimulateKeyPress(DDKeyCode keyCode, int? customDelay = null)
+        // 移除通用的按键防抖
+        private readonly Dictionary<DDKeyCode, DateTime> _lastKeyPressTimes = new();
+        
+        // 优化按键检测方法
+        public bool SimulateKeyPress(DDKeyCode keyCode, int? customDelay = null, int? customPressInterval = null)
         {
             if (!_isInitialized) return false;
             
@@ -417,18 +438,15 @@ namespace WpfApp.Services
             {
                 // 使用自定义延迟或配置的间隔
                 int delayMs = customDelay ?? _keyInterval;
+                int pressIntervalMs = customPressInterval ?? _keyPressInterval;
                 
-                // 按下按键
-                if (!SendKey(keyCode, true))
-                {
-                    return false;
-                }
-
-                // 延迟
+                // 执行按键操作
+                if (!SendKey(keyCode, true)) return false;
+                Thread.Sleep(pressIntervalMs);
+                if (!SendKey(keyCode, false)) return false;
                 Thread.Sleep(delayMs);
-
-                // 释放按键
-                return SendKey(keyCode, false);
+                
+                return true;
             }
             catch (Exception ex)
             {
@@ -655,6 +673,36 @@ namespace WpfApp.Services
                     _currentKeyMode?.SetKeyInterval(validValue);
                 }
             }
+        }
+
+        // 添加新的属性用于控制按键按下的持续时间
+        public int KeyPressInterval
+        {
+            get => _keyPressInterval;
+            set
+            {
+                int validValue = Math.Max(MIN_KEY_PRESS_INTERVAL, value);
+                if (_keyPressInterval != validValue)
+                {
+                    _keyPressInterval = validValue;
+                    KeyPressIntervalChanged?.Invoke(this, validValue);
+                    _logger.LogSequenceEvent("KeyPressInterval", 
+                        $"按键按下时长已更新为: {validValue}ms (默认值: {DEFAULT_KEY_PRESS_INTERVAL}ms)");
+                    
+                    // 保存到配置
+                    AppConfigService.Config.KeyPressInterval = validValue;
+                    AppConfigService.SaveConfig();
+                    
+                    // 如果有当前模式，同步更新
+                    _currentKeyMode?.SetKeyPressInterval(validValue);
+                }
+            }
+        }
+
+        // 添加重置方法，重置按键按下时长
+        public void ResetKeyPressInterval()
+        {
+            KeyPressInterval = DEFAULT_KEY_PRESS_INTERVAL;
         }
     }
 

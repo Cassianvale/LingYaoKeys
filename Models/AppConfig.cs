@@ -1,6 +1,9 @@
 using System;
 using System.Reflection;
 using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Windows.Input;
+using WpfApp.Services;
 
 namespace WpfApp.Models
 {
@@ -10,6 +13,19 @@ namespace WpfApp.Models
         public UIConfig UI { get; set; } = new UIConfig();
         public LoggingConfig Logging { get; set; } = new LoggingConfig();
         
+        // 按键配置相关属性
+        public DDKeyCode? startKey { get; set; }
+        public ModifierKeys startMods { get; set; }
+        public DDKeyCode? stopKey { get; set; }
+        public ModifierKeys stopMods { get; set; }
+        public List<DDKeyCode> keyList { get; set; } = new List<DDKeyCode>();
+        public List<bool> keySelections { get; set; } = new List<bool>();
+        public int keyMode { get; set; }
+        public int interval { get; set; } = 10;
+        public bool? soundEnabled { get; set; }
+        public bool? IsGameMode { get; set; }
+        public int? KeyPressInterval { get; set; }
+
         [JsonIgnore]
         public string Author { get; } = "慕长秋";
     }

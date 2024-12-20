@@ -69,6 +69,7 @@
         <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
         <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
         <Setter Property="MaxDropDownHeight" Value="200"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBox">
@@ -97,8 +98,8 @@
                                         ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
                                         ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
                                         VerticalAlignment="Center"
-                                        HorizontalAlignment="Left"
-                                        Margin="10,0,4,0"/>
+                                        HorizontalAlignment="Center"
+                                        Margin="0,0,0,0"/>
                                 
                                 <!-- 箭头 -->
                                 <Path Grid.Column="1"
@@ -262,7 +263,7 @@
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
-        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBoxItem">
@@ -271,7 +272,7 @@
                             Padding="{TemplateBinding Padding}">
                         <ContentPresenter 
                             VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                            HorizontalAlignment="Center"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
+// 按键模式基类
 namespace WpfApp.Services.KeyModes
 {
     public abstract class KeyModeBase
@@ -13,6 +14,7 @@ namespace WpfApp.Services.KeyModes
         protected bool _isRunning;
         protected CancellationTokenSource? _cts;
         public readonly KeyModeMetrics Metrics;
+        protected int KeyPressInterval => _driverService.KeyPressInterval;
 
         protected KeyModeBase(DDDriverService driverService)
         {
@@ -73,5 +75,21 @@ namespace WpfApp.Services.KeyModes
         }
 
         protected int GetInterval() => _driverService.KeyInterval;
+
+        // 设置按键 [按下->松开] 的时间间隔
+        public virtual void SetKeyPressInterval(int interval)
+        {
+            _logger.LogDebug("KeyMode", $"按键按下时长更新: {interval}ms");
+        }
+
+        protected virtual async Task PressKeyAsync(DDKeyCode key)
+        {
+            await Task.Run(() =>
+            {
+                _driverService.SendKey(key, true);
+                Thread.Sleep(_driverService.KeyPressInterval);
+                _driverService.SendKey(key, false);
+            });
+        }
     }
 } 

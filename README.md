@@ -24,6 +24,16 @@
 - [x] 支持顺序模式触发按键
 - [ ] 支持按压模式触发按键
 
+## 游戏模式
+
+DEFAULT_KEY_PRESS_INTERVAL：按键按下->松开的固定速度
+MIN_KEY_INTERVAL: 最小可设置的按键间隔
+
+经过长时间的测试并且结合其他按键的测试结果，按键速度每秒高于两三百的话会导致按键响应延迟或者造成卡位移(看自己cpu内存性能)，所以游戏的话按键速度不需要太快，根据测试结果我取了一个合适的区间，原因可能是windows的消息机制导致的，所以就增加了默认开启的游戏模式
+
+开启游戏模式后：DEFAULT_KEY_PRESS_INTERVAL=5, MIN_KEY_INTERVAL=1，测试后平均按键速度为113
+关闭游戏模式后：DEFAULT_KEY_PRESS_INTERVAL=0, MIN_KEY_INTERVAL=1，解除按键速度限制
+
 ## 项目展示  
 ![image](https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/home.png)  
 
@@ -123,6 +133,8 @@ LingYaoKeys/
 </details>
 
 ## 许可证
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 LingYaoKeys 使用 [GNU General Public License v3.0](LICENSE) 开源许可证。
 
 Copyright © 2024 by Cassianvale.

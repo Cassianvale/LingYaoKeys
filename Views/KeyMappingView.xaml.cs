@@ -19,7 +19,6 @@ namespace WpfApp.Views
         private readonly LogManager _logger = LogManager.Instance;
         private const string KEY_ERROR = "无法识别按键，请检查输入法是否关闭";
         private const string HOTKEY_CONFLICT = "无法设置与热键相同的按键";
-        private bool isErrorShown = false;
         private HotkeyService? _hotkeyService;
 
         private KeyMappingViewModel ViewModel => (KeyMappingViewModel)DataContext;
@@ -52,10 +51,7 @@ namespace WpfApp.Views
             // 处理IME输入
             if (e.Key == Key.ImeProcessed && e.SystemKey == Key.None)
             {
-                if (!isErrorShown)
-                {
-                    ShowError(textBox, KEY_ERROR);
-                }
+                ShowError(KEY_ERROR);
                 return;
             }
 
@@ -74,16 +70,15 @@ namespace WpfApp.Views
                 // 检查是否与热键冲突
                 if (ViewModel.IsHotkeyConflict(ddKeyCode))
                 {
-                    ShowError(textBox, HOTKEY_CONFLICT);
+                    ShowError(HOTKEY_CONFLICT);
                     return;
                 }
 
                 ViewModel?.SetCurrentKey(ddKeyCode);
-                isErrorShown = false;
             }
-            else if (!isErrorShown)
+            else
             {
-                ShowError(textBox, KEY_ERROR);
+                ShowError(KEY_ERROR);
             }
         }
 
@@ -186,7 +181,6 @@ namespace WpfApp.Views
         {
             if (sender is TextBox textBox)
             {
-                isErrorShown = false;
                 if (_hotkeyService != null)
                 {
                     _hotkeyService.IsInputFocused = true;
@@ -200,10 +194,6 @@ namespace WpfApp.Views
         {
             if (sender is TextBox textBox)
             {
-                if (string.IsNullOrEmpty(textBox.Text))
-                {
-                    isErrorShown = false;
-                }
                 if (_hotkeyService != null)
                 {
                     _hotkeyService.IsInputFocused = false;
@@ -219,12 +209,13 @@ namespace WpfApp.Views
             e.Handled = true;
         }
 
-        // 显示错误信息
-        private void ShowError(TextBox textBox, string message)
+        // 显示错误信息到状态栏
+        private void ShowError(string message)
         {
-            textBox.Text = message;
-            textBox.SelectAll();
-            isErrorShown = true;
+            if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+            {
+                mainViewModel.UpdateStatusMessage(message, true);
+            }
         }
 
         // 处理热键输入框获得焦点
@@ -232,7 +223,6 @@ namespace WpfApp.Views
         {
             if (sender is TextBox textBox)
             {
-                isErrorShown = false;
                 if (_hotkeyService != null)
                 {
                     _hotkeyService.IsInputFocused = true;
@@ -246,10 +236,6 @@ namespace WpfApp.Views
         {
             if (sender is TextBox textBox)
             {
-                if (string.IsNullOrEmpty(textBox.Text))
-                {
-                    isErrorShown = false;
-                }
                 if (_hotkeyService != null)
                 {
                     _hotkeyService.IsInputFocused = false;
@@ -307,7 +293,6 @@ namespace WpfApp.Views
             {
                 ViewModel?.SetStopHotkey(keyCode, modifiers);
             }
-            isErrorShown = false;
         }
 
         // 判断是否为修饰键
@@ -353,11 +338,7 @@ namespace WpfApp.Views
                 
                 if (e.Key == Key.ImeProcessed && e.SystemKey == Key.None)
                 {
-                    _logger.LogDebug("HotkeyInput", "检测到IME输入，显示错误");
-                    if (!isErrorShown)
-                    {
-                        ShowError(textBox, KEY_ERROR);
-                    }
+                    ShowError(KEY_ERROR);
                     return;
                 }
 
@@ -372,9 +353,9 @@ namespace WpfApp.Views
                 {
                     HandleHotkeyInput(textBox, ddKeyCode, Keyboard.Modifiers, true);
                 }
-                else if (!isErrorShown)
+                else
                 {
-                    ShowError(textBox, KEY_ERROR);
+                    ShowError(KEY_ERROR);
                 }
             }
             catch (Exception ex)
@@ -394,11 +375,7 @@ namespace WpfApp.Views
                 
                 if (e.Key == Key.ImeProcessed && e.SystemKey == Key.None)
                 {
-                    _logger.LogDebug("HotkeyInput", "检测到IME输入，显示错误");
-                    if (!isErrorShown)
-                    {
-                        ShowError(textBox, KEY_ERROR);
-                    }
+                    ShowError(KEY_ERROR);
                     return;
                 }
 
@@ -420,9 +397,9 @@ namespace WpfApp.Views
                     }
                     HandleHotkeyInput(textBox, ddKeyCode, modifiers, false);
                 }
-                else if (!isErrorShown)
+                else
                 {
-                    ShowError(textBox, KEY_ERROR);
+                    ShowError(KEY_ERROR);
                 }
             }
             catch (Exception ex)
