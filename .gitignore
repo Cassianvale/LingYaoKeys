@@ -15,6 +15,7 @@
 /CC_SMSC.v11.suo
 output/
 logs/
+packages/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
