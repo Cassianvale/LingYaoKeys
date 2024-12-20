@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
+
 namespace WpfApp.Services.KeyModes
 {
     public class HoldKeyMode : KeyModeBase
@@ -12,39 +13,41 @@ namespace WpfApp.Services.KeyModes
 
         public override async Task StartAsync()
         {
-            if (!_driverService.IsInitialized) return;
+            if (_keyList.Count == 0) return;
 
             _isRunning = true;
             _cts = new CancellationTokenSource();
 
-            LogModeStart();
-
             try
             {
+                LogModeStart();
+                PrepareStart();
+
                 while (_isRunning && !_cts.Token.IsCancellationRequested)
                 {
-                    foreach (var keyCode in _keyList.ToArray())
+                    foreach (var key in _keyList)
                     {
                         if (!_isRunning || _cts.Token.IsCancellationRequested) break;
-                        
-                        _driverService.SendKey(keyCode, true);
-                        await Task.Delay(10, _cts.Token);
-                        _driverService.SendKey(keyCode, false);
+
+                        if (!_driverService.SimulateKeyPress(key, null, KeyPressInterval))
+                        {
+                            _logger.LogError("HoldKeyMode", $"按键执行失败: {key}");
+                            continue;
+                        }
+
+                        Metrics.IncrementKeyCount();
                     }
-                    
-                    if (_isRunning && !_cts.Token.IsCancellationRequested)
-                    {
-                        await Task.Delay(GetInterval(), _cts.Token);
-                    }
+
+                    await Task.Delay(GetInterval(), _cts.Token);
                 }
             }
             catch (OperationCanceledException)
             {
-                // 正常取消，不需要处理
+                // 正常的取消操作，不需要特殊处理
             }
             catch (Exception ex)
             {
-                _logger.LogError("HoldKeyMode", "按压模式异常", ex);
+                _logger.LogError("HoldKeyMode", "按键序列执行异常", ex);
             }
             finally
             {

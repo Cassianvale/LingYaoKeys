@@ -13,6 +13,7 @@ namespace WpfApp.Services.KeyModes
         protected bool _isRunning;
         protected CancellationTokenSource? _cts;
         public readonly KeyModeMetrics Metrics;
+        protected int KeyPressInterval { get; private set; } = DDDriverService.DEFAULT_KEY_PRESS_INTERVAL;
 
         protected KeyModeBase(DDDriverService driverService)
         {
@@ -73,5 +74,11 @@ namespace WpfApp.Services.KeyModes
         }
 
         protected int GetInterval() => _driverService.KeyInterval;
+
+        // 设置按键 [按下->松开] 的时间间隔
+        public virtual void SetKeyPressInterval(int interval)
+        {
+            KeyPressInterval = interval;
+        }
     }
 } 

@@ -108,28 +108,28 @@
         </DockPanel>
 
         <!-- 右侧设置区域 -->
-        <StackPanel Grid.Column="1" Width="150">
+        <StackPanel Grid.Column="1" Width="180">
             <!-- 顶部按钮组 -->
             <DockPanel Margin="0,0,0,10">
                 <Button Style="{StaticResource RoundedShadowButtonSmall}"
                     Command="{Binding AddKeyCommand}"
                     DockPanel.Dock="Left" 
-                    Width="70" 
-                    Height="30" 
+                    Width="85" 
+                    Height="32"
                     Margin="0,0,5,0"
                     Content="添加按键" />
                 <Button Style="{StaticResource RoundedShadowButtonSmall}"
                     Command="{Binding DeleteSelectedKeysCommand}"
                     DockPanel.Dock="Right" 
-                    Width="70" 
-                    Height="30" 
+                    Width="85" 
+                    Height="32"
                     Margin="5,0,0,0"
                     Content="删除勾选" />
             </DockPanel>
 
             <!-- 状态显示 -->
             <Border 
-                Margin="0,5,0,10" 
+                Margin="0,0,0,10" 
                 Padding="4,4" 
                 CornerRadius="8"
                 Height="30"
@@ -181,24 +181,39 @@
 
             <!-- 按键模式和间隔设置 -->
             <DockPanel Margin="0,0,0,10">
-                <TextBlock Text="按键模式" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBlock Text="按键模式" 
+                           DockPanel.Dock="Left" 
+                           VerticalAlignment="Center" 
+                           Margin="0,0,0,0"
+                           Width="60"/>
                 <ComboBox Style="{StaticResource ModernComboBox}"
                           ItemContainerStyle="{StaticResource ModernComboBoxItem}"
-                          Width="90"
+                          Width="120"
+                          Height="32"
+                          VerticalContentAlignment="Center"
+                          HorizontalContentAlignment="Center"
                           ItemsSource="{Binding KeyModes}"
                           SelectedIndex="{Binding SelectedKeyMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding}"/>
+                            <TextBlock Text="{Binding}" 
+                                      HorizontalAlignment="Center"/>
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>
             </DockPanel>
 
             <DockPanel Margin="0,0,0,10">
-                <TextBlock Text="按键间隔" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBlock Text="按键间隔" 
+                           DockPanel.Dock="Left" 
+                           VerticalAlignment="Center"
+                           Margin="0,0,0,0"
+                           Width="60"/>
                 <TextBox Style="{StaticResource ModernTextBox}"
-                         Width="90"
+                         Width="120"
+                         Height="32"
+                         VerticalContentAlignment="Center"
+                         TextAlignment="Center"
                          IsReadOnly="False"
                          PreviewTextInput="NumberValidationTextBox"
                          GotFocus="NumberInput_GotFocus"
@@ -209,18 +224,34 @@
                                 Converter={StaticResource IntToStringConverter}}"/>
             </DockPanel>
 
-            <DockPanel Margin="0,0,0,0">
-                <CheckBox Style="{StaticResource ModernSwitch}"
-                          Content="声音提示" 
-                          DockPanel.Dock="Left"
-                          Padding="0,0,0,0"
-                          IsChecked="{Binding IsSoundEnabled, Mode=TwoWay}"/>
+            <!-- 底部设置区域重新布局 -->
+            <StackPanel Margin="0,0,0,0">
+                <!-- 声音提示和游戏模式并排 -->
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <CheckBox Grid.Column="0"
+                              Style="{StaticResource ModernSwitch}"
+                              Content="声音提示" 
+                              Padding="0,0,0,0"
+                              IsChecked="{Binding IsSoundEnabled, Mode=TwoWay}"/>
+                              
+                    <CheckBox Grid.Column="1"
+                              Style="{StaticResource ModernSwitch}"
+                              Content="游戏模式" 
+                              Padding="0,0,0,0"
+                              IsChecked="{Binding IsGameMode, Mode=TwoWay}"/>
+                </Grid>
+
+                <!-- 其他设置按钮独占一行 -->
                 <Button Style="{StaticResource RoundedShadowButtonSmall}"
-                    Height="30"
-                    Width="60" 
-                    HorizontalAlignment="Right"
-                    Content="其他设置" />
-            </DockPanel>
+                        Height="30"
+                        HorizontalAlignment="Stretch" 
+                        Content="其他设置" />
+            </StackPanel>
         </StackPanel>
     </Grid>
 </Page> 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 
 namespace WpfApp.Services.KeyModes
 {
@@ -13,6 +14,7 @@ namespace WpfApp.Services.KeyModes
         private int _totalKeyPresses;
         private const int MAX_TIMING_SAMPLES = 100;
         private readonly LogManager _logger;
+        private int _keyCount = 0;
         
 
         public KeyModeMetrics()
@@ -124,6 +126,11 @@ namespace WpfApp.Services.KeyModes
                          $"└─ 设定间隔: {keyInterval}ms";
             
             _logger.LogSequenceEvent("结束", details);
+        }
+
+        public void IncrementKeyCount()
+        {
+            Interlocked.Increment(ref _keyCount);
         }
     }
 } 

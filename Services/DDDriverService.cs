@@ -50,6 +50,9 @@ namespace WpfApp.Services
         public event EventHandler<int>? KeyIntervalChanged;
         public event EventHandler<StatusMessageEventArgs>? StatusMessageChanged;
         private readonly LogManager _logger = LogManager.Instance;
+        public const int DEFAULT_KEY_PRESS_INTERVAL = 0; // 默认按键按下时长(毫秒)
+        private int _keyPressInterval = DEFAULT_KEY_PRESS_INTERVAL;
+        public event EventHandler<int>? KeyPressIntervalChanged;
 
         // DD驱动服务构造函数
         public DDDriverService()
@@ -200,7 +203,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError("StopKeySequence", "停止序列异常", ex);
+                _logger.LogError("StopKeySequence", "停止序��异常", ex);
             }
         }
 
@@ -409,7 +412,7 @@ namespace WpfApp.Services
         }
 
         // 模拟按键按下和释放的完整过程
-        public bool SimulateKeyPress(DDKeyCode keyCode, int? customDelay = null)
+        public bool SimulateKeyPress(DDKeyCode keyCode, int? customDelay = null, int? customPressInterval = null)
         {
             if (!_isInitialized) return false;
             
@@ -417,6 +420,7 @@ namespace WpfApp.Services
             {
                 // 使用自定义延迟或配置的间隔
                 int delayMs = customDelay ?? _keyInterval;
+                int pressIntervalMs = customPressInterval ?? _keyPressInterval;
                 
                 // 按下按键
                 if (!SendKey(keyCode, true))
@@ -424,11 +428,19 @@ namespace WpfApp.Services
                     return false;
                 }
 
-                // 延迟
-                Thread.Sleep(delayMs);
+                // 按键保持时间
+                Thread.Sleep(pressIntervalMs);
 
                 // 释放按键
-                return SendKey(keyCode, false);
+                if (!SendKey(keyCode, false))
+                {
+                    return false;
+                }
+
+                // 按键之间的间隔
+                Thread.Sleep(delayMs);
+                
+                return true;
             }
             catch (Exception ex)
             {
@@ -653,6 +665,25 @@ namespace WpfApp.Services
                     
                     // 如果有当前模式，同步更新
                     _currentKeyMode?.SetKeyInterval(validValue);
+                }
+            }
+        }
+
+        // 添加新的属性用于控制按键按下的持续时间
+        public int KeyPressInterval
+        {
+            get => _keyPressInterval;
+            set
+            {
+                int validValue = Math.Max(MIN_KEY_INTERVAL, value);
+                if (_keyPressInterval != validValue)
+                {
+                    _keyPressInterval = validValue;
+                    KeyPressIntervalChanged?.Invoke(this, validValue);
+                    _logger.LogSequenceEvent("KeyPressInterval", $"按键按下时长已更新为: {validValue}ms");
+                    
+                    // 如果有当前模式，同步更新
+                    _currentKeyMode?.SetKeyPressInterval(validValue);
                 }
             }
         }
