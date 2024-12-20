@@ -26,9 +26,9 @@
 
 - `dotnet run`  
 
-### 打包
+### 发布打包
 
-- `sh publish.sh`  
+- `.\publish.bat`  
 
 ### 项目结构展示
 ```
