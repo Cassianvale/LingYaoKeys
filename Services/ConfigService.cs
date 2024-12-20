@@ -42,12 +42,14 @@ namespace WpfApp.Services
             return new Dictionary<string, object>();
         }
 
+        // 获取设置
         public T GetSetting<T>(string key, T defaultValue)
         {
             if (_settings.TryGetValue(key, out object value))
             {
                 try
                 {
+                    _logger.LogDebug("ConfigService", $"获取设置: {key}, 值: {value}");
                     return (T)Convert.ChangeType(value, typeof(T));
                 }
                 catch

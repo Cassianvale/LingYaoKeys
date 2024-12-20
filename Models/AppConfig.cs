@@ -22,8 +22,8 @@ namespace WpfApp.Models
         public List<bool> keySelections { get; set; } = new List<bool>();
         public int keyMode { get; set; }
         public int interval { get; set; } = 10;
-        public bool soundEnabled { get; set; }
-        public bool IsGameMode { get; set; }
+        public bool? soundEnabled { get; set; }
+        public bool? IsGameMode { get; set; }
 
         [JsonIgnore]
         public string Author { get; } = "慕长秋";

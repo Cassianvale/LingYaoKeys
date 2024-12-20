@@ -105,6 +105,7 @@ namespace WpfApp.ViewModels
             Navigate("FrontKeys");
         }
 
+        // 导航到指定页面
         private void Navigate(string? parameter)
         {
             CurrentPage = parameter switch
@@ -123,18 +124,15 @@ namespace WpfApp.ViewModels
         public void Cleanup()
         {
             _logger.LogDebug("MainViewModel", "开始清理资源...");
-            SaveConfig();
+            _logger.LogDebug("MainViewModel", "开始保存应用程序配置...");
+
+            _keyMappingViewModel.SaveConfig();  // 保存配置
+            _logger.LogDebug("MainViewModel", "配置保存完成");
+            _logger.LogDebug("MainViewModel", "--------------------------------");
+
             _hotkeyService?.Dispose();
             _statusMessageTimer.Stop(); // 停止定时器
             _logger.LogDebug("MainViewModel", "资源清理完成");
-        }
-
-        public void SaveConfig()
-        {
-            _logger.LogDebug("MainViewModel", "开始保存应用程序配置...");
-            _keyMappingViewModel.SaveConfig();
-            _logger.LogDebug("MainViewModel", "配置保存完成");
-            _logger.LogDebug("MainViewModel", "--------------------------------");
         }
 
         // 订阅DDDriverService的事件，用于更新状态栏消息

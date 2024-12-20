@@ -36,6 +36,7 @@ namespace WpfApp.ViewModels
         private bool _isSoundEnabled = true;
         private readonly AudioService _audioService;
         private bool _isGameMode = true; // 默认开启
+        private bool _isInitializing = true; // 添加一个标志来标识是否在初始化
 
         // 按键列表
         public ObservableCollection<KeyItem> KeyList
@@ -149,7 +150,10 @@ namespace WpfApp.ViewModels
             {
                 if (SetProperty(ref _isSoundEnabled, value))
                 {
-                    SaveConfig();
+                    if (!_isInitializing) // 只在非初始化时保存
+                    {
+                        SaveConfig();
+                    }
                 }
             }
         }
@@ -163,26 +167,15 @@ namespace WpfApp.ViewModels
                 if (SetProperty(ref _isGameMode, value))
                 {
                     _ddDriver.KeyPressInterval = value ? 5 : 0;
-                    SaveConfig();
+                    if (!_isInitializing) // 只在非初始化时保存
+                    {
+                        SaveConfig();
+                    }
                     _logger.LogDebug("Config", $"游戏模式已更改为: {value}");
                 }
             }
         }
 
-        /// <summary>
-        /// 按键映射视图模型类
-        /// </summary>
-        /// <remarks>
-        /// 主要职责:
-        /// 1. 管理按键映射的核心业务逻辑
-        /// 2. 处理热键注册和响应
-        /// 3. 维护按键序列和映射状态
-        /// 4. 与驱动服务和配置服务交互
-        /// </remarks>
-        /// <param name="ddDriver">DD驱动服务实例,用于模拟按键操作</param>
-        /// <param name="configService">配置服务实例,用于加载和保存配置</param>
-        /// <param name="hotkeyService">热键服务实例,用于注册和响应全局热键</param>
-        /// <param name="mainViewModel">主视图模型实例,用于更新状态消息</param>
         public KeyMappingViewModel(DDDriverService ddDriver, ConfigService configService, 
             HotkeyService hotkeyService, MainViewModel mainViewModel)
         {
@@ -243,11 +236,22 @@ namespace WpfApp.ViewModels
                 IsSequenceMode = appConfig.keyMode == 0;
                 
                 // 从配置文件加载声音和游戏模式设置
-                IsSoundEnabled = appConfig.soundEnabled;
-                IsGameMode = appConfig.IsGameMode;
+                if (!appConfig.soundEnabled.HasValue)
+                {
+                    appConfig.soundEnabled = true;
+                    _logger.LogDebug("Config", "声音设置初始化为默认值: true");
+                }
+                IsSoundEnabled = appConfig.soundEnabled.Value;
+
+                if (!appConfig.IsGameMode.HasValue)
+                {
+                    appConfig.IsGameMode = true;
+                    _logger.LogDebug("Config", "游戏模式初始化为默认值: true");
+                }
+                IsGameMode = appConfig.IsGameMode.Value;
                 
                 // 根据游戏模式设置按键间隔
-                _ddDriver.KeyPressInterval = _isGameMode ? 5 : 0;
+                _ddDriver.KeyPressInterval = IsGameMode ? 5 : 0;
                 
                 _logger.LogInitialization("ViewModel", $"已加载配置 - 按键模式: {appConfig.keyMode}, 游戏模式: {IsGameMode}, 声音: {IsSoundEnabled}");
             }
@@ -279,9 +283,6 @@ namespace WpfApp.ViewModels
                 IsHotkeyEnabled = false;
             };
 
-            // 加载声音设置
-            _isSoundEnabled = _configService.GetSetting("SoundEnabled", true);
-            
             // 在状态改变时播放声音
             PropertyChanged += async (s, e) =>
             {
@@ -302,6 +303,9 @@ namespace WpfApp.ViewModels
 
             // 为现有的按键项添加事件订阅
             SubscribeToKeyItemEvents();
+
+            // 在所有初始化完成后
+            _isInitializing = false;
         }
 
         // 设置当前按键
@@ -535,8 +539,8 @@ namespace WpfApp.ViewModels
                 if (configChanged)
                 {
                     AppConfigService.SaveConfig();
-                    _logger.LogDebug("Config", $"配置已保存 - 开始热键: {_startHotkey}, 停止热键: {_stopHotkey}, " +
-                        $"按键数: {keyList.Count}, 选中按键数: {keySelections.Count(x => x)}, 游戏模式: {IsGameMode}");
+                    _logger.LogDebug("Config", $"配置已保存 - 声音模式: {IsSoundEnabled}, 游戏模式: {IsGameMode}, 开始热键: {_startHotkey}, 停止热键: {_stopHotkey}, " +
+                        $"按键数: {keyList.Count}, 选中按键数: {keySelections.Count(x => x)}");
                 }
             }
             catch (Exception ex)

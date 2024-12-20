@@ -203,7 +203,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError("StopKeySequence", "停止序��异常", ex);
+                _logger.LogError("StopKeySequence", "停止序列异常", ex);
             }
         }
 
