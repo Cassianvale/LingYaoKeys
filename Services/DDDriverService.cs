@@ -95,12 +95,20 @@ namespace WpfApp.Services
                 }
 
                 // 3. 初始化驱动
-                ret = _dd.btn(0);
-                if (ret != 1)
+                if (_dd?.btn != null)
                 {
-                    _logger.LogError("LoadDllFile", "驱动初始化失败");
-                    MessageBox.Show("驱动初始化失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    SendStatusMessage("驱动初始化失败", true);
+                    ret = _dd.btn(0);
+                    if (ret != 1)
+                    {
+                        _logger.LogError("LoadDllFile", "驱动初始化失败");
+                        MessageBox.Show("驱动初始化失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        SendStatusMessage("驱动初始化失败", true);
+                        return false;
+                    }
+                }
+                else
+                {
+                    _logger.LogError("LoadDllFile", "驱动对象或 btn 方法为空");
                     return false;
                 }
 
