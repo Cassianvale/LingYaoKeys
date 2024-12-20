@@ -133,6 +133,8 @@ LingYaoKeys/
 </details>
 
 ## 许可证
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 LingYaoKeys 使用 [GNU General Public License v3.0](LICENSE) 开源许可证。
 
 Copyright © 2024 by Cassianvale.

@@ -15,7 +15,8 @@
     <Version>1.0.2</Version>
     <Product>LingYaoKeys</Product>
     <Authors>慕长秋</Authors>
-    <Copyright>Copyright © 2024</Copyright>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <Copyright>Copyright © 2024 Cassianvale</Copyright>
     <Description>灵曜按键 (LingYao Keys)</Description>
     
     <!-- 发布相关配置 -->
