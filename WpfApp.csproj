@@ -12,7 +12,7 @@
     <ConsoleOutputRedirection>true</ConsoleOutputRedirection>
     
     <!-- 项目信息配置 -->
-    <Version>1.0.3</Version>
+    <Version>1.0.2</Version>
     <Product>灵曜按键</Product>
     <Authors>慕长秋</Authors>
     <Copyright>Copyright © 2024</Copyright>
