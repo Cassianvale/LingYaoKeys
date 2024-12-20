@@ -24,6 +24,7 @@ namespace WpfApp.Models
         public int interval { get; set; } = 10;
         public bool? soundEnabled { get; set; }
         public bool? IsGameMode { get; set; }
+        public int? KeyPressInterval { get; set; }
 
         [JsonIgnore]
         public string Author { get; } = "慕长秋";

@@ -86,10 +86,10 @@ namespace WpfApp.ViewModels
         }
 
         // 添加按键命令
-        public ICommand AddKeyCommand { get; }
+        public ICommand AddKeyCommand { get; private set; }
 
         // 删除选中的按键命令
-        public ICommand DeleteSelectedKeysCommand { get; }
+        public ICommand DeleteSelectedKeysCommand { get; private set; }
 
         // 按键模式选项
         public List<string> KeyModes { get; } = new List<string> 
@@ -111,17 +111,18 @@ namespace WpfApp.ViewModels
             }
         }
 
-        // 热键是否启用
+        // 按键是否启用
         public bool IsHotkeyEnabled
         {
             get => _isHotkeyEnabled;
             set
             {
                 SetProperty(ref _isHotkeyEnabled, value);
-                HotkeyStatus = value ? "热键已启用" : "热键已禁用";
+                HotkeyStatus = value ? "按键已启动" : "按键已停止";
             }
         }
 
+        // 按键状态
         public string HotkeyStatus
         {
             get => _hotkeyStatus;
@@ -158,7 +159,7 @@ namespace WpfApp.ViewModels
             }
         }
 
-        // 是否为游戏模式
+        // 判断是否为游戏模式，为true时按下抬起间隔为5ms，为false时间隔为0ms
         public bool IsGameMode
         {
             get => _isGameMode;
@@ -166,12 +167,16 @@ namespace WpfApp.ViewModels
             {
                 if (SetProperty(ref _isGameMode, value))
                 {
-                    _ddDriver.KeyPressInterval = value ? 5 : 0;
-                    if (!_isInitializing) // 只在非初始化时保存
+                    // 根据游戏模式设置按键间隔
+                    int newInterval = value ? DDDriverService.DEFAULT_KEY_PRESS_INTERVAL : 0;
+                    _ddDriver.KeyPressInterval = newInterval;
+
+                    if (!_isInitializing)
                     {
                         SaveConfig();
                     }
-                    _logger.LogDebug("Config", $"游戏模式已更改为: {value}");
+                    _logger.LogDebug("Config", $"游戏模式已更改为: {value}, 期望按键间隔: {newInterval}ms, " +
+                        $"实际按键间隔: {_ddDriver.KeyPressInterval}ms, 默认按键间隔值: {DDDriverService.DEFAULT_KEY_PRESS_INTERVAL}ms");
                 }
             }
         }
@@ -198,11 +203,30 @@ namespace WpfApp.ViewModels
             _hotkeyService.StartHotkeyPressed += OnStartHotkeyPressed;
             _hotkeyService.StopHotkeyPressed += OnStopHotkeyPressed;
 
-            // 加载 JSON 配置
-            try 
+            // 初始化按键列表
+            _keyList = new ObservableCollection<KeyItem>();
+
+            // 加载配置
+            LoadConfiguration();
+
+            // 初始化命令
+            InitializeCommands();
+
+            // 初始化热键状态
+            InitializeHotkeyStatus();
+
+            // 订阅事件
+            SubscribeToEvents();
+
+            // 在所有初始化完成后
+            _isInitializing = false;
+        }
+
+        private void LoadConfiguration()
+        {
+            try
             {
                 var appConfig = AppConfigService.Config;
-                _keyList = new ObservableCollection<KeyItem>();
                 
                 // 加载按键列表和选中状态
                 if (appConfig.keyList != null)
@@ -216,74 +240,57 @@ namespace WpfApp.ViewModels
                     }
                 }
                 
-                // 加载开始热键
+                // 加载热键配置
                 if (appConfig.startKey.HasValue)
                 {
                     SetStartHotkey(appConfig.startKey.Value, appConfig.startMods);
-                    _logger.LogDebug("Config", $"已加载开始热键: {appConfig.startKey.Value}, 修饰键: {appConfig.startMods}");
                 }
-
-                // 加载停止热键
                 if (appConfig.stopKey.HasValue)
                 {
                     SetStopHotkey(appConfig.stopKey.Value, appConfig.stopMods);
-                    _logger.LogDebug("Config", $"已加载停止热键: {appConfig.stopKey.Value}, 修饰键: {appConfig.stopMods}");
                 }
                 
-                // 设置其他选项
+                // 加载其他设置
                 _ddDriver.SetKeyInterval(appConfig.interval);
                 SelectedKeyMode = appConfig.keyMode;
                 IsSequenceMode = appConfig.keyMode == 0;
-                
-                // 从配置文件加载声音和游戏模式设置
-                if (!appConfig.soundEnabled.HasValue)
-                {
-                    appConfig.soundEnabled = true;
-                    _logger.LogDebug("Config", "声音设置初始化为默认值: true");
-                }
-                IsSoundEnabled = appConfig.soundEnabled.Value;
-
-                if (!appConfig.IsGameMode.HasValue)
-                {
-                    appConfig.IsGameMode = true;
-                    _logger.LogDebug("Config", "游戏模式初始化为默认值: true");
-                }
-                IsGameMode = appConfig.IsGameMode.Value;
-                
-                // 根据游戏模式设置按键间隔
-                _ddDriver.KeyPressInterval = IsGameMode ? 5 : 0;
-                
-                _logger.LogInitialization("ViewModel", $"已加载配置 - 按键模式: {appConfig.keyMode}, 游戏模式: {IsGameMode}, 声音: {IsSoundEnabled}");
+                IsSoundEnabled = appConfig.soundEnabled ?? true;
+                IsGameMode = appConfig.IsGameMode ?? true;
             }
             catch (Exception ex)
             {
                 _logger.LogError("ViewModel", "加载配置失败", ex);
-                // 使用默认值，但保持IsGameMode的当前值
-                IsSequenceMode = true;
-                IsSoundEnabled = true;
-                // 不重置IsGameMode，保持其当前值
-                _ddDriver.KeyPressInterval = IsGameMode ? 5 : 0;
-                _logger.LogDebug("Config", $"加载配置失败，保持游戏模式为: {IsGameMode}");
+                SetDefaultConfiguration();
             }
+        }
 
+        private void SetDefaultConfiguration()
+        {
+            IsSequenceMode = true;
+            IsSoundEnabled = true;
+            _ddDriver.KeyPressInterval = IsGameMode ? DDDriverService.DEFAULT_KEY_PRESS_INTERVAL : 0;
+            _logger.LogDebug("Config", $"使用默认配置，游戏模式: {IsGameMode}");
+        }
+
+        private void InitializeCommands()
+        {
             AddKeyCommand = new RelayCommand(AddKey, CanAddKey);
             DeleteSelectedKeysCommand = new RelayCommand(DeleteSelectedKeys);
+        }
 
+        private void InitializeHotkeyStatus()
+        {
             IsHotkeyEnabled = false;
-            HotkeyStatus = "热键已禁用";
+            HotkeyStatus = "初始化完成";
+        }
 
-            // 订阅热键服务的事件
-            _hotkeyService.SequenceModeStarted += () =>
-            {
-                IsHotkeyEnabled = true;
-            };
+        private void SubscribeToEvents()
+        {
+            // 订阅热键服务事件
+            _hotkeyService.SequenceModeStarted += () => IsHotkeyEnabled = true;
+            _hotkeyService.SequenceModeStopped += () => IsHotkeyEnabled = false;
 
-            _hotkeyService.SequenceModeStopped += () =>
-            {
-                IsHotkeyEnabled = false;
-            };
-
-            // 在状态改变时播放声音
+            // 订阅状态变化事件
             PropertyChanged += async (s, e) =>
             {
                 if (e.PropertyName == nameof(IsHotkeyEnabled) && IsSoundEnabled)
@@ -295,17 +302,11 @@ namespace WpfApp.ViewModels
                 }
             };
 
-            // 订阅DDDriverService的KeyInterval变化
-            _ddDriver.KeyIntervalChanged += (s, interval) =>
-            {
-                OnPropertyChanged(nameof(KeyInterval));
-            };
+            // 订阅按键间隔变化事件
+            _ddDriver.KeyIntervalChanged += (s, interval) => OnPropertyChanged(nameof(KeyInterval));
 
-            // 为现有的按键项添加事件订阅
+            // 订阅按键项事件
             SubscribeToKeyItemEvents();
-
-            // 在所有初始化完成后
-            _isInitializing = false;
         }
 
         // 设置当前按键

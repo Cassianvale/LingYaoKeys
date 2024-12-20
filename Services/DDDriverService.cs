@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Linq;
 using WpfApp.Services.KeyModes;
+using WpfApp.Services;
 
 /// <summary>
 /// DD虚拟键盘驱动服务类
@@ -50,9 +51,10 @@ namespace WpfApp.Services
         public event EventHandler<int>? KeyIntervalChanged;
         public event EventHandler<StatusMessageEventArgs>? StatusMessageChanged;
         private readonly LogManager _logger = LogManager.Instance;
-        public const int DEFAULT_KEY_PRESS_INTERVAL = 0; // 默认按键按下时长(毫秒)
-        private int _keyPressInterval = DEFAULT_KEY_PRESS_INTERVAL;
+        public const int DEFAULT_KEY_PRESS_INTERVAL = 5; // 默认按键按下时长(毫秒)
+        private int _keyPressInterval;
         public event EventHandler<int>? KeyPressIntervalChanged;
+        private const int MIN_KEY_PRESS_INTERVAL = 0;  // 按键按下时长为0
 
         // DD驱动服务构造函数
         public DDDriverService()
@@ -61,6 +63,9 @@ namespace WpfApp.Services
             _isInitialized = false;
             _isEnabled = false;
             _taskManager = new TaskManager(MAX_CONCURRENT_TASKS);
+            
+            // 初始化时从配置加载，如果没有配置则使用默认值
+            _keyPressInterval = AppConfigService.Config.KeyPressInterval ?? DEFAULT_KEY_PRESS_INTERVAL;
         }
 
         // 添加公共属性用于检查初始化状态
@@ -675,17 +680,28 @@ namespace WpfApp.Services
             get => _keyPressInterval;
             set
             {
-                int validValue = Math.Max(MIN_KEY_INTERVAL, value);
+                int validValue = Math.Max(MIN_KEY_PRESS_INTERVAL, value);
                 if (_keyPressInterval != validValue)
                 {
                     _keyPressInterval = validValue;
                     KeyPressIntervalChanged?.Invoke(this, validValue);
-                    _logger.LogSequenceEvent("KeyPressInterval", $"按键按下时长已更新为: {validValue}ms");
+                    _logger.LogSequenceEvent("KeyPressInterval", 
+                        $"按键按下时长已更新为: {validValue}ms (默认值: {DEFAULT_KEY_PRESS_INTERVAL}ms)");
+                    
+                    // 保存到配置
+                    AppConfigService.Config.KeyPressInterval = validValue;
+                    AppConfigService.SaveConfig();
                     
                     // 如果有当前模式，同步更新
                     _currentKeyMode?.SetKeyPressInterval(validValue);
                 }
             }
+        }
+
+        // 添加重置方法，重置按键按下时长
+        public void ResetKeyPressInterval()
+        {
+            KeyPressInterval = DEFAULT_KEY_PRESS_INTERVAL;
         }
     }
 

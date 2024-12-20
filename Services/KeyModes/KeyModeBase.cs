@@ -13,7 +13,7 @@ namespace WpfApp.Services.KeyModes
         protected bool _isRunning;
         protected CancellationTokenSource? _cts;
         public readonly KeyModeMetrics Metrics;
-        protected int KeyPressInterval { get; private set; } = DDDriverService.DEFAULT_KEY_PRESS_INTERVAL;
+        protected int KeyPressInterval => _driverService.KeyPressInterval;
 
         protected KeyModeBase(DDDriverService driverService)
         {
@@ -78,7 +78,17 @@ namespace WpfApp.Services.KeyModes
         // 设置按键 [按下->松开] 的时间间隔
         public virtual void SetKeyPressInterval(int interval)
         {
-            KeyPressInterval = interval;
+            _logger.LogDebug("KeyMode", $"按键按下时长更新: {interval}ms");
+        }
+
+        protected virtual async Task PressKeyAsync(DDKeyCode key)
+        {
+            await Task.Run(() =>
+            {
+                _driverService.SendKey(key, true);
+                Thread.Sleep(_driverService.KeyPressInterval);
+                _driverService.SendKey(key, false);
+            });
         }
     }
 } 

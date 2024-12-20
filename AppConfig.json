@@ -9,7 +9,7 @@
     }
   },
   "Logging": {
-    "Enabled": true,
+    "Enabled": false,
     "LogLevel": "Debug",
     "FileSettings": {
       "Directory": "Logs",
@@ -25,14 +25,19 @@
       "Config": true
     }
   },
-  "startKey": null,
-  "startMods": "None",
-  "stopKey": null,
-  "stopMods": "None",
-  "keyList": [],
-  "keySelections": [],
+  "startKey": 510,
+  "startMods": 0,
+  "stopKey": 510,
+  "stopMods": 0,
+  "keyList": [
+    405
+  ],
+  "keySelections": [
+    true
+  ],
   "keyMode": 0,
-  "interval": 10,
-  "soundEnabled": null,
-  "IsGameMode": null
+  "interval": 1,
+  "soundEnabled": true,
+  "IsGameMode": true,
+  "KeyPressInterval": 5
 }
