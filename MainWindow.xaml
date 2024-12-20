@@ -42,10 +42,26 @@
                Content="{Binding CurrentPage}" />
 
         <!-- 状态栏 -->
-        <StatusBar Grid.Row="2" Height="24">
+        <StatusBar Grid.Row="2">
+            <StatusBar.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                    </Grid>
+                </ItemsPanelTemplate>
+            </StatusBar.ItemsPanel>
+            
+            <!-- 现有的状态栏项 -->
             <StatusBarItem>
-                <TextBlock Text="{Binding StatusMessage}" 
-                           Foreground="{Binding StatusMessageColor}"/>
+                <TextBlock Text="{Binding StatusMessage}"/>
+            </StatusBarItem>
+            
+            <!-- 新增作者和版本号显示 -->
+            <StatusBarItem Grid.Column="1">
+                <TextBlock Text="{Binding AuthorInfo}" Margin="0,0,10,0"/>
             </StatusBarItem>
         </StatusBar>
     </Grid>

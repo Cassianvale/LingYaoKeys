@@ -127,10 +127,20 @@
                     Content="删除勾选" />
             </DockPanel>
 
-            <Button Style="{StaticResource RoundedShadowButtonLarge}"
-                    Margin="0,0,0,10"
-                    FontWeight="Regular"
-                    Content="一键宏查询"/>
+            <!-- 状态显示 -->
+            <Border 
+                Margin="0,5,0,10" 
+                Padding="4,4" 
+                CornerRadius="8"
+                Height="30"
+                Background="{Binding IsHotkeyEnabled, Converter={StaticResource BoolToColorConverter}}">
+                <TextBlock 
+                    Text="{Binding HotkeyStatus}" 
+                    Foreground="White"
+                    FontWeight="Medium"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"/>
+            </Border>
 
             <!-- 按键设置区域 -->
             <DockPanel Margin="0,0,0,10">
@@ -199,27 +209,18 @@
                                 Converter={StaticResource IntToStringConverter}}"/>
             </DockPanel>
 
-            <DockPanel>
-                <CheckBox Content="声音提示" 
-                          DockPanel.Dock="Left" 
+            <DockPanel Margin="0,0,0,0">
+                <CheckBox Style="{StaticResource ModernSwitch}"
+                          Content="声音提示" 
+                          DockPanel.Dock="Left"
+                          Padding="0,0,0,0"
                           IsChecked="{Binding IsSoundEnabled, Mode=TwoWay}"/>
                 <Button Style="{StaticResource RoundedShadowButtonSmall}"
-                    Width="75" 
+                    Height="30"
+                    Width="60" 
                     HorizontalAlignment="Right"
                     Content="其他设置" />
             </DockPanel>
-
-            <!-- 添加状态显示 -->
-            <Border 
-                Margin="0,10,0,10" 
-                Padding="8,4" 
-                CornerRadius="4"
-                Background="{Binding IsHotkeyEnabled, Converter={StaticResource BoolToColorConverter}}">
-                <TextBlock 
-                    Text="{Binding HotkeyStatus}" 
-                    Foreground="White"
-                    FontWeight="Medium"/>
-            </Border>
         </StackPanel>
     </Grid>
 </Page> 
