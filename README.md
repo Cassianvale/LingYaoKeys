@@ -1,5 +1,5 @@
-# jx3wpftools
-✨ 基于 WPF 开发的 JX3 按键工具✨  
+# LingYaoKeys (灵曜按键)
+✨ 基于WPF+DD驱动开发的按键工具✨  
 
 ## 特别鸣谢
  该项目是本人利用工作之余首次尝试使用C#和WPF技术栈以及Cursor AI进行开发的实践项目。  
@@ -8,17 +8,17 @@
  
 ## 直接下载
 
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/Cassianvale/jx3wpftools)](https://github.com/Cassianvale/jx3wpftools/releases/latest)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/Cassianvale/LingYaoKeys)](https://github.com/Cassianvale/LingYaoKeys/releases/latest)
 
 您可以从以下位置下载最新版本：
 
-- [最新版本下载](https://github.com/Cassianvale/jx3wpftools/releases/latest)
-- [查看所有版本](https://github.com/Cassianvale/jx3wpftools/releases)
+- [最新版本下载](https://github.com/Cassianvale/LingYaoKeys/releases/latest)
+- [查看所有版本](https://github.com/Cassianvale/LingYaoKeys/releases)
 
 > 注意：请始终从 GitHub Releases 页面下载最新版本，以确保获得最新的功能和安全更新。
 
 ## 项目展示  
-![image](https://github.com/Cassianvale/jx3wpftools/raw/main/Resource/img/home.png)  
+![image](https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/home.png)  
 
 ## 开发相关
 
@@ -32,7 +32,7 @@
 
 ### 项目结构展示
 ```
-jx3wpftools/  
+LingYaoKeys/  
 ├── Commands/   # MVVM 命令  
 │   └── RelayCommand.cs         # MVVM 命令类实现  
 │  
