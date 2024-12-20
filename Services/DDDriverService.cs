@@ -37,23 +37,25 @@ namespace WpfApp.Services
         private CDD _dd;
         private bool _isInitialized;
         private bool _isEnabled;
-        private List<DDKeyCode> _keyList = new List<DDKeyCode>();
         private bool _isHoldMode;
-        private const int MIN_KEY_INTERVAL = 1;
-        private int _keyInterval = 5;
+        private KeyModeBase? _currentKeyMode;
+        private List<DDKeyCode> _keyList = new List<DDKeyCode>();
         private readonly object _stateLock = new object();
         private readonly Stopwatch _sequenceStopwatch = new Stopwatch();
-        private KeyModeBase? _currentKeyMode;
-        private readonly TaskManager _taskManager;
-        private const int MAX_CONCURRENT_TASKS = 1;
+        private readonly LogManager _logger = LogManager.Instance;
         public event EventHandler<bool>? InitializationStatusChanged;
         public event EventHandler<bool>? EnableStatusChanged;
         public event EventHandler<int>? KeyIntervalChanged;
         public event EventHandler<StatusMessageEventArgs>? StatusMessageChanged;
-        private readonly LogManager _logger = LogManager.Instance;
-        public const int DEFAULT_KEY_PRESS_INTERVAL = 5; // 默认按键按下时长(毫秒)
-        private int _keyPressInterval;
         public event EventHandler<int>? KeyPressIntervalChanged;
+
+        private readonly TaskManager _taskManager;
+        private const int MAX_CONCURRENT_TASKS = 1; // 最大并发任务数
+        
+        private const int MIN_KEY_INTERVAL = 1;  // 默认最小按键间隔
+        private int _keyInterval = 5;   // 默认按键间隔
+        private int _keyPressInterval;   // 按键按下时长
+        public const int DEFAULT_KEY_PRESS_INTERVAL = 5; // 默认按键按下时长(毫秒)
         private const int MIN_KEY_PRESS_INTERVAL = 0;  // 按键按下时长为0
 
         // DD驱动服务构造函数
