@@ -285,6 +285,9 @@ namespace WpfApp.ViewModels
             {
                 OnPropertyChanged(nameof(KeyInterval));
             };
+
+            // 为现有的按键项添加事件订阅
+            SubscribeToKeyItemEvents();
         }
 
         // 设置当前按键
@@ -416,7 +419,10 @@ namespace WpfApp.ViewModels
                 return;
             }
 
-            KeyList.Add(new KeyItem(_currentKey.Value));
+            var newKeyItem = new KeyItem(_currentKey.Value);
+            // 订阅选中状态变化事件
+            newKeyItem.SelectionChanged += (s, isSelected) => SaveConfig();
+            KeyList.Add(newKeyItem);
             _mainViewModel.UpdateStatusMessage("按键添加成功");
         }
 
@@ -640,6 +646,28 @@ namespace WpfApp.ViewModels
             {
                 _logger.LogError("KeyMapping", "检查热键冲突时发生异常", ex);
                 return false;
+            }
+        }
+
+        // 为现有的KeyList项添加事件订阅
+        private void SubscribeToKeyItemEvents()
+        {
+            foreach (var keyItem in KeyList)
+            {
+                keyItem.SelectionChanged += (s, isSelected) => SaveConfig();
+            }
+        }
+
+        // 在加载配置时也需要添加事件订阅
+        private void LoadKeyList(List<DDKeyCode> keyList, List<bool> keySelections)
+        {
+            KeyList.Clear();
+            for (int i = 0; i < keyList.Count; i++)
+            {
+                var keyItem = new KeyItem(keyList[i]);
+                keyItem.IsSelected = i < keySelections.Count ? keySelections[i] : true;
+                keyItem.SelectionChanged += (s, isSelected) => SaveConfig();
+                KeyList.Add(keyItem);
             }
         }
     }

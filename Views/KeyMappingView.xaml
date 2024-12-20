@@ -5,7 +5,10 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:services="clr-namespace:WpfApp.Services"
       xmlns:vm="clr-namespace:WpfApp.ViewModels"
-      mc:Ignorable="d">
+      xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
+      xmlns:behaviors="clr-namespace:WpfApp.Behaviors"
+      mc:Ignorable="d"
+      PreviewMouseDown="Page_PreviewMouseDown">
     <!-- 添加 PreviewMouseDown 事件处理 -->
     <Grid Margin="10">
         <Grid.ColumnDefinitions>
@@ -31,10 +34,31 @@
                     
             <ListBox x:Name="KeysList" 
                      BorderThickness="1"
-                     ItemsSource="{Binding KeyList}">
+                     ItemsSource="{Binding KeyList}"
+                     Background="White"
+                     BorderBrush="#BDBDBD"
+                     PreviewMouseDown="KeysList_PreviewMouseDown">
+                <b:Interaction.Behaviors>
+                    <behaviors:ListBoxDragDropBehavior />
+                </b:Interaction.Behaviors>
+                <ListBox.Template>
+                    <ControlTemplate TargetType="ListBox">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ScrollViewer Padding="1" 
+                                        Focusable="False"
+                                        VerticalScrollBarVisibility="Auto">
+                                <ItemsPresenter />
+                            </ScrollViewer>
+                        </Border>
+                    </ControlTemplate>
+                </ListBox.Template>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <CheckBox Content="{Binding DisplayName}"
+                        <CheckBox Style="{StaticResource ModernSwitch}"
+                                  Content="{Binding DisplayName}"
                                   IsChecked="{Binding IsSelected}"
                                   Height="30"
                                   VerticalContentAlignment="Center"/>
@@ -44,6 +68,40 @@
                     <Style TargetType="ListBoxItem">
                         <Setter Property="Height" Value="32"/>
                         <Setter Property="Padding" Value="5,0"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border x:Name="Bd"
+                                            Background="{TemplateBinding Background}"
+                                            BorderThickness="0"
+                                            Padding="{TemplateBinding Padding}"
+                                            SnapsToDevicePixels="true">
+                                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                        SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="true">
+                                            <Setter Property="Background" Value="#F5F9FF"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="true">
+                                            <Setter Property="Background" Value="#E3F2FD"/>
+                                        </Trigger>
+                                        <Trigger Property="behaviors:DragDropProperties.IsDragTarget" Value="true">
+                                            <Setter Property="Background" Value="#E3F2FD"/>
+                                        </Trigger>
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="IsSelected" Value="true"/>
+                                                <Condition Property="Selector.IsSelectionActive" Value="false"/>
+                                            </MultiTrigger.Conditions>
+                                            <Setter Property="Background" Value="#E3F2FD"/>
+                                        </MultiTrigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
                     </Style>
                 </ListBox.ItemContainerStyle>
             </ListBox>

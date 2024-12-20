@@ -9,6 +9,7 @@ using WpfApp.Services;
 using System.Windows.Media;
 using System.Windows.Controls.Primitives;
 using WpfApp.Styles;
+using WpfApp.Behaviors;
 
 // 提供按键映射视图
 namespace WpfApp.Views
@@ -621,6 +622,85 @@ namespace WpfApp.Views
                 _hotkeyService.IsInputFocused = true;
                 _logger.LogDebug("KeyMappingView", "数字输入框获得焦点");
             }
+        }
+
+        private void KeysList_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is ListBox listBox)
+            {
+                // 检查点击是否在ListBox的空白区域
+                HitTestResult hitTest = VisualTreeHelper.HitTest(listBox, e.GetPosition(listBox));
+                if (hitTest == null || 
+                    (hitTest.VisualHit != null && 
+                     FindParent<ListBoxItem>(hitTest.VisualHit as DependencyObject) == null))
+                {
+                    // 点击在ListBox的空白区域，清除选中项和高亮
+                    ClearListBoxSelection(listBox);
+                    e.Handled = true;
+                }
+            }
+        }
+
+        private static T? FindParent<T>(DependencyObject? child) where T : DependencyObject
+        {
+            if (child == null) return null;
+
+            DependencyObject parent = VisualTreeHelper.GetParent(child);
+            while (parent != null && !(parent is T))
+            {
+                parent = VisualTreeHelper.GetParent(parent);
+            }
+
+            return parent as T;
+        }
+
+        private void Page_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // 检查点击是否在ListBox区域内
+            if (e.OriginalSource is DependencyObject depObj)
+            {
+                var listBox = FindParent<ListBox>(depObj);
+                if (listBox == null) // 点击在ListBox外部
+                {
+                    // 查找页面中的ListBox
+                    var pageListBox = FindChild<ListBox>((sender as Page)!);
+                    if (pageListBox != null)
+                    {
+                        ClearListBoxSelection(pageListBox);
+                    }
+                }
+            }
+        }
+
+        // 添加一个通用的清除方法
+        private void ClearListBoxSelection(ListBox listBox)
+        {
+            listBox.SelectedItem = null;
+
+            // 清除所有项的拖拽高亮显示
+            foreach (var item in listBox.Items)
+            {
+                if (listBox.ItemContainerGenerator.ContainerFromItem(item) is ListBoxItem listBoxItem)
+                {
+                    DragDropProperties.SetIsDragTarget(listBoxItem, false);
+                }
+            }
+        }
+
+        // 添加FindChild辅助方法
+        private static T? FindChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T found)
+                    return found;
+                
+                var result = FindChild<T>(child);
+                if (result != null)
+                    return result;
+            }
+            return null;
         }
     }
 } 
