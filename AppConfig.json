@@ -1,9 +1,4 @@
 {
-  "AppInfo": {
-    "Title": "JX3 WPF Tools",
-    "Version": "1.0.1",
-    "Copyright": "Copyright © 2024"
-  },
   "UI": {
     "MainWindow": {
       "DefaultWidth": 500,

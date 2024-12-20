@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using Newtonsoft.Json;
 
 namespace WpfApp.Models
@@ -8,14 +9,26 @@ namespace WpfApp.Models
         public AppInfo AppInfo { get; set; } = new AppInfo();
         public UIConfig UI { get; set; } = new UIConfig();
         public LoggingConfig Logging { get; set; } = new LoggingConfig();
+        
+        [JsonIgnore]
+        public string Author { get; } = "慕长秋";
     }
 
     public class AppInfo
     {
-        public string Name { get; set; } = "jx3wpf";
-        public string Title { get; set; } = "剑网3按键助手";
-        public string Version { get; set; } = "1.0.0";
-        public string Copyright { get; set; } = "© 2024";
+        private static readonly Assembly Assembly = Assembly.GetExecutingAssembly();
+        
+        public string Title { get; set; } = "灵曜按键";
+        
+        [JsonIgnore]
+        public string Version 
+        { 
+            get => Assembly.GetName().Version?.ToString() ?? "1.0.0";
+            set { /* 允许从配置文件加载但忽略 */ } 
+        }
+        
+        [JsonIgnore]
+        public string Copyright { get; } = "Copyright © 2024";
     }
 
     public class UIConfig

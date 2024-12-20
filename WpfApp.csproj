@@ -10,9 +10,13 @@
     <Platforms>x86;x64</Platforms>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <ConsoleOutputRedirection>true</ConsoleOutputRedirection>
-    <Version>1.0.1</Version>
-    <Product>JX3 WPF Tools</Product>
+    
+    <!-- 项目信息配置 -->
+    <Version>1.0.3</Version>
+    <Product>灵曜按键</Product>
+    <Authors>慕长秋</Authors>
     <Copyright>Copyright © 2024</Copyright>
+    <Description>LingYao Keys</Description>
     
     <!-- 发布相关配置 -->
     <PublishSingleFile>true</PublishSingleFile>

@@ -9,12 +9,12 @@
 *.user
 *.userosscache
 *.sln.docstates
-*.bat
 *.v11
 *.v12
 .sonarqube/
 /CC_SMSC.v11.suo
 output/
+logs/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

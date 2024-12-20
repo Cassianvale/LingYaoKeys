@@ -44,6 +44,7 @@ namespace WpfApp.ViewModels
         
         public string WindowTitle => Config.AppInfo.Title;
         public string VersionInfo => $"v{Config.AppInfo.Version}";
+        public string AuthorInfo => $"By: {Config.Author} | {VersionInfo}";
 
         public Page? CurrentPage
         {
