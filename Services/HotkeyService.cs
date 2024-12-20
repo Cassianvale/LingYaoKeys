@@ -123,6 +123,13 @@ namespace WpfApp.Services
         private IntPtr _mouseHookHandle;
         private LowLevelMouseProc? _mouseProc;
 
+        // 修改防抖动相关字段
+        private const int MIN_TOGGLE_INTERVAL = 300; // 启动/停止切换的最小间隔(毫秒)
+        private const int KEY_RELEASE_TIMEOUT = 50;  // 按键释放检测超时(毫秒)
+        private DateTime _lastToggleTime = DateTime.MinValue;
+        private DateTime _lastKeyDownTime = DateTime.MinValue;
+        private bool _isKeyHeld = false;
+
         // 构造函数
         public HotkeyService(Window mainWindow, DDDriverService ddDriverService)
         {
@@ -637,12 +644,41 @@ namespace WpfApp.Services
         {
             try
             {
+                var now = DateTime.Now;
+
+                // 检查是否是按键按下状态
+                if (!_isKeyHeld)
+                {
+                    _lastKeyDownTime = now;
+                    _isKeyHeld = true;
+                    
+                    // 检查是否满足切换间隔要求
+                    var timeSinceLastToggle = (now - _lastToggleTime).TotalMilliseconds;
+                    if (timeSinceLastToggle < MIN_TOGGLE_INTERVAL)
+                    {
+                        _logger.LogDebug("HotkeyService", $"忽略过快的切换，间隔: {timeSinceLastToggle}ms");
+                        return;
+                    }
+                }
+                else
+                {
+                    // 检查按键是否持续按下
+                    var keyHoldTime = (now - _lastKeyDownTime).TotalMilliseconds;
+                    if (keyHoldTime < KEY_RELEASE_TIMEOUT)
+                    {
+                        _logger.LogDebug("HotkeyService", "按键持续按下中，忽略重复触发");
+                        return;
+                    }
+                    _isKeyHeld = false;
+                }
+
                 _logger.LogDebug("HotkeyService", 
                     $"收到鼠标按键消息: {buttonCode}, " +
                     $"开始热键: {_pendingStartKey}, " +
                     $"停止热键: {_pendingStopKey}, " +
                     $"当前状态: {(_isStarted ? "已启动" : "未启动")}, " +
-                    $"序列运行: {_isSequenceRunning}");
+                    $"序列运行: {_isSequenceRunning}, " +
+                    $"按键状态: {(_isKeyHeld ? "按下" : "释放")}");
 
                 // 检查是否匹配开始热键
                 if (_startHotkeyRegistered && _pendingStartKey == buttonCode)
@@ -652,11 +688,13 @@ namespace WpfApp.Services
                         _logger.LogDebug("HotkeyService", "触发鼠标按键开始事件");
                         StartHotkeyPressed?.Invoke();
                         _isStarted = true;
+                        _lastToggleTime = now;
                     }
                     else if (_currentMode == HotkeyMode.Same)
                     {
                         _logger.LogDebug("HotkeyService", "相同模式下触发鼠标按键停止事件");
                         StopKeyMapping();
+                        _lastToggleTime = now;
                     }
                 }
                 // 检查是否匹配停止热键
@@ -709,13 +747,42 @@ namespace WpfApp.Services
                    keyCode == DDKeyCode.XBUTTON2;
         }
 
-        // 添加 HandleHotkeyMessage 方法
+        // 处理热键消息
         private void HandleHotkeyMessage(int id)
         {
             try 
             {
+                var now = DateTime.Now;
+                
+                // 检查是否是按键按下状态
+                if (!_isKeyHeld)
+                {
+                    _lastKeyDownTime = now;
+                    _isKeyHeld = true;
+                    
+                    // 检查是否满足切换间隔要求
+                    var timeSinceLastToggle = (now - _lastToggleTime).TotalMilliseconds;
+                    if (timeSinceLastToggle < MIN_TOGGLE_INTERVAL)
+                    {
+                        _logger.LogDebug("HotkeyService", $"忽略过快的切换，间隔: {timeSinceLastToggle}ms");
+                        return;
+                    }
+                }
+                else
+                {
+                    // 检查按键是否持续按下
+                    var keyHoldTime = (now - _lastKeyDownTime).TotalMilliseconds;
+                    if (keyHoldTime < KEY_RELEASE_TIMEOUT)
+                    {
+                        _logger.LogDebug("HotkeyService", "按键持续按下中，忽略重复触发");
+                        return;
+                    }
+                    _isKeyHeld = false;
+                }
+
                 _logger.LogDebug("HotkeyService", 
-                    $"收到热键消息: ID={id}, 当前模式: {_currentMode}, 已启动: {_isStarted}");
+                    $"收到热键消息: ID={id}, 当前模式: {_currentMode}, " +
+                    $"已启动: {_isStarted}, 按键状态: {(_isKeyHeld ? "按下" : "释放")}");
 
                 // 相同热键模式处理
                 if (_currentMode == HotkeyMode.Same && id == START_HOTKEY_ID)
@@ -725,6 +792,7 @@ namespace WpfApp.Services
                         _logger.LogDebug("HotkeyService", "相同热键模式 - 触发启动");
                         StartHotkeyPressed?.Invoke();
                         _isStarted = true;
+                        _lastToggleTime = now;
                     }
                     else if (_isStarted || _isSequenceRunning)
                     {
@@ -732,6 +800,7 @@ namespace WpfApp.Services
                         StopSequence();
                         StopHotkeyPressed?.Invoke();
                         _isStarted = false;
+                        _lastToggleTime = now;
                     }
                     return;
                 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 
+// 按键模式性能debug记录
 namespace WpfApp.Services.KeyModes
 {
     public class KeyModeMetrics

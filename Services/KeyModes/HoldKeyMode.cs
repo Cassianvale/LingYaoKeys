@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-
+// 按键按压模式
 namespace WpfApp.Services.KeyModes
 {
     public class HoldKeyMode : KeyModeBase

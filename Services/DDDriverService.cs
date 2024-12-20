@@ -426,7 +426,10 @@ namespace WpfApp.Services
             }
         }
 
-        // 模拟按键按下和释放的完整过程
+        // 移除通用的按键防抖
+        private readonly Dictionary<DDKeyCode, DateTime> _lastKeyPressTimes = new();
+        
+        // 优化按键检测方法
         public bool SimulateKeyPress(DDKeyCode keyCode, int? customDelay = null, int? customPressInterval = null)
         {
             if (!_isInitialized) return false;
@@ -437,22 +440,10 @@ namespace WpfApp.Services
                 int delayMs = customDelay ?? _keyInterval;
                 int pressIntervalMs = customPressInterval ?? _keyPressInterval;
                 
-                // 按下按键
-                if (!SendKey(keyCode, true))
-                {
-                    return false;
-                }
-
-                // 按键保持时间
+                // 执行按键操作
+                if (!SendKey(keyCode, true)) return false;
                 Thread.Sleep(pressIntervalMs);
-
-                // 释放按键
-                if (!SendKey(keyCode, false))
-                {
-                    return false;
-                }
-
-                // 按键之间的间隔
+                if (!SendKey(keyCode, false)) return false;
                 Thread.Sleep(delayMs);
                 
                 return true;

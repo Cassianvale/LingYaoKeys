@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
+// 按键序列模式
 namespace WpfApp.Services.KeyModes
 {
     public class SequenceKeyMode : KeyModeBase

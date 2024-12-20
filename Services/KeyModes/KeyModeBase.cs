@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
+// 按键模式基类
 namespace WpfApp.Services.KeyModes
 {
     public abstract class KeyModeBase
