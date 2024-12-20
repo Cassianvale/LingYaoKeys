@@ -12,11 +12,11 @@
     <ConsoleOutputRedirection>true</ConsoleOutputRedirection>
     
     <!-- 项目信息配置 -->
-    <Version>1.0.3</Version>
-    <Product>灵曜按键</Product>
+    <Version>1.0.2</Version>
+    <Product>LingYaoKeys</Product>
     <Authors>慕长秋</Authors>
     <Copyright>Copyright © 2024</Copyright>
-    <Description>LingYao Keys</Description>
+    <Description>灵曜按键 (LingYao Keys)</Description>
     
     <!-- 发布相关配置 -->
     <PublishSingleFile>true</PublishSingleFile>
