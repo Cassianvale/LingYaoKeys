@@ -17,6 +17,13 @@
 
 > 注意：请始终从 GitHub Releases 页面下载最新版本，以确保获得最新的功能和安全更新。
 
+## 主要功能  
+- [x] 支持全局热键，**侧键触发**  
+- [x] 支持按键列表拖拽排序  
+- [x] 支持开启/停止语音提醒  
+- [x] 支持顺序模式触发按键
+- [ ] 支持按压模式触发按键
+
 ## 项目展示  
 ![image](https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/home.png)  
 
