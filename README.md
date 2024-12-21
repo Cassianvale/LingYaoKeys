@@ -9,6 +9,7 @@
     <img alt="platform" src="https://img.shields.io/badge/platform-Windows-blueviolet">
     <img alt="commit" src="https://img.shields.io/github/commit-activity/m/Cassianvale/LingYaoKeys?color=blue">
     <img alt="release" src="https://img.shields.io/github/v/release/Cassianvale/LingYaoKeys?include_prereleases&style=flat">
+    <br>
     <img alt="last-commit" src="https://img.shields.io/github/last-commit/Cassianvale/LingYaoKeys">
     <img alt="issues" src="https://img.shields.io/github/issues/Cassianvale/LingYaoKeys">
     <img alt="license" src="https://img.shields.io/github/license/Cassianvale/LingYaoKeys">
