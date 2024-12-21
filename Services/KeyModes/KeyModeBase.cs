@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 // 按键模式基类
 namespace WpfApp.Services.KeyModes
 {
-    public abstract class KeyModeBase
+    public abstract class KeyModeBase : IDisposable
     {
         protected readonly DDDriverService _driverService;
         protected readonly LogManager _logger;
@@ -90,6 +90,20 @@ namespace WpfApp.Services.KeyModes
                 Thread.Sleep(_driverService.KeyPressInterval);
                 _driverService.SendKey(key, false);
             });
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _cts?.Dispose();
+            }
         }
     }
 } 
