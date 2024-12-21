@@ -490,18 +490,38 @@ namespace WpfApp.Services
             get => _currentKeyMode is SequenceKeyMode;
             set
             {
+                bool wasSequenceMode = IsSequenceMode;
+                if (wasSequenceMode == value) return;
+
+                _logger.LogDebug("DDDriverService", $"切换模式: {(value ? "顺序模式" : "按压模式")}");
+
+                // 停止当前运行的序列
+                IsEnabled = false;
+
                 if (value)
                 {
+                    // 切换到顺序模式
                     _currentKeyMode = new SequenceKeyMode(this);
+                    _isHoldMode = false;
                 }
-                else if (_isHoldMode)
+                else
                 {
+                    // 切换到按压模式
                     _currentKeyMode = new HoldKeyMode(this);
+                    _isHoldMode = true;
                 }
+
+                // 设置按键列表和间隔
                 _currentKeyMode?.SetKeyList(_keyList);
                 _currentKeyMode?.SetKeyInterval(_keyInterval);
+
+                // 触发模式切换事件
+                ModeSwitched?.Invoke(this, value);
             }
         }
+
+        // 添加模式切换事件
+        public event EventHandler<bool>? ModeSwitched;
 
         // 设置按键列表
         public void SetKeyList(List<DDKeyCode> keyList)
@@ -523,13 +543,24 @@ namespace WpfApp.Services
             {
                 if (isHold)
                 {
-                    _currentKeyMode = new HoldKeyMode(this);
-                    _currentKeyMode.SetKeyList(_keyList);
-                    _currentKeyMode.SetKeyInterval(_keyInterval);
+                    if (_currentKeyMode is HoldKeyMode holdMode)
+                    {
+                        holdMode.HandleKeyPress();
+                    }
+                    else
+                    {
+                        _currentKeyMode = new HoldKeyMode(this);
+                        _currentKeyMode.SetKeyList(_keyList);
+                        _currentKeyMode.SetKeyInterval(_keyInterval);
+                    }
                     IsEnabled = true;
                 }
                 else
                 {
+                    if (_currentKeyMode is HoldKeyMode holdMode)
+                    {
+                        holdMode.HandleKeyRelease();
+                    }
                     IsEnabled = false;
                 }
             }

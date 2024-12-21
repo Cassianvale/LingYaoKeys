@@ -9,6 +9,8 @@ namespace WpfApp.Services.KeyModes
     {
         private volatile bool _isKeyHeld;
         private readonly SemaphoreSlim _executionLock = new SemaphoreSlim(1, 1);
+        private readonly object _stateLock = new object();
+        private bool _isExecuting;
 
         public HoldKeyMode(DDDriverService driverService) : base(driverService)
         {
@@ -16,12 +18,20 @@ namespace WpfApp.Services.KeyModes
 
         public override async Task StartAsync()
         {
-            if (_keyList.Count == 0) return;
-
-            // 确保同时只有一个执行实例
-            if (!await _executionLock.WaitAsync(0))
+            // 防止重复启动
+            lock (_stateLock)
             {
-                _logger.LogWarning("HoldKeyMode", "已有按键序列在执行中");
+                if (_isExecuting)
+                {
+                    _logger.LogWarning("HoldKeyMode", "已有按键序列在执行中");
+                    return;
+                }
+                _isExecuting = true;
+            }
+
+            if (_keyList.Count == 0)
+            {
+                _isExecuting = false;
                 return;
             }
 
@@ -52,13 +62,6 @@ namespace WpfApp.Services.KeyModes
                             }
 
                             Metrics.IncrementKeyCount();
-                            
-                            // 检查是否需要继续执行
-                            if (!_isKeyHeld)
-                            {
-                                _logger.LogDebug("HoldKeyMode", "检测到按键释放，停止序列");
-                                break;
-                            }
                         }
                         catch (Exception ex)
                         {
@@ -82,17 +85,70 @@ namespace WpfApp.Services.KeyModes
             }
             finally
             {
-                _isKeyHeld = false;
-                _isRunning = false;
-                LogModeEnd();
-                _executionLock.Release();
+                await CleanupAsync();
             }
         }
 
         public override async Task StopAsync()
         {
+            try
+            {
+                _isKeyHeld = false;
+                await base.StopAsync();
+            }
+            finally
+            {
+                lock (_stateLock)
+                {
+                    _isExecuting = false;
+                }
+            }
+        }
+
+        // 处理按键释放
+        public void HandleKeyRelease()
+        {
             _isKeyHeld = false;
-            await base.StopAsync();
+            _logger.LogDebug("HoldKeyMode", "检测到按键释放");
+        }
+
+        // 处理按键按下
+        public void HandleKeyPress()
+        {
+            if (!_isExecuting)
+            {
+                _isKeyHeld = true;
+                _logger.LogDebug("HoldKeyMode", "检测到按键按下");
+            }
+        }
+
+        private async Task CleanupAsync()
+        {
+            try
+            {
+                _isKeyHeld = false;
+                _isRunning = false;
+                
+                if (_cts != null && !_cts.IsCancellationRequested)
+                {
+                    _cts.Cancel();
+                }
+
+                LogModeEnd();
+                
+                // 确保所有按键都被释放
+                foreach (var key in _keyList)
+                {
+                    await Task.Run(() => _driverService.SendKey(key, false));
+                }
+            }
+            finally
+            {
+                lock (_stateLock)
+                {
+                    _isExecuting = false;
+                }
+            }
         }
 
         protected override void Dispose(bool disposing)
@@ -100,6 +156,7 @@ namespace WpfApp.Services.KeyModes
             if (disposing)
             {
                 _executionLock.Dispose();
+                CleanupAsync().Wait();
             }
             base.Dispose(disposing);
         }

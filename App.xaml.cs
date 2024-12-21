@@ -62,6 +62,10 @@ namespace WpfApp
                 mainWindow.Show();
                 _logger.LogInitialization("App", "主窗口已显示");
 
+                // 创建 HotkeyService 并设置到 DDDriver
+                var hotkeyService = new HotkeyService(mainWindow, DDDriver);
+                
+
                 // 注册应用程序退出事件
                 Exit += OnApplicationExit;
             }
