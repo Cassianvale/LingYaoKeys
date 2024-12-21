@@ -1,14 +1,39 @@
-# LingYaoKeys (灵曜按键)
-✨ 基于WPF+DD驱动开发的按键工具✨  
+<!-- markdownlint-restore -->
+<div align="center">
 
-## 特别鸣谢
- 该项目是本人利用工作之余首次尝试使用C#和WPF技术栈以及Cursor AI进行开发的实践项目。  
- 在UI/UX与交互逻辑设计上，极简按键提供了优秀的范例，让我在学习过程中获益良多，特此致谢极简按键！  
- 项目中我也融入了一些个人的理解和创新设计，希望能为同样热爱技术的朋友提供参考。  
- 
+# LingYaoKeys - 灵曜按键  
+
+✨**基于WPF+DD驱动开发灵动优雅的按键工具**✨  
+
+<div>
+    <img alt="platform" src="https://img.shields.io/badge/platform-Windows-blueviolet">
+    <img alt="commit" src="https://img.shields.io/github/commit-activity/m/Cassianvale/LingYaoKeys?color=blue">
+    <img alt="release" src="https://img.shields.io/github/v/release/Cassianvale/LingYaoKeys?include_prereleases&style=flat">
+    <img alt="last-commit" src="https://img.shields.io/github/last-commit/Cassianvale/LingYaoKeys">
+    <img alt="issues" src="https://img.shields.io/github/issues/Cassianvale/LingYaoKeys">
+    <img alt="license" src="https://img.shields.io/github/license/Cassianvale/LingYaoKeys">
+</div>
+<div>
+    <img alt="stars" src="https://img.shields.io/github/stars/Cassianvale/LingYaoKeys?style=social">
+    <img alt="downloads" src="https://img.shields.io/github/downloads/Cassianvale/LingYaoKeys/total?style=social">
+</div>
+<br>
+
+
+❤ ✨ 如果喜欢本项目，可右上角送作者一个`Star` ✨ ❤
+
+</div>
+</br>
+<!-- markdownlint-restore -->
+
+## 主要功能  
+- [x] 支持全局热键，**支持侧键触发**  
+- [x] 支持按键列表拖拽排序  
+- [x] 支持开启/停止语音提醒  
+- [x] 支持顺序模式触发按键  
+- [ ] 支持按压模式触发按键  
+
 ## 直接下载
-
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/Cassianvale/LingYaoKeys)](https://github.com/Cassianvale/LingYaoKeys/releases/latest)
 
 您可以从以下位置下载最新版本：
 
@@ -16,13 +41,6 @@
 - [查看所有版本](https://github.com/Cassianvale/LingYaoKeys/releases)
 
 > 注意：请始终从 GitHub Releases 页面下载最新版本，以确保获得最新的功能和安全更新。
-
-## 主要功能  
-- [x] 支持全局热键，**支持侧键触发**  
-- [x] 支持按键列表拖拽排序  
-- [x] 支持开启/停止语音提醒  
-- [x] 支持顺序模式触发按键
-- [ ] 支持按压模式触发按键
 
 ## 使用说明
 
@@ -132,6 +150,11 @@ LingYaoKeys/
 └── WpfApp.sln       # 解决方案文件  
 ```
 </details>
+
+## 鸣谢
+ 该项目是本人利用工作之余首次尝试使用C#和WPF技术栈以及Cursor AI进行开发的实践项目。  
+ 在UI/UX与交互逻辑设计上，极简按键提供了优秀的范例，让我在学习过程中获益良多，特此致谢极简按键！  
+ 项目中我也融入了一些个人的理解和创新设计，希望能为同样热爱技术的朋友提供参考。  
 
 ## 许可证
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
