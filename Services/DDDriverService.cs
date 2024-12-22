@@ -394,7 +394,8 @@ namespace WpfApp.Services
                 int ddCode = (int)keyCode;
                 int ret = _dd.key(ddCode, isKeyDown ? 1 : 2);
                 
-                _logger.LogKeyOperation(keyCode, isKeyDown, ret);
+                // 记录按键操作
+                // _logger.LogKeyOperation(keyCode, isKeyDown, ret);
                 return true;
             }
             catch (Exception ex)

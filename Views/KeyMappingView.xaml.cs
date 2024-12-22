@@ -184,7 +184,6 @@ namespace WpfApp.Views
                 if (_hotkeyService != null)
                 {
                     _hotkeyService.IsInputFocused = true;
-                    _logger.LogDebug("KeyMappingView", $"按键输入框获得焦点: {textBox.Name}");
                 }
             }
         }
@@ -197,7 +196,6 @@ namespace WpfApp.Views
                 if (_hotkeyService != null)
                 {
                     _hotkeyService.IsInputFocused = false;
-                    _logger.LogDebug("KeyMappingView", $"按键输入框失去焦点: {textBox.Name}");
                 }
             }
         }

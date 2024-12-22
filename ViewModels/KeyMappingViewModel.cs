@@ -639,7 +639,7 @@ namespace WpfApp.ViewModels
         {
             try
             {
-                _logger.LogDebug("Hotkey", $"开始热键按下 - 当前模式: {SelectedKeyMode}");
+                _logger.LogDebug("Hotkey", $"开始热键按下 - 当前模式: {(SelectedKeyMode == 0 ? "顺序模式" : "按压模式")}");
                 
                 // 只获取勾选的按键
                 var keys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
@@ -741,5 +741,7 @@ namespace WpfApp.ViewModels
                 KeyList.Add(keyItem);
             }
         }
+
+
     }
 } 

@@ -13,10 +13,12 @@ namespace WpfApp
         public static DDDriverService DDDriver { get; private set; } = new DDDriverService();
         public static ConfigService ConfigService { get; private set; } = new ConfigService();
         public static AudioService AudioService { get; private set; } = new AudioService();
+        private bool _isShuttingDown;
 
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+            AppConfigService.Initialize();  // 确保配置只加载一次
 
             try
             {
@@ -79,13 +81,15 @@ namespace WpfApp
 
         private void OnApplicationExit(object sender, ExitEventArgs e)
         {
+            if (_isShuttingDown) return;
+            _isShuttingDown = true;
+
             try
             {
-                // 清理驱动资源
-                _logger.LogInitialization("App", "开始释放驱动资源...");
+                _logger.LogInitialization("App", "开始释放应用程序资源...");
                 DDDriver.Dispose();
                 AudioService.Dispose();
-                _logger.LogInitialization("App", "驱动资源已释放");
+                _logger.LogInitialization("App", "应用程序资源已释放");
             }
             catch (Exception ex)
             {

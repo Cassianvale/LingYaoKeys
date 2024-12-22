@@ -120,13 +120,13 @@ namespace WpfApp.Services.KeyModes
                 avgInterval = CalculateAverage(_keyIntervals);
             }
 
-            var details = $"\n├─ 执行时间: {_sequenceStopwatch.Elapsed.TotalSeconds:F2}s\n" +
-                         $"├─ 总按键次数: {_totalKeyPresses}\n" +
-                         $"├─ 平均按压时长: {avgPressDuration:F2}ms\n" +
-                         $"├─ 平均实际间隔: {avgInterval:F2}ms\n" +
-                         $"└─ 设定间隔: {keyInterval}ms";
+            // var details = $"\n├─ 执行时间: {_sequenceStopwatch.Elapsed.TotalSeconds:F2}s\n" +
+            //              $"├─ 总按键次数: {_totalKeyPresses}\n" +
+            //              $"├─ 平均按压时长: {avgPressDuration:F2}ms\n" +
+            //              $"├─ 平均实际间隔: {avgInterval:F2}ms\n" +
+            //              $"└─ 设定间隔: {keyInterval}ms";
             
-            _logger.LogSequenceEvent("结束", details);
+            // _logger.LogSequenceEvent("结束", details);
         }
 
         public void IncrementKeyCount()

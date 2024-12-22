@@ -18,7 +18,8 @@
 
         <!-- 左侧按键列表区域 -->
         <DockPanel Grid.Column="0" Margin="0,0,10,0">
-            <TextBox Style="{StaticResource ModernTextBox}"
+            <TextBox x:Name="txtKeyInput"
+                     Style="{StaticResource ModernTextBox}"
                      DockPanel.Dock="Top"
                      Height="32"
                      Margin="0,0,0,10"
@@ -145,14 +146,14 @@
             <!-- 按键设置区域 -->
             <DockPanel Margin="0,0,0,10">
                 <TextBlock Text="启动键" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <TextBox Style="{StaticResource ModernTextBox}"
+                <TextBox x:Name="txtStartHotkey"
+                         Style="{StaticResource ModernTextBox}"
                          Tag="空"
                          IsReadOnly="True"
                          Text="{Binding StartHotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                          IsUndoEnabled="False"
                          CaretBrush="Transparent"
                          TextAlignment="Center"
-                         x:Name="StartHotkeyInput"
                          PreviewKeyDown="StartHotkeyInput_PreviewKeyDown"
                          KeyDown="StartHotkeyInput_KeyDown"
                          PreviewMouseDown="StartHotkeyInput_PreviewMouseDown"
@@ -165,14 +166,14 @@
             <DockPanel Margin="0,0,0,10" 
                        Visibility="{Binding IsSequenceMode, Converter={StaticResource BoolToVisibilityConverter}}">
                 <TextBlock Text="停止键" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <TextBox Style="{StaticResource ModernTextBox}"
+                <TextBox x:Name="txtStopHotkey"
+                         Style="{StaticResource ModernTextBox}"
                          Tag="空"
                          IsReadOnly="True"
                          Text="{Binding StopHotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                          IsUndoEnabled="False"
                          CaretBrush="Transparent"
                          TextAlignment="Center"
-                         x:Name="StopHotkeyInput"
                          PreviewKeyDown="StopHotkeyInput_PreviewKeyDown"
                          PreviewMouseDown="StopHotkeyInput_PreviewMouseDown"
                          GotFocus="HotkeyInputBox_GotFocus"
@@ -186,7 +187,8 @@
                            VerticalAlignment="Center" 
                            Margin="0,0,0,0"
                            Width="60"/>
-                <ComboBox Style="{StaticResource ModernComboBox}"
+                <ComboBox x:Name="cboKeyMode"
+                          Style="{StaticResource ModernComboBox}"
                           ItemContainerStyle="{StaticResource ModernComboBoxItem}"
                           Width="120"
                           Height="32"
@@ -209,7 +211,8 @@
                            VerticalAlignment="Center"
                            Margin="0,0,0,0"
                            Width="60"/>
-                <TextBox Style="{StaticResource ModernTextBox}"
+                <TextBox x:Name="txtKeyInterval"
+                         Style="{StaticResource ModernTextBox}"
                          Width="120"
                          Height="32"
                          VerticalContentAlignment="Center"

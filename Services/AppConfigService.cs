@@ -10,6 +10,9 @@ namespace WpfApp.Services
         private static readonly LogManager _logger = LogManager.Instance;
         private static readonly string ConfigPath = "AppConfig.json";
         private static AppConfig? _config;
+        private static readonly object _lockObject = new object();
+        // 添加配置变更事件
+        public static event EventHandler<AppConfig>? ConfigChanged;
 
         public static AppConfig Config
         {
@@ -17,7 +20,13 @@ namespace WpfApp.Services
             {
                 if (_config == null)
                 {
-                    LoadConfig();
+                    lock (_lockObject)
+                    {
+                        if (_config == null)  // 双重检查锁定
+                        {
+                            LoadConfig();
+                        }
+                    }
                 }
                 return _config ?? new AppConfig();
             }
@@ -73,23 +82,100 @@ namespace WpfApp.Services
                 configChanged = true;
             }
 
+            // 验证热键模式配置
+            if (_config.keyMode != 0 && _config.keyMode != 1)
+            {
+                _logger.LogWarning("Config", $"无效的按键模式 {_config.keyMode}，已修正为顺序模式(0)");
+                _config.keyMode = 0;
+                configChanged = true;
+            }
+
+            // 验证热键配置
+            if (_config.startKey == null)
+            {
+                _logger.LogWarning("Config", "启动热键未设置，已设置为默认值");
+                _config.startKey = DDKeyCode.None;
+                configChanged = true;
+            }
+
+            if (_config.stopKey == null && _config.keyMode == 0)
+            {
+                _logger.LogWarning("Config", "停止热键未设置，已设置为默认值");
+                _config.stopKey = DDKeyCode.None;
+                configChanged = true;
+            }
+
             if (configChanged)
             {
-                _logger.LogDebug("Config", $"配置已更新 - 窗口尺寸: {_config.UI.MainWindow.DefaultWidth}x{_config.UI.MainWindow.DefaultHeight}, 游戏模式: {_config.IsGameMode}");
+                _logger.LogDebug("Config", "配置已更新并验证");
                 SaveConfig();
             }
         }
 
+        // 优化保存配置方法
         public static void SaveConfig()
         {
             try
             {
-                string json = JsonConvert.SerializeObject(_config, Formatting.Indented);
-                File.WriteAllText(ConfigPath, json);
+                lock (_lockObject)
+                {
+                    if (_config == null) return;
+
+                    string json = JsonConvert.SerializeObject(_config, Formatting.Indented);
+                    File.WriteAllText(ConfigPath, json);
+                    
+                    // 触发配置变更事件
+                    ConfigChanged?.Invoke(null, _config);
+                    
+                    _logger.LogDebug("Config", "配置已保存并通知订阅者");
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError("App", $"保存配置文件失败: {ex.Message}");
+                _logger.LogError("Config", $"保存配置文件失败: {ex.Message}");
+                throw; // 重新抛出异常，让调用者知道保存失败
+            }
+        }
+
+        public static void Initialize()
+        {
+            lock (_lockObject)
+            {
+                if (_config == null)
+                {
+                    LoadConfig();
+                }
+            }
+        }
+
+        // 添加更新配置方法
+        public static void UpdateConfig(Action<AppConfig> updateAction)
+        {
+            try
+            {
+                lock (_lockObject)
+                {
+                    if (_config == null) return;
+
+                    updateAction(_config);
+                    ValidateConfig(); // 验证更新后的配置
+                    SaveConfig(); // 保存并触发事件
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Config", $"更新配置失败: {ex.Message}");
+                throw;
+            }
+        }
+        
+        // 添加资源清理方法
+        public static void Cleanup()
+        {
+            lock (_lockObject)
+            {
+                ConfigChanged = null;
+                _config = null;
             }
         }
     }

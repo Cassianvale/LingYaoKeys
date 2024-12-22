@@ -19,6 +19,7 @@ namespace WpfApp
     {
         private readonly LogManager _logger = LogManager.Instance;
         private readonly MainViewModel _viewModel;
+        private bool _isClosing;
 
         public MainWindow()
         {
@@ -41,15 +42,15 @@ namespace WpfApp
 
         protected override void OnClosed(EventArgs e)
         {
+            if (_isClosing) return;
+            _isClosing = true;
+
             try 
             {
+                _logger.LogDebug("MainWindow", "开始清理窗口资源...");
                 // 先清理ViewModel
                 _viewModel.Cleanup();
-                
-                // 确保驱动服务被正确释放
-                App.DDDriver.Dispose();
-                
-                _logger.LogDebug("MainWindow", "窗口关闭 - 资源清理完成");
+                _logger.LogDebug("MainWindow", "窗口资源清理完成");
             }
             catch (Exception ex)
             {

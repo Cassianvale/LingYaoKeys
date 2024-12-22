@@ -6,16 +6,18 @@ using System.Windows.Media;
 using System.ComponentModel;
 using WpfApp.Services;
 
+// 焦点管理器
+
+/// 由于 HotkeyService 中的热键处理机制，会在失去焦点时取消注册热键
+/// 取消注册热键的过程会导致窗口重新获得短暂的焦点
+/// 这会导致焦点管理器错误地认为窗口已经获得焦点，从而触发不必要的焦点清理
+
 namespace WpfApp.Styles
 {
     public partial class ControlStyles
     {
         private static readonly LogManager _logger = LogManager.Instance;
-
-        static ControlStyles()
-        {
-            _logger.LogDebug("ControlStyles", "ControlStyles 类初始化");
-        }
+        private static readonly string LOG_TAG = "ControlStyles";
 
         public static readonly DependencyProperty AutoFocusManagementProperty =
             DependencyProperty.RegisterAttached(
@@ -80,21 +82,23 @@ namespace WpfApp.Styles
                 Window? parentWindow = Window.GetWindow(element);
                 if (parentWindow == null)
                 {
-                    _logger.LogWarning("ControlStyles", $"无法获取控件所属窗口: {element.GetType().Name}");
+                    _logger.LogWarning(LOG_TAG, $"[Focus] 无法获取控件所属窗口: {element.Name ?? element.GetType().Name}");
                     return;
                 }
-
-                _logger.LogDebug("ControlStyles", $"开始设置焦点管理: {element.GetType().Name}, Window: {parentWindow.GetType().Name}");
 
                 // 使用预定义的附加属性检查窗口是否已初始化
                 if (!GetFocusManagementInitialized(parentWindow))
                 {
                     SetFocusManagementInitialized(parentWindow, true);
-                    _logger.LogDebug("ControlStyles", "初始化窗口级别焦点管理");
+                    _logger.LogDebug(LOG_TAG, $"[Focus] 初始化窗口级别焦点管理: {parentWindow.Title}");
 
                     // 窗口失去激活状态时
                     parentWindow.Deactivated += (s, args) =>
                     {
+                        // 立即记录日志
+                        _logger.LogDebug(LOG_TAG, $"[Focus] 窗口失去焦点: {parentWindow.Title}");
+                        
+                        // 然后异步处理焦点清理
                         Application.Current.Dispatcher.InvokeAsync(() =>
                         {
                             ForceClearAllFocus(parentWindow);
@@ -104,8 +108,18 @@ namespace WpfApp.Styles
                     // 窗口获得焦点时检查并清理
                     parentWindow.Activated += (s, args) =>
                     {
+                        // 立即记录日志
+                        _logger.LogDebug(LOG_TAG, $"[Focus] 窗口获得焦点: {parentWindow.Title}");
+                        
+                        // 然后异步处理焦点检查
                         Application.Current.Dispatcher.InvokeAsync(() =>
                         {
+                            var focusedElement = FocusManager.GetFocusedElement(parentWindow) as FrameworkElement;
+                            if (focusedElement != null)
+                            {
+                                _logger.LogDebug(LOG_TAG, $"[Focus] 当前焦点元素: {GetControlIdentifier(focusedElement)}");
+                            }
+                            
                             CheckAndClearFocus(parentWindow);
                         }, System.Windows.Threading.DispatcherPriority.Input);
                     };
@@ -115,6 +129,12 @@ namespace WpfApp.Styles
                     {
                         if (args.OriginalSource is DependencyObject clicked)
                         {
+                            var clickedElement = clicked as FrameworkElement;
+                            if (clickedElement != null)
+                            {
+                                _logger.LogDebug(LOG_TAG, $"[Focus] 鼠标点击元素: {GetControlIdentifier(clickedElement)}");
+                            }
+                            
                             HandleGlobalClick(clicked, parentWindow);
                         }
                     };
@@ -123,24 +143,26 @@ namespace WpfApp.Styles
                 // 控件特定的处理
                 if (element is TextBox textBox)
                 {
+                    _logger.LogDebug(LOG_TAG, $"[Focus] 设置TextBox焦点行为: {GetControlIdentifier(textBox)}");
                     SetupTextBoxBehavior(textBox);
                 }
                 else if (element is ComboBox comboBox)
                 {
+                    _logger.LogDebug(LOG_TAG, $"[Focus] 设置ComboBox焦点行为: {GetControlIdentifier(comboBox)}");
                     SetupComboBoxBehavior(comboBox);
                 }
 
-                _logger.LogDebug("ControlStyles", $"焦点管理设置完成: {element.GetType().Name}");
+                _logger.LogDebug(LOG_TAG, $"[Focus] 焦点管理设置完成: {GetControlIdentifier(element)}");
             }
             catch (Exception ex)
             {
-                _logger.LogError("ControlStyles", $"设置焦点管理时发生异常: {element.GetType().Name}", ex);
+                _logger.LogError(LOG_TAG, $"[Focus] 设置焦点管理时发生异常: {element.GetType().Name}", ex);
             }
         }
 
         private static void SetupTextBoxBehavior(TextBox textBox)
         {
-            // 添加鼠标点击事件处理
+            // 1. 鼠标点击事件
             textBox.PreviewMouseDown += (sender, args) =>
             {
                 if (sender is TextBox tb && !tb.IsKeyboardFocused)
@@ -149,11 +171,12 @@ namespace WpfApp.Styles
                     Application.Current.Dispatcher.InvokeAsync(() =>
                     {
                         tb.Focus();
-                        tb.SelectAll();
+                        tb.SelectAll();   // 获得焦点时全选文本
                     }, System.Windows.Threading.DispatcherPriority.Input);
                 }
             };
-
+            
+            // 2. 按键事件（Enter/Escape）
             textBox.PreviewKeyDown += (sender, args) =>
             {
                 if (args.Key == Key.Enter || args.Key == Key.Escape)
@@ -175,6 +198,7 @@ namespace WpfApp.Styles
             {
                 if (sender is TextBox tb)
                 {
+                    _logger.LogDebug(LOG_TAG, $"[Focus] TextBox获得焦点: {GetControlIdentifier(tb)}");
                     Application.Current.Dispatcher.InvokeAsync(() =>
                     {
                         tb.SelectAll();
@@ -187,6 +211,7 @@ namespace WpfApp.Styles
             {
                 if (sender is TextBox tb)
                 {
+                    _logger.LogDebug(LOG_TAG, $"[Focus] TextBox失去焦点: {GetControlIdentifier(tb)}");
                     tb.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
                 }
             };
@@ -322,6 +347,40 @@ namespace WpfApp.Styles
             {
                 dpd.RemoveValueChanged(comboBox, (s, e) => { });
             };
+
+            // 添加下拉框打开关闭日志
+            comboBox.DropDownOpened += (sender, args) =>
+            {
+                if (sender is ComboBox cb)
+                {
+                    _logger.LogDebug(LOG_TAG, $"[Focus] ComboBox下拉框打开: {GetControlIdentifier(cb)}");
+                }
+            };
+
+            comboBox.DropDownClosed += (sender, args) =>
+            {
+                if (sender is ComboBox cb)
+                {
+                    _logger.LogDebug(LOG_TAG, $"[Focus] ComboBox下拉框关闭: {GetControlIdentifier(cb)}");
+                }
+            };
+
+            // 添加焦点变化日志
+            comboBox.GotFocus += (sender, args) =>
+            {
+                if (sender is ComboBox cb)
+                {
+                    _logger.LogDebug(LOG_TAG, $"[Focus] ComboBox获得焦点: {GetControlIdentifier(cb)}");
+                }
+            };
+
+            comboBox.LostFocus += (sender, args) =>
+            {
+                if (sender is ComboBox cb)
+                {
+                    _logger.LogDebug(LOG_TAG, $"[Focus] ComboBox失去焦点: {GetControlIdentifier(cb)}");
+                }
+            };
         }
 
         // 添加新的辅助方法
@@ -454,23 +513,19 @@ namespace WpfApp.Styles
         {
             try
             {
-                var focusedElement = FocusManager.GetFocusedElement(window) as UIElement;
+                var focusedElement = FocusManager.GetFocusedElement(window) as FrameworkElement;
                 if (focusedElement != null)
                 {
+                    _logger.LogDebug(LOG_TAG, $"[Focus] 清除窗口所有焦点, 当前焦点元素: {GetControlIdentifier(focusedElement)}");
                     ForceClearFocus(focusedElement);
                 }
                 
-                // 强制清除键盘焦点
                 Keyboard.ClearFocus();
-                
-                // 将焦点设置到窗口
                 window.Focus();
-                
-                _logger.LogDebug("ControlStyles", "强制清除所有焦点");
             }
             catch (Exception ex)
             {
-                _logger.LogError("ControlStyles", "强制清除所有焦点时发生异常", ex);
+                _logger.LogError(LOG_TAG, "[Focus] 强制清除所有焦点时发生异常", ex);
             }
         }
 
@@ -513,15 +568,21 @@ namespace WpfApp.Styles
         {
             try
             {
-                var focusedElement = FocusManager.GetFocusedElement(window) as UIElement;
-                if (focusedElement != null && (focusedElement is TextBox || focusedElement is ComboBox))
+                var focusedElement = FocusManager.GetFocusedElement(window) as FrameworkElement;
+                if (focusedElement != null)
                 {
-                    ForceClearFocus(focusedElement);
+                    _logger.LogDebug(LOG_TAG, $"[Focus] 检查焦点元素: {GetControlIdentifier(focusedElement)}");
+                    
+                    if (focusedElement is TextBox || focusedElement is ComboBox)
+                    {
+                        _logger.LogDebug(LOG_TAG, $"[Focus] 清除输入控件焦点: {GetControlIdentifier(focusedElement)}");
+                        ForceClearFocus(focusedElement);
+                    }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError("ControlStyles", "检查并清除焦点时发生异常", ex);
+                _logger.LogError(LOG_TAG, "[Focus] 检查并清除焦点时发生异常", ex);
             }
         }
 
@@ -546,6 +607,14 @@ namespace WpfApp.Styles
                 _logger.LogError("ControlStyles", "检查控件层级关系时发生异常", ex);
                 return false;
             }
+        }
+
+        // 添加新的辅助方法用于获取控件标识
+        private static string GetControlIdentifier(FrameworkElement element)
+        {
+            var name = !string.IsNullOrEmpty(element.Name) ? element.Name : "Unnamed";
+            var type = element.GetType().Name;
+            return $"{type}[{name}]";
         }
     }
 

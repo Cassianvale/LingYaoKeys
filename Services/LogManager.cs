@@ -15,7 +15,8 @@ namespace WpfApp.Services
         private long _currentFileSize;
         private readonly object _sizeLock = new object();
         private AppConfig _config;
-        private bool _initialized;
+        private volatile bool _isInitialized;
+        private readonly object _initLock = new object();
 
         public static LogManager Instance => _instance.Value;
 
@@ -38,44 +39,30 @@ namespace WpfApp.Services
 
         private void InitializeLogManager()
         {
-            try 
+            if (!_isInitialized)
             {
-                // 只创建目录,不创建文件
-                string logDirectory = Path.Combine(
-                    AppDomain.CurrentDomain.BaseDirectory, 
-                    _config.Logging.FileSettings.Directory);
-                    
-                Directory.CreateDirectory(logDirectory);
-
-                // 延迟加载配置
-                Task.Run(() => 
+                lock (_initLock)
                 {
-                    try
+                    if (!_isInitialized)
                     {
-                        Thread.Sleep(100);
-                        UpdateConfig();
-                        _initialized = true;
+                        Task.Run(() => 
+                        {
+                            UpdateConfig();
+                            _isInitialized = true;
+                        });
                     }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"更新日志配置失败: {ex.Message}");
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"初始化日志管理器失败: {ex.Message}");
+                }
             }
         }
 
         private void UpdateConfig()
         {
-            try 
+            lock (_lockObject)  // 添加锁以确保线程安全
             {
-                var newConfig = AppConfigService.Config;
-                if (newConfig?.Logging != null)
+                var config = AppConfigService.Config;
+                if (config?.Logging != null)
                 {
-                    _config = newConfig;
+                    _config = config;
                 }
                 
                 string newLogDirectory = Path.Combine(
@@ -86,10 +73,6 @@ namespace WpfApp.Services
                 {
                     Directory.CreateDirectory(newLogDirectory);
                 }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"更新配置失败: {ex.Message}");
             }
         }
 
@@ -147,11 +130,11 @@ namespace WpfApp.Services
         }
 
         // 记录按键操作
-        public void LogKeyOperation(DDKeyCode keyCode, bool isKeyDown, int returnValue)
-        {
-            var message = $"[按键操作] {keyCode} ({(int)keyCode}) | 状态: {(isKeyDown ? "按下" : "释放")} | 返回值: {returnValue}";
-            WriteLog(LogLevel.Debug, "KeyOperation", message);
-        }
+        // public void LogKeyOperation(DDKeyCode keyCode, bool isKeyDown, int returnValue)
+        // {
+        //     var message = $"[按键操作] {keyCode} ({(int)keyCode}) | 状态: {(isKeyDown ? "按下" : "释放")} | 返回值: {returnValue}";
+        //     WriteLog(LogLevel.Debug, "KeyOperation", message);
+        // }
 
         // 记录序列事件
         public void LogSequenceEvent(string eventType, string details)
@@ -161,18 +144,17 @@ namespace WpfApp.Services
         }
 
         // 记录性能指标
-        public void LogPerformanceMetrics(PerformanceMetrics metrics)
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine($"[性能指标] {DateTime.Now:HH:mm:ss.fff}");
-            sb.AppendLine($"├─ 按键时间: {metrics.AverageKeyPressTime:F2}ms");
-            sb.AppendLine($"├─ 按键间隔: {metrics.AverageKeyInterval:F2}ms");
-            sb.AppendLine($"├─ 执行时间: {metrics.TotalExecutionTime.TotalSeconds:F2}s");
-            sb.AppendLine($"├─ 按键次数: {metrics.TotalKeyPresses}");
-            sb.AppendLine($"└─ 当前序列: {metrics.CurrentSequence}");
-            
-            WriteLog(LogLevel.Info, "Performance", sb.ToString());
-        }
+        // public void LogPerformanceMetrics(PerformanceMetrics metrics)
+        // {
+        //     var sb = new StringBuilder();
+        //     sb.AppendLine($"[性能指标] {DateTime.Now:HH:mm:ss.fff}");
+        //     sb.AppendLine($"├─ 按键时间: {metrics.AverageKeyPressTime:F2}ms");
+        //     sb.AppendLine($"├─ 按键间隔: {metrics.AverageKeyInterval:F2}ms");
+        //     sb.AppendLine($"├─ 执行时间: {metrics.TotalExecutionTime.TotalSeconds:F2}s");
+        //     sb.AppendLine($"├─ 按键次数: {metrics.TotalKeyPresses}");
+        //     sb.AppendLine($"└─ 当前序列: {metrics.CurrentSequence}");
+        //     WriteLog(LogLevel.Info, "Performance", sb.ToString());
+        // }
 
         // 记录错误
         public void LogError(string source, string message, Exception? ex = null)
@@ -218,7 +200,7 @@ namespace WpfApp.Services
         // 写入日志
         private void WriteLog(LogLevel level, string category, string message)
         {
-            if (!_initialized)
+            if (!_isInitialized)
             {
                 Debug.WriteLine(FormatLogMessage(level, category, message));
                 return;
