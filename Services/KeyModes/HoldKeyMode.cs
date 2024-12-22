@@ -50,6 +50,7 @@ namespace WpfApp.Services.KeyModes
                     {
                         if (!_isRunning || !_isKeyHeld || _cts.Token.IsCancellationRequested)
                         {
+                            _logger.LogDebug("HoldKeyMode", "检测到按键释放或取消请求，停止循环");
                             break;
                         }
 
@@ -71,7 +72,15 @@ namespace WpfApp.Services.KeyModes
 
                     if (_isRunning && _isKeyHeld && !_cts.Token.IsCancellationRequested)
                     {
-                        await Task.Delay(GetInterval(), _cts.Token);
+                        try
+                        {
+                            await Task.Delay(GetInterval(), _cts.Token);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            _logger.LogDebug("HoldKeyMode", "按键延迟被取消");
+                            break;
+                        }
                     }
                 }
             }
@@ -108,8 +117,17 @@ namespace WpfApp.Services.KeyModes
         // 处理按键释放
         public void HandleKeyRelease()
         {
-            _isKeyHeld = false;
-            _logger.LogDebug("HoldKeyMode", "检测到按键释放");
+            if (_isKeyHeld)
+            {
+                _isKeyHeld = false;
+                _logger.LogDebug("HoldKeyMode", "检测到按键释放，准备停止循环");
+                
+                // 触发取消
+                if (_cts != null && !_cts.IsCancellationRequested)
+                {
+                    _cts.Cancel();
+                }
+            }
         }
 
         // 处理按键按下
@@ -118,7 +136,7 @@ namespace WpfApp.Services.KeyModes
             if (!_isExecuting)
             {
                 _isKeyHeld = true;
-                _logger.LogDebug("HoldKeyMode", "检测到按键按下");
+                _logger.LogDebug("HoldKeyMode", "检测到按键按下，准备开始循环");
             }
         }
 

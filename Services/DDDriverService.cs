@@ -494,28 +494,58 @@ namespace WpfApp.Services
                 bool wasSequenceMode = IsSequenceMode;
                 if (wasSequenceMode == value) return;
                 
-                // 停止当前运行的序列
-                IsEnabled = false;
-
-                if (value)
+                _logger.LogDebug("DDDriverService", 
+                    $"[IsSequenceMode] 切换模式 - " +
+                    $"当前: {(wasSequenceMode ? "顺序模式" : "按压模式")}, " +
+                    $"目标: {(value ? "顺序模式" : "按压模式")}");
+                
+                try
                 {
-                    // 切换到顺序模式
-                    _currentKeyMode = new SequenceKeyMode(this);
-                    _isHoldMode = false;
+                    // 停止当前运行的序列
+                    IsEnabled = false;
+
+                    if (value)
+                    {
+                        // 切换到顺序模式
+                        _currentKeyMode = new SequenceKeyMode(this);
+                        _isHoldMode = false;
+                    }
+                    else
+                    {
+                        // 切换到按压模式
+                        _currentKeyMode = new HoldKeyMode(this);
+                        _isHoldMode = true;
+                    }
+
+                    // 设置按键列表和间隔
+                    _currentKeyMode?.SetKeyList(_keyList);
+                    _currentKeyMode?.SetKeyInterval(_keyInterval);
+                    if (_currentKeyMode != null)
+                    {
+                        _currentKeyMode.SetKeyPressInterval(KeyPressInterval);
+                    }
+
+                    // 触发模式切换事件
+                    ModeSwitched?.Invoke(this, value);
+                    
+                    _logger.LogDebug("DDDriverService", 
+                        $"[IsSequenceMode] 模式切换完成 - " +
+                        $"新模式: {(value ? "顺序模式" : "按压模式")}");
                 }
-                else
+                catch (Exception ex)
                 {
-                    // 切换到按压模式
-                    _currentKeyMode = new HoldKeyMode(this);
-                    _isHoldMode = true;
+                    _logger.LogError("DDDriverService", "[IsSequenceMode] 模式切换异常", ex);
+                    // 发生异常时恢复到原始状态
+                    if (_currentKeyMode != null)
+                    {
+                        _currentKeyMode.Dispose();
+                    }
+                    _currentKeyMode = wasSequenceMode ? 
+                        new SequenceKeyMode(this) : 
+                        new HoldKeyMode(this) as KeyModeBase;
+                    _isHoldMode = !wasSequenceMode;
+                    IsEnabled = false;
                 }
-
-                // 设置按键列表和间隔
-                _currentKeyMode?.SetKeyList(_keyList);
-                _currentKeyMode?.SetKeyInterval(_keyInterval);
-
-                // 触发模式切换事件
-                ModeSwitched?.Invoke(this, value);
             }
         }
 
@@ -537,31 +567,48 @@ namespace WpfApp.Services
         // 添加方法用于控制按压模式
         public void SetHoldMode(bool isHold)
         {
-            _isHoldMode = isHold;
-            if (!IsSequenceMode)
+            try
             {
-                if (isHold)
+                _logger.LogDebug("DDDriverService", 
+                    $"[SetHoldMode] 设置按压模式 - " +
+                    $"isHold: {isHold}, " +
+                    $"当前模式: {(IsSequenceMode ? "顺序模式" : "按压模式")}");
+
+                if (IsSequenceMode)
                 {
-                    if (_currentKeyMode is HoldKeyMode holdMode)
+                    _logger.LogWarning("DDDriverService", "[SetHoldMode] 当前为顺序模式，忽略按压模式设置");
+                    return;
+                }
+
+                _isHoldMode = isHold;
+                
+                if (_currentKeyMode is HoldKeyMode holdMode)
+                {
+                    if (isHold)
                     {
                         holdMode.HandleKeyPress();
+                        IsEnabled = true;
                     }
                     else
                     {
-                        _currentKeyMode = new HoldKeyMode(this);
-                        _currentKeyMode.SetKeyList(_keyList);
-                        _currentKeyMode.SetKeyInterval(_keyInterval);
+                        holdMode.HandleKeyRelease();
+                        // 不在这里设置 IsEnabled = false，让 HoldKeyMode 自己处理停止逻辑
                     }
+                }
+                else if (isHold)
+                {
+                    _currentKeyMode = new HoldKeyMode(this);
+                    _currentKeyMode.SetKeyList(_keyList);
+                    _currentKeyMode.SetKeyInterval(_keyInterval);
                     IsEnabled = true;
                 }
-                else
-                {
-                    if (_currentKeyMode is HoldKeyMode holdMode)
-                    {
-                        holdMode.HandleKeyRelease();
-                    }
-                    IsEnabled = false;
-                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("DDDriverService", "[SetHoldMode] 设置按压模式异常", ex);
+                // 发生异常时确保停止
+                IsEnabled = false;
+                _isHoldMode = false;
             }
         }
 
