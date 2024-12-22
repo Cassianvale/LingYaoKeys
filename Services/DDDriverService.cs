@@ -493,9 +493,7 @@ namespace WpfApp.Services
             {
                 bool wasSequenceMode = IsSequenceMode;
                 if (wasSequenceMode == value) return;
-
-                _logger.LogDebug("DDDriverService", $"切换模式: {(value ? "顺序模式" : "按压模式")}");
-
+                
                 // 停止当前运行的序列
                 IsEnabled = false;
 
