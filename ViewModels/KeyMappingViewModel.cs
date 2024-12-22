@@ -139,6 +139,15 @@ namespace WpfApp.ViewModels
                 {
                     // 当模式改变时更新驱动服务
                     _ddDriver.IsSequenceMode = value;
+                    
+                    // 更新HotkeyService的按键列表
+                    var selectedKeys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
+                    _hotkeyService.SetKeySequence(selectedKeys, KeyInterval);
+                    
+                    _logger.LogDebug("KeyMapping", 
+                        $"模式切换 - 当前模式: {(value ? "顺序模式" : "按压模式")}, " +
+                        $"选中按键数: {selectedKeys.Count}, " +
+                        $"按键间隔: {KeyInterval}ms");
                 }
             }
         }
@@ -290,7 +299,7 @@ namespace WpfApp.ViewModels
             _hotkeyService.SequenceModeStarted += () => IsHotkeyEnabled = true;
             _hotkeyService.SequenceModeStopped += () => IsHotkeyEnabled = false;
 
-            // 订阅状态变化事件
+            // 订阅状��变化事件
             PropertyChanged += async (s, e) =>
             {
                 if (e.PropertyName == nameof(IsHotkeyEnabled) && IsSoundEnabled)
@@ -440,8 +449,16 @@ namespace WpfApp.ViewModels
 
             var newKeyItem = new KeyItem(_currentKey.Value);
             // 订阅选中状态变化事件
-            newKeyItem.SelectionChanged += (s, isSelected) => SaveConfig();
+            newKeyItem.SelectionChanged += (s, isSelected) => 
+            {
+                SaveConfig();
+                UpdateHotkeyServiceKeyList();
+            };
             KeyList.Add(newKeyItem);
+            
+            // 更新HotkeyService的按键列表
+            UpdateHotkeyServiceKeyList();
+            
             _mainViewModel.UpdateStatusMessage("按键添加成功");
         }
 
@@ -453,6 +470,18 @@ namespace WpfApp.ViewModels
             {
                 KeyList.Remove(key);
             }
+            
+            // 更新HotkeyService的按键列表
+            UpdateHotkeyServiceKeyList();
+        }
+
+        // 添加更新HotkeyService按键列表的辅助方法
+        private void UpdateHotkeyServiceKeyList()
+        {
+            var selectedKeys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
+            _hotkeyService.SetKeySequence(selectedKeys, KeyInterval);
+            _logger.LogDebug("KeyMapping", 
+                $"更新HotkeyService按键列表 - 选中按键数: {selectedKeys.Count}, 按键间隔: {KeyInterval}ms");
         }
 
         // 保存配置
@@ -650,8 +679,9 @@ namespace WpfApp.ViewModels
                     return;
                 }
 
-                // 设置按键列表和参数
+                // 设置按键列表参数
                 _ddDriver.SetKeyList(keys);
+                _hotkeyService.SetKeySequence(keys, KeyInterval); // 确保HotkeyService也获得按键列表
                 _ddDriver.IsSequenceMode = SelectedKeyMode == 0;
                 _ddDriver.SetKeyInterval(KeyInterval);
 
@@ -725,7 +755,11 @@ namespace WpfApp.ViewModels
         {
             foreach (var keyItem in KeyList)
             {
-                keyItem.SelectionChanged += (s, isSelected) => SaveConfig();
+                keyItem.SelectionChanged += (s, isSelected) => 
+                {
+                    SaveConfig();
+                    UpdateHotkeyServiceKeyList();
+                };
             }
         }
 

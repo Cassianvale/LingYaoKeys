@@ -114,6 +114,7 @@
             <DockPanel Margin="0,0,0,10">
                 <Button Style="{StaticResource RoundedShadowButtonSmall}"
                     Command="{Binding AddKeyCommand}"
+                    Name="btnAddKey"
                     DockPanel.Dock="Left" 
                     Width="85" 
                     Height="32"
@@ -121,6 +122,7 @@
                     Content="添加按键" />
                 <Button Style="{StaticResource RoundedShadowButtonSmall}"
                     Command="{Binding DeleteSelectedKeysCommand}"
+                    Name="btnDeleteSelectedKeys"
                     DockPanel.Dock="Right" 
                     Width="85" 
                     Height="32"
