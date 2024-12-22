@@ -29,6 +29,9 @@ namespace WpfApp.Services
         private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern bool UnhookWindowsHookEx(IntPtr hhk);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
@@ -45,6 +48,14 @@ namespace WpfApp.Services
         private const int WM_HOTKEY = 0x0312;  // 热键消息
         private const int WM_XBUTTONDOWN = 0x020B; // 鼠标左键按下消息
         private const int WM_MBUTTONDOWN = 0x0207; // 鼠标中键按下消息
+
+        // 添加Windows消息常量
+        private const int WM_KEYDOWN = 0x0100;
+        private const int WM_KEYUP = 0x0101;
+        private const int WM_SYSKEYDOWN = 0x0104;
+        private const int WM_SYSKEYUP = 0x0105;
+        private const int WM_XBUTTONUP = 0x020C;
+        private const int WM_MBUTTONUP = 0x0208;
 
         private IntPtr _windowHandle;
         private Window _mainWindow;
@@ -78,7 +89,7 @@ namespace WpfApp.Services
         private readonly LogManager _logger = LogManager.Instance;
         private bool _isInputFocused;
         
-        // 输入框获得焦点的处理
+        // 输入框获得焦点的处
         public bool IsInputFocused
         {
             get => _isInputFocused;
@@ -121,7 +132,7 @@ namespace WpfApp.Services
         private LowLevelMouseProc? _mouseProc;
 
         // 修改防抖动相关字段
-        private const int MIN_TOGGLE_INTERVAL = 300; // 启动/停止切换的最小间隔(毫秒)
+        private const int MIN_TOGGLE_INTERVAL = 300; // 启动/停止切换的最小间隔(秒)
         private const int KEY_RELEASE_TIMEOUT = 50;  // 按键释放检测超时(毫秒)
         private DateTime _lastToggleTime = DateTime.MinValue;
         private DateTime _lastKeyDownTime = DateTime.MinValue;
@@ -137,6 +148,26 @@ namespace WpfApp.Services
         private volatile bool _isDisposed;
         private readonly object _disposeLock = new object();
 
+        // 添加按键状态检查相关字段
+        private CancellationTokenSource? _keyCheckCts;
+        private const int KEY_CHECK_INTERVAL = 50; // 按键状态检查间隔(毫秒)
+
+        // 添加键盘钩子相关常量和委托
+        private const int WH_KEYBOARD_LL = 13;
+        private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+        private IntPtr _keyboardHookHandle;
+        private LowLevelKeyboardProc? _keyboardProc;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct KBDLLHOOKSTRUCT
+        {
+            public uint vkCode;
+            public uint scanCode;
+            public uint flags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
         // 构造函数
         public HotkeyService(Window mainWindow, DDDriverService ddDriverService)
         {
@@ -150,7 +181,10 @@ namespace WpfApp.Services
             var config = AppConfigService.Config;
             bool isSequenceMode = config.keyMode == 0;
 
-            // 2. 根据模式加载不同的热键配置
+            // 2. 设置驱动服务的初始模式
+            _ddDriverService.IsSequenceMode = isSequenceMode;
+
+            // 3. 根据模式载不同的热键配置
             if (isSequenceMode)
             {
                 // 加载顺序模式的热键配置，注册启动键和停止键
@@ -158,15 +192,17 @@ namespace WpfApp.Services
                 _sequenceModeStopKey = config.stopKey;
                 _sequenceModeStartMods = config.startMods;
                 _sequenceModeStopMods = config.stopMods;
+                _logger.LogDebug("HotkeyService", "[Constructor] 初始化为顺序模式");
             }
             else
             {
                 // 加载按压模式的热键配置，只注册启动键
                 _holdModeKey = config.startKey;
                 _holdModeMods = config.startMods;
+                _logger.LogDebug("HotkeyService", "[Constructor] 初始化为按压模式");
             }
             
-            // 3. 确保在窗口初始化后自动注册热键，在窗口初始化事件中的处理流程
+            // 3. 确保在窗口初始化后自动注册热键
             _mainWindow.SourceInitialized += (s, e) =>
             {
                 try
@@ -201,9 +237,13 @@ namespace WpfApp.Services
 
             // 4. 添加全局鼠标钩子
             _mouseProc = MouseHookCallback;
-            _mouseHookHandle = SetMouseHook(_mouseProc);
+            _mouseHookHandle = SetWindowsHookEx(WH_MOUSE_LL, _mouseProc, GetModuleHandle(Process.GetCurrentProcess().MainModule?.ModuleName), 0);
+
+            // 5. 添加全局键盘钩子
+            _keyboardProc = KeyboardHookCallback;
+            _keyboardHookHandle = SetWindowsHookEx(WH_KEYBOARD_LL, _keyboardProc, GetModuleHandle(Process.GetCurrentProcess().MainModule?.ModuleName), 0);
             
-            // 5. 窗口关闭时清理资源
+            // 6. 窗口关闭时清理资源
             _mainWindow.Closed += (s, e) =>
             {
                 // 移除鼠标钩子
@@ -212,13 +252,21 @@ namespace WpfApp.Services
                     UnhookWindowsHookEx(_mouseHookHandle);
                     _mouseHookHandle = IntPtr.Zero;
                 }
+
+                // 移除键盘钩子
+                if (_keyboardHookHandle != IntPtr.Zero)
+                {
+                    UnhookWindowsHookEx(_keyboardHookHandle);
+                    _keyboardHookHandle = IntPtr.Zero;
+                }
+
                 // 移除模式切换事件
                 _ddDriverService.ModeSwitched -= OnModeSwitched;
                 // 释放资源
                 Dispose();
             };
 
-            // 6. 检查是否以管理员身份运行
+            // 7. 检查是否以管理员身份运行
             if (!IsRunAsAdministrator())
             {
                 MessageBox.Show("请以管理员身份运行程序以使用热键功能", "权限不足", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -250,7 +298,7 @@ namespace WpfApp.Services
                 return false;
             }
 
-            // 条件3：检查是否已注册
+            // 条3：检查是否已注册
             try
             {
                 // 注册热键时使用主窗口句柄，这样热键触发时消息会发送到主窗口
@@ -261,7 +309,7 @@ namespace WpfApp.Services
                     (uint)KeyInterop.VirtualKeyFromKey(key)    // 虚拟键码
                 );
 
-                // 判断调用Win32API的RegisterHotKey函数返回，如果注册失败显示错误信息
+                // 断调用Win32API的RegisterHotKey函数返回，如果注册失败显示错误信息
                 if (!_isRegistered)
                 {
                     MessageBox.Show("热键注册失败，可能被其他程序占用", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -298,7 +346,7 @@ namespace WpfApp.Services
             // 3. 取消热键注册
             try
             {   
-                // 调用Win32API的UnregisterHotKey函数取消注册热键
+                // 调用Win32API��UnregisterHotKey函数取消注册热键
                 UnregisterHotKey(
                     _windowHandle, // 使用主窗口句柄
                     START_HOTKEY_ID // 热键的ID
@@ -317,7 +365,6 @@ namespace WpfApp.Services
         {
             try
             {
-                // 如果输入框获得焦点，则忽略热键消息
                 if (_isInputFocused)
                 {
                     return IntPtr.Zero;
@@ -331,6 +378,22 @@ namespace WpfApp.Services
                         handled = true;
                         break;
 
+                    case WM_KEYUP:
+                    case WM_SYSKEYUP:
+                        if (!_ddDriverService.IsSequenceMode)
+                        {
+                            int vkCode = wParam.ToInt32();
+                            _logger.LogDebug("HotkeyService", $"[WndProc] 收到按键释放消息 - VK: 0x{vkCode:X}, 当前热键VK: 0x{_startVirtualKey:X}");
+                            
+                            if (vkCode == _startVirtualKey)
+                            {
+                                _logger.LogDebug("HotkeyService", "[WndProc] 检测到启动键释放");
+                                HandleHoldModeKeyRelease();
+                                handled = true;
+                            }
+                        }
+                        break;
+
                     case WM_XBUTTONDOWN:
                         int xButton = (int)((wParam.ToInt32() >> 16) & 0xFFFF);
                         DDKeyCode xButtonCode = xButton == 1 ? DDKeyCode.XBUTTON1 : DDKeyCode.XBUTTON2;
@@ -338,9 +401,34 @@ namespace WpfApp.Services
                         handled = true;
                         break;
 
+                    case WM_XBUTTONUP:
+                        if (!_ddDriverService.IsSequenceMode)
+                        {
+                            int xButtonUp = (int)((wParam.ToInt32() >> 16) & 0xFFFF);
+                            DDKeyCode xButtonUpCode = xButtonUp == 1 ? DDKeyCode.XBUTTON1 : DDKeyCode.XBUTTON2;
+                            _logger.LogDebug("HotkeyService", $"[WndProc] 收到鼠标侧键释放消息 - 按键: {xButtonUpCode}, 当前热键: {_pendingStartKey}");
+                            
+                            if (xButtonUpCode == _pendingStartKey)
+                            {
+                                _logger.LogDebug("HotkeyService", "[WndProc] 检测到鼠标侧键释放");
+                                HandleHoldModeKeyRelease();
+                                handled = true;
+                            }
+                        }
+                        break;
+
                     case WM_MBUTTONDOWN:
                         HandleMouseButtonMessage(DDKeyCode.MBUTTON);
                         handled = true;
+                        break;
+
+                    case WM_MBUTTONUP:
+                        if (!_ddDriverService.IsSequenceMode && _pendingStartKey == DDKeyCode.MBUTTON)
+                        {
+                            _logger.LogDebug("HotkeyService", "[WndProc] 检测到鼠标中键释放");
+                            HandleHoldModeKeyRelease();
+                            handled = true;
+                        }
                         break;
                 }
             }
@@ -369,6 +457,12 @@ namespace WpfApp.Services
                     {
                         UnhookWindowsHookEx(_mouseHookHandle);
                         _mouseHookHandle = IntPtr.Zero;
+                    }
+
+                    if (_keyboardHookHandle != IntPtr.Zero)
+                    {
+                        UnhookWindowsHookEx(_keyboardHookHandle);
+                        _keyboardHookHandle = IntPtr.Zero;
                     }
                     
                     StopSequence();
@@ -696,100 +790,21 @@ namespace WpfApp.Services
         {
             try 
             {
+                if (_isInputFocused)
+                {
+                    return;
+                }
+
                 var now = DateTime.Now;
                 
-                // 检查是否是按键按下状态
-                if (!_isKeyHeld)
+                // 根据当前模式分发处理
+                if (!_ddDriverService.IsSequenceMode)
                 {
-                    _lastKeyDownTime = now;
-                    _isKeyHeld = true;
-                    
-                    // 按压模式下直接处理，不需要防抖
-                    if (!_ddDriverService.IsSequenceMode)
-                    {
-                        StartHotkeyPressed?.Invoke();
-                        StartSequence();
-                        _lastToggleTime = now;
-                        return;
-                    }
-                    
-                    // 顺序模式下需要防抖
-                    var timeSinceLastToggle = (now - _lastToggleTime).TotalMilliseconds;
-                    if (timeSinceLastToggle < MIN_TOGGLE_INTERVAL)
-                    {
-                        _logger.LogDebug("HotkeyService", 
-                            $"[HandleHotkeyMessage] 忽略过快的切换 - " +
-                            $"间隔: {timeSinceLastToggle}ms, " +
-                            $"最小间隔: {MIN_TOGGLE_INTERVAL}ms");
-                        return;
-                    }
+                    HandleHoldModeHotkey(id);
                 }
                 else
                 {
-                    // 按压模式下直接处理按键释放
-                    if (!_ddDriverService.IsSequenceMode)
-                    {
-                        _isKeyHeld = false;
-                        StopHotkeyPressed?.Invoke();
-                        StopSequence();
-                        _lastToggleTime = now;
-                        return;
-                    }
-                    
-                    // 顺序模式下需要防抖
-                    var keyHoldTime = (now - _lastKeyDownTime).TotalMilliseconds;
-                    if (keyHoldTime < KEY_RELEASE_TIMEOUT)
-                    {
-                        _logger.LogDebug("HotkeyService", 
-                            $"[HandleHotkeyMessage] 按键持续按下 - " +
-                            $"持续时间: {keyHoldTime}ms, " +
-                            $"超时阈值: {KEY_RELEASE_TIMEOUT}ms");
-                        return;
-                    }
-                    _isKeyHeld = false;
-                }
-
-                // 顺序模式下的处理
-                if (_ddDriverService.IsSequenceMode)
-                {
-                    // 相同热键模式处理
-                    if (_currentMode == HotkeyMode.Same && id == START_HOTKEY_ID)
-                    {
-                        if (!_isStarted && !_isSequenceRunning)
-                        {
-                            StartHotkeyPressed?.Invoke();
-                            StartSequence();
-                        }
-                        else if (_isStarted || _isSequenceRunning)
-                        {
-                            StopHotkeyPressed?.Invoke();
-                            StopSequence();
-                        }
-                        _lastToggleTime = now;
-                        return;
-                    }
-
-                    // 不同热键模式处理
-                    switch (id)
-                    {
-                        case START_HOTKEY_ID:
-                            if (!_isStarted && !_isSequenceRunning)
-                            {
-                                StartHotkeyPressed?.Invoke();
-                                StartSequence();
-                                _lastToggleTime = now;
-                            }
-                            break;
-
-                        case STOP_HOTKEY_ID:
-                            if (_isStarted || _isSequenceRunning)
-                            {
-                                StopHotkeyPressed?.Invoke();
-                                StopSequence();
-                                _lastToggleTime = now;
-                            }
-                            break;
-                    }
+                    HandleSequenceModeHotkey(id, now);
                 }
             }
             catch (Exception ex)
@@ -803,6 +818,213 @@ namespace WpfApp.Services
                 {
                     _logger.LogError("HotkeyService", "[HandleHotkeyMessage] 异常处理时停止序列失败", stopEx);
                 }
+            }
+        }
+
+        // 处理按模式的热键消息
+        private void HandleHoldModeHotkey(int id)
+        {
+            switch (id)
+            {
+                case START_HOTKEY_ID:
+                    if (!_isKeyHeld)
+                    {
+                        HandleHoldModeKeyPress();
+                    }
+                    else
+                    {
+                        HandleHoldModeKeyRelease();
+                    }
+                    break;
+            }
+        }
+
+        // 处理顺序模式的热键消息
+        private void HandleSequenceModeHotkey(int id, DateTime now)
+        {
+            // 检查是否是按键按下状态
+            if (!_isKeyHeld)
+            {
+                _lastKeyDownTime = now;
+                _isKeyHeld = true;
+                
+                // 防抖处理
+                var timeSinceLastToggle = (now - _lastToggleTime).TotalMilliseconds;
+                if (timeSinceLastToggle < MIN_TOGGLE_INTERVAL)
+                {
+                    _logger.LogDebug("HotkeyService", 
+                        $"[HandleSequenceModeHotkey] 忽略过快的切换 - " +
+                        $"间隔: {timeSinceLastToggle}ms, " +
+                        $"最小间隔: {MIN_TOGGLE_INTERVAL}ms");
+                    return;
+                }
+            }
+            else
+            {
+                // 防抖处理
+                var keyHoldTime = (now - _lastKeyDownTime).TotalMilliseconds;
+                if (keyHoldTime < KEY_RELEASE_TIMEOUT)
+                {
+                    _logger.LogDebug("HotkeyService", 
+                        $"[HandleSequenceModeHotkey] 按键持续按下 - " +
+                        $"持续时间: {keyHoldTime}ms, " +
+                        $"超时阈值: {KEY_RELEASE_TIMEOUT}ms");
+                    return;
+                }
+                _isKeyHeld = false;
+            }
+
+            // 相同热键模式处理
+            if (_currentMode == HotkeyMode.Same && id == START_HOTKEY_ID)
+            {
+                if (!_isStarted && !_isSequenceRunning)
+                {
+                    StartHotkeyPressed?.Invoke();
+                    StartSequence();
+                }
+                else if (_isStarted || _isSequenceRunning)
+                {
+                    StopHotkeyPressed?.Invoke();
+                    StopSequence();
+                }
+                _lastToggleTime = now;
+                return;
+            }
+
+            // 不同热键模式处理
+            switch (id)
+            {
+                case START_HOTKEY_ID:
+                    if (!_isStarted && !_isSequenceRunning)
+                    {
+                        StartHotkeyPressed?.Invoke();
+                        StartSequence();
+                        _lastToggleTime = now;
+                    }
+                    break;
+
+                case STOP_HOTKEY_ID:
+                    if (_isStarted || _isSequenceRunning)
+                    {
+                        StopHotkeyPressed?.Invoke();
+                        StopSequence();
+                        _lastToggleTime = now;
+                    }
+                    break;
+            }
+        }
+
+        // 修改鼠标按键消息处理方法
+        private void HandleMouseButtonMessage(DDKeyCode buttonCode)
+        {
+            try
+            {
+                if (_isInputFocused)
+                {
+                    return;
+                }
+
+                var now = DateTime.Now;
+                
+                // 根据当前模式分发处理
+                if (!_ddDriverService.IsSequenceMode)
+                {
+                    HandleHoldModeMouseButton(buttonCode);
+                }
+                else
+                {
+                    HandleSequenceModeMouseButton(buttonCode, now);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("HotkeyService", $"[MouseHandler] 处理鼠标按键消息异常: {ex.Message}", ex);
+            }
+        }
+
+        // 处理按压模式的鼠标按键
+        private void HandleHoldModeMouseButton(DDKeyCode buttonCode)
+        {
+            if (buttonCode != _pendingStartKey)
+            {
+                return;
+            }
+
+            if (!_isKeyHeld)
+            {
+                HandleHoldModeKeyPress();
+            }
+            else
+            {
+                HandleHoldModeKeyRelease();
+            }
+        }
+
+        // 处理顺序模式的鼠标按键
+        private void HandleSequenceModeMouseButton(DDKeyCode buttonCode, DateTime now)
+        {
+            // 检查是否是按键按下状态
+            if (!_isKeyHeld)
+            {
+                _lastKeyDownTime = now;
+                _isKeyHeld = true;
+                
+                // 防抖处理
+                var timeSinceLastToggle = (now - _lastToggleTime).TotalMilliseconds;
+                if (timeSinceLastToggle < MIN_TOGGLE_INTERVAL)
+                {
+                    _logger.LogDebug("HotkeyService", 
+                        $"[HandleSequenceModeMouseButton] 忽略过快的切换 - " +
+                        $"间隔: {timeSinceLastToggle}ms, " +
+                        $"最小间隔: {MIN_TOGGLE_INTERVAL}ms");
+                    return;
+                }
+            }
+            else
+            {
+                // 防抖处理
+                var keyHoldTime = (now - _lastKeyDownTime).TotalMilliseconds;
+                if (keyHoldTime < KEY_RELEASE_TIMEOUT)
+                {
+                    _logger.LogDebug("HotkeyService", 
+                        $"[HandleSequenceModeMouseButton] 按键持续按下 - " +
+                        $"持续时间: {keyHoldTime}ms, " +
+                        $"超时阈值: {KEY_RELEASE_TIMEOUT}ms");
+                    return;
+                }
+                _isKeyHeld = false;
+            }
+
+            // 优先处理停止键
+            if (buttonCode == _pendingStopKey && (_isStarted || _isSequenceRunning))
+            {
+                StopKeyMapping();
+                _lastToggleTime = now;
+                return;
+            }
+
+            // 相同热键模式处理
+            if (_currentMode == HotkeyMode.Same && buttonCode == _pendingStartKey)
+            {
+                if (!_isStarted && !_isSequenceRunning)
+                {
+                    StartHotkeyPressed?.Invoke();
+                    StartSequence();
+                }
+                else
+                {
+                    StopKeyMapping();
+                }
+                _lastToggleTime = now;
+                return;
+            }
+
+            // 不同热键模式处理
+            if (buttonCode == _pendingStartKey && !_isStarted && !_isSequenceRunning)
+            {
+                StartHotkeyPressed?.Invoke();
+                StartSequence();
+                _lastToggleTime = now;
             }
         }
 
@@ -910,106 +1132,6 @@ namespace WpfApp.Services
             }
         }
 
-        // 修改 HandleMouseButtonMessage 方法
-        private void HandleMouseButtonMessage(DDKeyCode buttonCode)
-        {
-            try
-            {
-                var now = DateTime.Now;
-                
-                // 检查是否是按键按下状态
-                if (!_isKeyHeld)
-                {
-                    _lastKeyDownTime = now;
-                    _isKeyHeld = true;
-                    
-                    // 按压模式下直接处理，不需要防抖
-                    if (!_ddDriverService.IsSequenceMode && buttonCode == _pendingStartKey)
-                    {
-                        StartHotkeyPressed?.Invoke();
-                        StartSequence();
-                        _lastToggleTime = now;
-                        return;
-                    }
-                    
-                    // 顺序模式下需要防抖
-                    var timeSinceLastToggle = (now - _lastToggleTime).TotalMilliseconds;
-                    if (timeSinceLastToggle < MIN_TOGGLE_INTERVAL)
-                    {
-                        _logger.LogDebug("HotkeyService", 
-                            $"[MouseHandler] 忽略过快的切换 - " +
-                            $"间隔: {timeSinceLastToggle}ms, " +
-                            $"最小间隔: {MIN_TOGGLE_INTERVAL}ms");
-                        return;
-                    }
-                }
-                else
-                {
-                    // 按压模式下直接处理按键释放
-                    if (!_ddDriverService.IsSequenceMode && buttonCode == _pendingStartKey)
-                    {
-                        _isKeyHeld = false;
-                        StopHotkeyPressed?.Invoke();
-                        StopSequence();
-                        _lastToggleTime = now;
-                        return;
-                    }
-                    
-                    // 顺序模式下需要防抖
-                    var keyHoldTime = (now - _lastKeyDownTime).TotalMilliseconds;
-                    if (keyHoldTime < KEY_RELEASE_TIMEOUT)
-                    {
-                        _logger.LogDebug("HotkeyService", 
-                            $"[MouseHandler] 按键持续按下 - " +
-                            $"持续时间: {keyHoldTime}ms, " +
-                            $"超时阈值: {KEY_RELEASE_TIMEOUT}ms");
-                        return;
-                    }
-                    _isKeyHeld = false;
-                }
-
-                // 顺序模式下的处理
-                if (_ddDriverService.IsSequenceMode)
-                {
-                    // 优先处理停止键
-                    if (buttonCode == _pendingStopKey && (_isStarted || _isSequenceRunning))
-                    {
-                        StopKeyMapping();
-                        _lastToggleTime = now;
-                        return;
-                    }
-
-                    // 相同热键模式处理
-                    if (_currentMode == HotkeyMode.Same && buttonCode == _pendingStartKey)
-                    {
-                        if (!_isStarted && !_isSequenceRunning)
-                        {
-                            StartHotkeyPressed?.Invoke();
-                            StartSequence();
-                        }
-                        else
-                        {
-                            StopKeyMapping();
-                        }
-                        _lastToggleTime = now;
-                        return;
-                    }
-
-                    // 不同热键模式处理
-                    if (buttonCode == _pendingStartKey && !_isStarted && !_isSequenceRunning)
-                    {
-                        StartHotkeyPressed?.Invoke();
-                        StartSequence();
-                        _lastToggleTime = now;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("HotkeyService", $"[MouseHandler] 处理鼠标按键消息异常: {ex.Message}", ex);
-            }
-        }
-
         // 修改 StopKeyMapping 方法
         private void StopKeyMapping()
         {
@@ -1045,18 +1167,6 @@ namespace WpfApp.Services
             return keyCode == DDKeyCode.MBUTTON || 
                    keyCode == DDKeyCode.XBUTTON1 || 
                    keyCode == DDKeyCode.XBUTTON2;
-        }
-
-        // 添加设置鼠标钩子的方法
-        private IntPtr SetMouseHook(LowLevelMouseProc proc)
-        {
-            using (Process curProcess = Process.GetCurrentProcess())
-            using (ProcessModule? curModule = curProcess.MainModule)
-            {
-                if (curModule == null) return IntPtr.Zero;
-                return SetWindowsHookEx(WH_MOUSE_LL, proc,
-                    GetModuleHandle(curModule.ModuleName), 0);
-            }
         }
 
         // 添加全局鼠标钩子回调
@@ -1122,7 +1232,7 @@ namespace WpfApp.Services
                 _logger.LogDebug("HotkeyService", 
                     $"[OnModeSwitched] 开始处理模式切换 - " +
                     $"目标模式: {(isSequenceMode ? "顺序模式" : "按压模式")}, " +
-                    $"当前状态: 已启动({_isStarted}), 序列运行({_isSequenceRunning})");
+                    $"当前态: 已启动({_isStarted}), 序列运行({_isSequenceRunning})");
 
                 // 停止当前运行的序列
                 StopSequence();
@@ -1130,7 +1240,7 @@ namespace WpfApp.Services
                 // 保存当前模式的热键配置
                 if (!isSequenceMode) // 从顺序模式切换到按压模式
                 {
-                    // 保存顺序模式的配置和模式类型
+                    // 保存顺序模式配置和模式类型
                     var previousMode = _currentMode;  // 保存切换前的模式类型
                     
                     if (_currentMode == HotkeyMode.Same)
@@ -1188,7 +1298,7 @@ namespace WpfApp.Services
                             }
                             else
                             {
-                                // 如果启动键和停止键不同，保持Different模式
+                                // 如启动键和停止键不同，保持Different模式
                                 _currentMode = HotkeyMode.Different;
                             }
                         }
@@ -1213,7 +1323,7 @@ namespace WpfApp.Services
 
                 if (isSequenceMode)
                 {
-                    // 切换到顺序模式，先从配置中读取热键
+                    // 切换顺序模式，先从配置中读取热键
                     var config = AppConfigService.Config;
                     
                     // 如果内存中没有保存的热键配置，从配置文件中读取
@@ -1312,7 +1422,7 @@ namespace WpfApp.Services
                     }
                 }
 
-                // 更新配置
+                // 更新置
                 AppConfigService.UpdateConfig(config =>
                 {
                     config.keyMode = isSequenceMode ? 0 : 1;
@@ -1365,7 +1475,7 @@ namespace WpfApp.Services
         {
             try
             {
-                _logger.LogDebug("HotkeyService", "[RegisterPendingHotkeys] 开始注册待处理的热键");
+                _logger.LogDebug("HotkeyService", "[RegisterPendingHotkeys] 开始注册待理的热键");
 
                 bool startSuccess = true;
                 bool stopSuccess = true;
@@ -1455,7 +1565,7 @@ namespace WpfApp.Services
                 _isStarted = true;
                 _isSequenceRunning = true;
                 
-                // 确保驱动服务处于正确状态
+                // 确保驱动服务于正确状态
                 if (_ddDriverService.IsSequenceMode)
                 {
                     _ddDriverService.IsEnabled = true;
@@ -1559,6 +1669,160 @@ namespace WpfApp.Services
                 _logger.LogError("HotkeyService", "[RegisterStartHotkey] 注册开始热键异常", ex);
                 return false;
             }
+        }
+
+        // 修改按压模式的按键处理方法
+        private void HandleHoldModeKeyPress()
+        {
+            try
+            {
+                _logger.LogDebug("HotkeyService", "[HandleHoldModeKeyPress] 处理按压模式按键按下");
+
+                if (_isSequenceRunning)
+                {
+                    _logger.LogDebug("HotkeyService", "[HandleHoldModeKeyPress] 序列已在运行中，忽略按键按下");
+                    return;
+                }
+
+                // 检查按键列表是否为空
+                if (_keyList == null || _keyList.Count == 0)
+                {
+                    _logger.LogWarning("HotkeyService", "[HandleHoldModeKeyPress] 按键列表为空，无法启动序列");
+                    return;
+                }
+
+                // 触发按键按下事件
+                StartHotkeyPressed?.Invoke();
+
+                // 创建新的取消令牌
+                _sequenceCts?.Cancel();
+                _sequenceCts?.Dispose();
+                _sequenceCts = new CancellationTokenSource();
+
+                // 启动序列
+                _isSequenceRunning = true;
+                _ddDriverService.SetHoldMode(true);
+
+                // 在后台开始循环执行按键序列
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        while (!_sequenceCts.Token.IsCancellationRequested)
+                        {
+                            foreach (var key in _keyList)
+                            {
+                                if (_sequenceCts.Token.IsCancellationRequested)
+                                    break;
+
+                                try
+                                {
+                                    // 触发按键事件
+                                    KeyTriggered?.Invoke(key);
+                                    // 模拟按键
+                                    await Task.Run(() => _ddDriverService.SimulateKeyPress(key));
+                                    // 等待指定间隔
+                                    await Task.Delay(_ddDriverService.KeyInterval, _sequenceCts.Token);
+                                }
+                                catch (OperationCanceledException)
+                                {
+                                    break;
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogError("HotkeyService", $"[HandleHoldModeKeyPress] 模拟按键异常: {key}", ex);
+                                }
+                            }
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // 正常取消，不需要处理
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError("HotkeyService", "[HandleHoldModeKeyPress] 按键序列循环异常", ex);
+                    }
+                }, _sequenceCts.Token);
+
+                _logger.LogDebug("HotkeyService", "[HandleHoldModeKeyPress] 按压模式已启动");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("HotkeyService", "[HandleHoldModeKeyPress] 处理按压模式按键按下异常", ex);
+                // 发生异常时重置状态
+                _isSequenceRunning = false;
+                _ddDriverService.SetHoldMode(false);
+                _sequenceCts?.Cancel();
+            }
+        }
+
+        private void HandleHoldModeKeyRelease()
+        {
+            try
+            {
+                _logger.LogDebug("HotkeyService", "[HandleHoldModeKeyRelease] 处理按压模式按键释放");
+
+                if (!_isSequenceRunning)
+                {
+                    _logger.LogDebug("HotkeyService", "[HandleHoldModeKeyRelease] 序列未运行，忽略按键释放");
+                    return;
+                }
+
+                // 取消序列任务
+                _sequenceCts?.Cancel();
+
+                // 停止驱动服务
+                _ddDriverService.SetHoldMode(false);
+                _isSequenceRunning = false;
+
+                // 触发按键释放事件
+                StopHotkeyPressed?.Invoke();
+
+                _logger.LogDebug("HotkeyService", "[HandleHoldModeKeyRelease] 按压模式已停止");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("HotkeyService", "[HandleHoldModeKeyRelease] 处理按压模式按键释放异常", ex);
+                // 确保状态被重置
+                _isSequenceRunning = false;
+                _ddDriverService.SetHoldMode(false);
+                _sequenceCts?.Cancel();
+            }
+        }
+
+        // 添加键盘钩子回调
+        private IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (nCode >= 0)
+            {
+                try
+                {
+                    int wParamInt = wParam.ToInt32();
+                    KBDLLHOOKSTRUCT hookStruct = (KBDLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT))!;
+
+                    // 检查是否是我们关注的按键
+                    if (hookStruct.vkCode == _startVirtualKey)
+                    {
+                        if (!_ddDriverService.IsSequenceMode)
+                        {
+                            switch (wParamInt)
+                            {
+                                case WM_KEYUP:
+                                case WM_SYSKEYUP:
+                                    _logger.LogDebug("HotkeyService", $"[KeyboardHook] 检测到启动键释放 - VK: 0x{hookStruct.vkCode:X}");
+                                    HandleHoldModeKeyRelease();
+                                    break;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("HotkeyService", "键盘钩子回调异常", ex);
+                }
+            }
+            return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);
         }
     }
 }
