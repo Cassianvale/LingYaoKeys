@@ -99,12 +99,8 @@ namespace WpfApp
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (!_isShuttingDown)
-            {
-                e.Cancel = true;
-                WindowState = WindowState.Minimized;
-                _logger.LogDebug("MainWindow", "取消关闭，最小化到托盘");
-            }
+            _isShuttingDown = true;
+            _logger.LogDebug("MainWindow", "正在关闭应用程序");
         }
 
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -140,7 +136,8 @@ namespace WpfApp
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            Close();
+            _isShuttingDown = true;
+            Application.Current.Shutdown();
         }
 
         private void ToggleMaximizeRestore()
