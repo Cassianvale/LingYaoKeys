@@ -11,8 +11,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <ConsoleOutputRedirection>true</ConsoleOutputRedirection>
     
-    <!-- 项目信息配置 -->
-    <Version>1.0.2</Version>
+    <!-- 项目信息配置 -->    
+    <Version>1.0.3</Version>
     <Product>LingYaoKeys</Product>
     <Authors>慕长秋</Authors>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>

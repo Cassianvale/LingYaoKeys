@@ -299,7 +299,7 @@ namespace WpfApp.ViewModels
             _hotkeyService.SequenceModeStarted += () => IsHotkeyEnabled = true;
             _hotkeyService.SequenceModeStopped += () => IsHotkeyEnabled = false;
 
-            // 订阅状��变化事件
+            // 订阅状态变化事件
             PropertyChanged += async (s, e) =>
             {
                 if (e.PropertyName == nameof(IsHotkeyEnabled) && IsSoundEnabled)

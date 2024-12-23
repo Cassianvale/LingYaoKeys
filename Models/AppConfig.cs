@@ -9,7 +9,9 @@ namespace WpfApp.Models
 {
     public class AppConfig
     {
+        [JsonIgnore]
         public AppInfo AppInfo { get; set; } = new AppInfo();
+        [JsonIgnore]
         public UIConfig UI { get; set; } = new UIConfig();
         public LoggingConfig Logging { get; set; } = new LoggingConfig();
         
@@ -34,7 +36,8 @@ namespace WpfApp.Models
     {
         private static readonly Assembly Assembly = Assembly.GetExecutingAssembly();
         
-        public string Title { get; set; } = "灵曜按键";
+        [JsonIgnore]
+        public string Title { get; set; } = "灵曜按键 (LingYao Keys)";
         
         [JsonIgnore]
         public string Version 
@@ -49,13 +52,16 @@ namespace WpfApp.Models
 
     public class UIConfig
     {
+        [JsonIgnore]
         public MainWindowConfig MainWindow { get; set; } = new MainWindowConfig();
     }
 
     public class MainWindowConfig
     {
-        public int DefaultWidth { get; set; } = 600;
-        public int DefaultHeight { get; set; } = 450;
+        [JsonIgnore]
+        public int DefaultWidth { get; set; } = 500;
+        [JsonIgnore]
+        public int DefaultHeight { get; set; } = 430;
     }
 
     public class LoggingConfig

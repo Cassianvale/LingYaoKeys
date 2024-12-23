@@ -39,7 +39,11 @@ namespace WpfApp.Services
                 if (File.Exists(ConfigPath))
                 {
                     string json = File.ReadAllText(ConfigPath);
-                    _config = JsonConvert.DeserializeObject<AppConfig>(json);
+                    var jsonSettings = new JsonSerializerSettings
+                    {
+                        ObjectCreationHandling = ObjectCreationHandling.Replace
+                    };
+                    _config = JsonConvert.DeserializeObject<AppConfig>(json, jsonSettings);
                     
                     _logger.LogDebug("Config", $"从配置文件加载窗口尺寸: {_config?.UI.MainWindow.DefaultWidth}x{_config?.UI.MainWindow.DefaultHeight}");
                     
@@ -75,10 +79,10 @@ namespace WpfApp.Services
                 configChanged = true;
             }
             
-            if (_config.UI.MainWindow.DefaultHeight < 420)
+            if (_config.UI.MainWindow.DefaultHeight < 430)
             {
-                _logger.LogWarning("Config", $"窗口高度 {_config.UI.MainWindow.DefaultHeight} 小于最小值，已修正为 420");
-                _config.UI.MainWindow.DefaultHeight = 420;
+                _logger.LogWarning("Config", $"窗口高度 {_config.UI.MainWindow.DefaultHeight} 小于最小值，已修正为 430");
+                _config.UI.MainWindow.DefaultHeight = 430;
                 configChanged = true;
             }
 

@@ -1,13 +1,4 @@
 {
-  "AppInfo": {
-    "Title": "灵曜按键"
-  },
-  "UI": {
-    "MainWindow": {
-      "DefaultWidth": 600,
-      "DefaultHeight": 450
-    }
-  },
   "Logging": {
     "Enabled": false,
     "LogLevel": "Debug",
