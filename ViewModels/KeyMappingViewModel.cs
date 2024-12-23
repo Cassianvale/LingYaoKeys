@@ -354,10 +354,6 @@ namespace WpfApp.ViewModels
 
             try
             {
-                _startHotkey = keyCode;
-                _startModifiers = modifiers;
-                UpdateHotkeyText(keyCode, modifiers, true);
-                
                 bool result = _hotkeyService.RegisterStartHotkey(keyCode, modifiers);
                 if (!result && !_hotkeyService.IsMouseButton(keyCode))
                 {
@@ -365,6 +361,11 @@ namespace WpfApp.ViewModels
                     _mainViewModel.UpdateStatusMessage("开始热键注册失败，请尝试其他按键", true);
                     return;
                 }
+                
+                // 只有在注册成功后才更新状态和显示
+                _startHotkey = keyCode;
+                _startModifiers = modifiers;
+                UpdateHotkeyText(keyCode, modifiers, true);
                 
                 _mainViewModel.UpdateStatusMessage($"已设置开始热键: {keyCode.ToDisplayName()}");
                 _logger.LogDebug("KeyMapping", $"设置开始热键: {keyCode}, 修饰键: {modifiers}");
@@ -407,10 +408,6 @@ namespace WpfApp.ViewModels
 
             try
             {
-                _stopHotkey = keyCode;
-                _stopModifiers = modifiers;
-                UpdateHotkeyText(keyCode, modifiers, false);
-                
                 bool result = _hotkeyService.RegisterStopHotkey(keyCode, modifiers);
                 if (!result)
                 {
@@ -418,6 +415,11 @@ namespace WpfApp.ViewModels
                     _mainViewModel.UpdateStatusMessage("停止热键注册失败，请尝试其他按键", true);
                     return;
                 }
+                
+                // 只有在注册成功后才更新状态和显示
+                _stopHotkey = keyCode;
+                _stopModifiers = modifiers;
+                UpdateHotkeyText(keyCode, modifiers, false);
                 
                 _mainViewModel.UpdateStatusMessage($"已设置停止热键: {keyCode.ToDisplayName()}");
                 _logger.LogDebug("Hotkey", $"设置停止热键: {keyCode}, 修饰键: {modifiers}");
