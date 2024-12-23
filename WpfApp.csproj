@@ -81,4 +81,9 @@
     <RemoveDir Directories="$(PublishDir)" />
   </Target>
 
+  <ItemGroup>
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
 </Project>

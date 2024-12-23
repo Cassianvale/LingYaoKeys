@@ -19,7 +19,6 @@
         AllowsTransparency="True"
         Background="Transparent"
         BorderThickness="0"
-        Padding="10"
         StateChanged="MainWindow_StateChanged"
         Closing="Window_Closing">
 
@@ -32,131 +31,134 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <Grid Margin="-10">
+    <Border x:Name="WindowBorder" 
+            Background="Transparent" 
+            BorderThickness="0" 
+            Margin="10">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="15" 
+                            Direction="0" 
+                            ShadowDepth="0" 
+                            Opacity="0.2" 
+                            Color="#000000"/>
+        </Border.Effect>
+        
         <!-- 托盘图标 -->
-        <tb:TaskbarIcon x:Name="TrayIcon"
+        <Grid>
+            <tb:TaskbarIcon x:Name="TrayIcon"
                         IconSource="/Resource/icon/app.ico"
                         ToolTipText="{Binding WindowTitle}"
                         TrayLeftMouseDown="TrayIcon_TrayLeftMouseDown"
                         TrayRightMouseDown="TrayIcon_TrayRightMouseDown">
-            <tb:TaskbarIcon.ContextMenu>
-                <ContextMenu>
-                    <MenuItem Header="显示主窗口" Click="ShowWindow_Click"/>
-                    <Separator/>
-                    <MenuItem Header="退出" Click="Exit_Click"/>
-                </ContextMenu>
-            </tb:TaskbarIcon.ContextMenu>
-        </tb:TaskbarIcon>
+                <tb:TaskbarIcon.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="显示主窗口" Click="ShowWindow_Click"/>
+                        <Separator/>
+                        <MenuItem Header="退出" Click="Exit_Click"/>
+                    </ContextMenu>
+                </tb:TaskbarIcon.ContextMenu>
+            </tb:TaskbarIcon>
 
-        <Border x:Name="ShadowBorder"
-                Background="Transparent"
-                Margin="10"
-                Effect="{StaticResource WindowShadow}">
-            <Border.Clip>
-                <RectangleGeometry Rect="0,0,10000,10000"/>
-            </Border.Clip>
-        </Border>
-        
-        <Border x:Name="MainBorder" 
-                Background="White" 
-                BorderBrush="#DDDDDD" 
-                BorderThickness="1" 
-                CornerRadius="8"
-                Margin="10">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="32"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="25"/>
-                </Grid.RowDefinitions>
+            <Border x:Name="MainBorder" 
+                    Background="White" 
+                    BorderBrush="#EEEEEE"
+                    BorderThickness="1" 
+                    CornerRadius="8"
+                    ClipToBounds="True">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="32"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="25"/>
+                    </Grid.RowDefinitions>
 
-                <!-- 标题栏 -->
-                <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                    <!-- 标题栏 -->
+                    <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                    <!-- 图标和标题 -->
-                    <StackPanel Grid.Column="0" 
-                              Orientation="Horizontal" 
-                              Margin="10,0,0,0">
-                        <Image Source="/Resource/icon/app.ico" 
-                               Width="25" 
-                               Height="25" 
-                               Margin="0,0,5,0"/>
-                        <TextBlock Text="{Binding WindowTitle}" 
-                                 VerticalAlignment="Center"/>
-                    </StackPanel>
-
-                    <!-- 窗口控制按钮 -->
-                    <StackPanel Grid.Column="2" 
+                        <!-- 图标和标题 -->
+                        <StackPanel Grid.Column="0" 
                                 Orientation="Horizontal" 
-                                HorizontalAlignment="Right">
-                        <Button x:Name="TopMostButton"
-                                Style="{StaticResource TopMostButtonStyle}"
-                                Click="TopMostButton_Click"/>
-                        <Button x:Name="MinimizeButton"
-                                Style="{StaticResource MinimizeButtonStyle}"
-                                Click="MinimizeButton_Click"/>
-                        <Button x:Name="MaximizeButton"
-                                Style="{StaticResource MaximizeButtonStyle}"
-                                Click="MaximizeButton_Click"/>
-                        <Button x:Name="CloseButton"
-                                Style="{StaticResource CloseButtonStyle}"
-                                Click="CloseButton_Click"
-                                Margin="0,0,-1,0"/>
-                    </StackPanel>
+                                Margin="10,0,0,0">
+                            <Image Source="/Resource/icon/app.ico" 
+                                Width="25" 
+                                Height="25" 
+                                Margin="0,0,5,0"/>
+                            <TextBlock Text="{Binding WindowTitle}" 
+                                    VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- 窗口控制按钮 -->
+                        <StackPanel Grid.Column="2" 
+                                    Orientation="Horizontal" 
+                                    HorizontalAlignment="Right">
+                            <Button x:Name="TopMostButton"
+                                    Style="{StaticResource TopMostButtonStyle}"
+                                    Click="TopMostButton_Click"/>
+                            <Button x:Name="MinimizeButton"
+                                    Style="{StaticResource MinimizeButtonStyle}"
+                                    Click="MinimizeButton_Click"/>
+                            <Button x:Name="MaximizeButton"
+                                    Style="{StaticResource MaximizeButtonStyle}"
+                                    Click="MaximizeButton_Click"/>
+                            <Button x:Name="CloseButton"
+                                    Style="{StaticResource CloseButtonStyle}"
+                                    Click="CloseButton_Click"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- 顶部导航 -->
+                    <Border Grid.Row="1" BorderThickness="0,0,0,1" BorderBrush="#EEEEEE">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Content="前台按键" 
+                                        IsChecked="True"
+                                        Style="{StaticResource NavigationRadioButtonStyle}"
+                                        Command="{Binding NavigateCommand}"
+                                        CommandParameter="FrontKeys"/>
+                            <RadioButton Content="问题反馈" 
+                                        Style="{StaticResource NavigationRadioButtonStyle}"
+                                        Command="{Binding NavigateCommand}"
+                                        CommandParameter="Feedback"/>
+                            <RadioButton Content="关于" 
+                                        Style="{StaticResource NavigationRadioButtonStyle}"
+                                        Command="{Binding NavigateCommand}"
+                                        CommandParameter="About"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 页面容器 -->
+                    <Frame Grid.Row="2"
+                           NavigationUIVisibility="Hidden"
+                           Content="{Binding CurrentPage}" />
+
+                    <!-- 状态栏 -->
+                    <StatusBar Grid.Row="3" Background="Transparent">
+                        <StatusBar.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                </Grid>
+                            </ItemsPanelTemplate>
+                        </StatusBar.ItemsPanel>
+                        
+                        <StatusBarItem>
+                            <TextBlock Text="{Binding StatusMessage}"/>
+                        </StatusBarItem>
+                        
+                        <StatusBarItem Grid.Column="1">
+                            <TextBlock Text="{Binding AuthorInfo}" Margin="0,0,10,0"/>
+                        </StatusBarItem>
+                    </StatusBar>
                 </Grid>
-
-                <!-- 顶部导航 -->
-                <Border Grid.Row="1" BorderThickness="0,0,0,1" BorderBrush="#DDDDDD">
-                    <StackPanel Orientation="Horizontal">
-                        <RadioButton Content="前台按键" 
-                                    IsChecked="True"
-                                    Style="{StaticResource NavigationRadioButtonStyle}"
-                                    Command="{Binding NavigateCommand}"
-                                    CommandParameter="FrontKeys"/>
-                        <RadioButton Content="问题反馈" 
-                                    Style="{StaticResource NavigationRadioButtonStyle}"
-                                    Command="{Binding NavigateCommand}"
-                                    CommandParameter="Feedback"/>
-                        <RadioButton Content="关于" 
-                                    Style="{StaticResource NavigationRadioButtonStyle}"
-                                    Command="{Binding NavigateCommand}"
-                                    CommandParameter="About"/>
-                    </StackPanel>
-                </Border>
-
-                <!-- 页面容器 -->
-                <Frame Grid.Row="2"
-                       NavigationUIVisibility="Hidden"
-                       Content="{Binding CurrentPage}" />
-
-                <!-- 状态栏 -->
-                <StatusBar Grid.Row="3" Background="Transparent">
-                    <StatusBar.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                            </Grid>
-                        </ItemsPanelTemplate>
-                    </StatusBar.ItemsPanel>
-                    
-                    <StatusBarItem>
-                        <TextBlock Text="{Binding StatusMessage}"/>
-                    </StatusBarItem>
-                    
-                    <StatusBarItem Grid.Column="1">
-                        <TextBlock Text="{Binding AuthorInfo}" Margin="0,0,10,0"/>
-                    </StatusBarItem>
-                </StatusBar>
-            </Grid>
-        </Border>
-    </Grid>
+            </Border>
+        </Grid>
+    </Border>
 </Window>
