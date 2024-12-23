@@ -1290,26 +1290,53 @@ namespace WpfApp.Services
                         return CallNextHookEx(_mouseHookHandle, nCode, wParam, lParam);
                     }
 
-                    switch ((int)wParam)
+                    int wParamInt = (int)wParam;
+                    switch (wParamInt)
                     {
+                        // 处理鼠标侧键
                         case WM_XBUTTONDOWN:
+                        case WM_XBUTTONUP:
                             MSLLHOOKSTRUCT hookStruct = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT))!;
                             int xButton = (int)((hookStruct.mouseData >> 16) & 0xFFFF);
                             DDKeyCode xButtonCode = xButton == 1 ? DDKeyCode.XBUTTON1 : DDKeyCode.XBUTTON2;
                             
-                            _logger.LogDebug("HotkeyService", $"全局鼠标钩子捕获到侧键: {xButtonCode}");
-                            HandleMouseButtonMessage(xButtonCode);
+                            if (!_ddDriverService.IsSequenceMode && xButtonCode == _pendingStartKey)
+                            {
+                                if (wParamInt == WM_XBUTTONDOWN)
+                                {
+                                    _logger.LogDebug("HotkeyService", $"[MouseHook] 全局鼠标钩子捕获到侧键按下: {xButtonCode}");
+                                    HandleMouseButtonMessage(xButtonCode);
+                                }
+                                else // WM_XBUTTONUP
+                                {
+                                    _logger.LogDebug("HotkeyService", $"[MouseHook] 全局鼠标钩子捕获到侧键释放: {xButtonCode}");
+                                    HandleHoldModeKeyRelease();
+                                }
+                            }
                             break;
 
+                        // 处理鼠标中键
                         case WM_MBUTTONDOWN:
-                            _logger.LogDebug("HotkeyService", "全局鼠标钩子捕获到中键");
-                            HandleMouseButtonMessage(DDKeyCode.MBUTTON);
+                        case WM_MBUTTONUP:
+                            if (!_ddDriverService.IsSequenceMode && _pendingStartKey == DDKeyCode.MBUTTON)
+                            {
+                                if (wParamInt == WM_MBUTTONDOWN)
+                                {
+                                    _logger.LogDebug("HotkeyService", "[MouseHook] 全局鼠标钩子捕获到中键按下");
+                                    HandleMouseButtonMessage(DDKeyCode.MBUTTON);
+                                }
+                                else // WM_MBUTTONUP
+                                {
+                                    _logger.LogDebug("HotkeyService", "[MouseHook] 全局鼠标钩子捕获到中键释放");
+                                    HandleHoldModeKeyRelease();
+                                }
+                            }
                             break;
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError("HotkeyService", "鼠标钩子回调异常", ex);
+                    _logger.LogError("HotkeyService", "[MouseHook] 鼠标钩子回调异常", ex);
                 }
             }
             return CallNextHookEx(_mouseHookHandle, nCode, wParam, lParam);
