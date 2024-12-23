@@ -37,6 +37,7 @@ namespace WpfApp.ViewModels
         private readonly AudioService _audioService;
         private bool _isGameMode = true; // 默认开启
         private bool _isInitializing = true; // 添加一个标志来标识是否在初始化
+        private bool _isExecuting = false; // 添加执行状态标志
 
         // 按键列表
         public ObservableCollection<KeyItem> KeyList
@@ -139,6 +140,15 @@ namespace WpfApp.ViewModels
                 {
                     // 当模式改变时更新驱动服务
                     _ddDriver.IsSequenceMode = value;
+                    
+                    // 更新HotkeyService的按键列表
+                    var selectedKeys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
+                    _hotkeyService.SetKeySequence(selectedKeys, KeyInterval);
+                    
+                    _logger.LogDebug("KeyMapping", 
+                        $"模式切换 - 当前模式: {(value ? "顺序模式" : "按压模式")}, " +
+                        $"选中按键数: {selectedKeys.Count}, " +
+                        $"按键间隔: {KeyInterval}ms");
                 }
             }
         }
@@ -180,6 +190,22 @@ namespace WpfApp.ViewModels
                 }
             }
         }
+
+        // 是否正在执行
+        public bool IsExecuting
+        {
+            get => _isExecuting;
+            private set
+            {
+                if (SetProperty(ref _isExecuting, value))
+                {
+                    OnPropertyChanged(nameof(IsNotExecuting));
+                }
+            }
+        }
+
+        // 是否未在执行（用于绑定）
+        public bool IsNotExecuting => !IsExecuting;
 
         public KeyMappingViewModel(DDDriverService ddDriver, ConfigService configService, 
             HotkeyService hotkeyService, MainViewModel mainViewModel)
@@ -440,8 +466,16 @@ namespace WpfApp.ViewModels
 
             var newKeyItem = new KeyItem(_currentKey.Value);
             // 订阅选中状态变化事件
-            newKeyItem.SelectionChanged += (s, isSelected) => SaveConfig();
+            newKeyItem.SelectionChanged += (s, isSelected) => 
+            {
+                SaveConfig();
+                UpdateHotkeyServiceKeyList();
+            };
             KeyList.Add(newKeyItem);
+            
+            // 更新HotkeyService的按键列表
+            UpdateHotkeyServiceKeyList();
+            
             _mainViewModel.UpdateStatusMessage("按键添加成功");
         }
 
@@ -453,6 +487,18 @@ namespace WpfApp.ViewModels
             {
                 KeyList.Remove(key);
             }
+            
+            // 更新HotkeyService的按键列表
+            UpdateHotkeyServiceKeyList();
+        }
+
+        // 添加更新HotkeyService按键列表的辅助方法
+        private void UpdateHotkeyServiceKeyList()
+        {
+            var selectedKeys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
+            _hotkeyService.SetKeySequence(selectedKeys, KeyInterval);
+            _logger.LogDebug("KeyMapping", 
+                $"更新HotkeyService按键列表 - 选中按键数: {selectedKeys.Count}, 按键间隔: {KeyInterval}ms");
         }
 
         // 保存配置
@@ -558,6 +604,7 @@ namespace WpfApp.ViewModels
             
             try
             {
+                IsExecuting = true;
                 // 只获取勾选的按键
                 var keys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
                 if (keys.Count == 0)
@@ -565,6 +612,7 @@ namespace WpfApp.ViewModels
                     _logger.LogWarning("KeyMapping", "警告：没有选中任何按键");
                     MessageBox.Show("请至少选择一个按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
                     IsHotkeyEnabled = false;
+                    IsExecuting = false;
                     return;
                 }
 
@@ -591,6 +639,7 @@ namespace WpfApp.ViewModels
             {
                 _logger.LogError("KeyMapping", "启动按键映射失败", ex);
                 IsHotkeyEnabled = false;
+                IsExecuting = false;
             }
         }
 
@@ -612,6 +661,7 @@ namespace WpfApp.ViewModels
                 
                 // 最后更新UI状态
                 IsHotkeyEnabled = false;
+                IsExecuting = false;
                 
                 _logger.LogDebug("KeyMapping", "按键映射已停止");
             }
@@ -619,6 +669,7 @@ namespace WpfApp.ViewModels
             {
                 _logger.LogError("KeyMapping", "停止按键映射失败", ex);
                 IsHotkeyEnabled = false;
+                IsExecuting = false;
             }
         }
 
@@ -639,6 +690,7 @@ namespace WpfApp.ViewModels
         {
             try
             {
+                IsExecuting = true;
                 _logger.LogDebug("Hotkey", $"开始热键按下 - 当前模式: {(SelectedKeyMode == 0 ? "顺序模式" : "按压模式")}");
                 
                 // 只获取勾选的按键
@@ -650,8 +702,9 @@ namespace WpfApp.ViewModels
                     return;
                 }
 
-                // 设置按键列表和参数
+                // 设置按键列表参数
                 _ddDriver.SetKeyList(keys);
+                _hotkeyService.SetKeySequence(keys, KeyInterval); // 确保HotkeyService也获得按键列表
                 _ddDriver.IsSequenceMode = SelectedKeyMode == 0;
                 _ddDriver.SetKeyInterval(KeyInterval);
 
@@ -671,6 +724,7 @@ namespace WpfApp.ViewModels
             {
                 _logger.LogError("Hotkey", "启动按键映射异常", ex);
                 IsHotkeyEnabled = false;
+                IsExecuting = false;
             }
         }
 
@@ -683,10 +737,12 @@ namespace WpfApp.ViewModels
                 _ddDriver.IsEnabled = false;
                 _ddDriver.SetHoldMode(false);
                 IsHotkeyEnabled = false;
+                IsExecuting = false;
             }
             catch (Exception ex)
             {
                 _logger.LogError("Hotkey", "停止按键映射异常", ex);
+                IsExecuting = false;
             }
         }
 
@@ -725,7 +781,11 @@ namespace WpfApp.ViewModels
         {
             foreach (var keyItem in KeyList)
             {
-                keyItem.SelectionChanged += (s, isSelected) => SaveConfig();
+                keyItem.SelectionChanged += (s, isSelected) => 
+                {
+                    SaveConfig();
+                    UpdateHotkeyServiceKeyList();
+                };
             }
         }
 

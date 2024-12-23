@@ -1,8 +1,0 @@
-<Page x:Class="WpfApp.Views.SyncSettingsPage"
-      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      Title="同步设置">
-    <Grid Margin="10">
-        <!-- 同步设置页面的内容 -->
-    </Grid>
-</Page> 

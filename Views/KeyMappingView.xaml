@@ -20,6 +20,7 @@
         <DockPanel Grid.Column="0" Margin="0,0,10,0">
             <TextBox x:Name="txtKeyInput"
                      Style="{StaticResource ModernTextBox}"
+                     IsEnabled="{Binding IsNotExecuting}"
                      DockPanel.Dock="Top"
                      Height="32"
                      Margin="0,0,0,10"
@@ -34,6 +35,7 @@
                      LostFocus="KeyInputBox_LostFocus"/>
                     
             <ListBox x:Name="KeysList" 
+                     IsEnabled="{Binding IsNotExecuting}"
                      BorderThickness="1"
                      ItemsSource="{Binding KeyList}"
                      Background="White"
@@ -114,6 +116,8 @@
             <DockPanel Margin="0,0,0,10">
                 <Button Style="{StaticResource RoundedShadowButtonSmall}"
                     Command="{Binding AddKeyCommand}"
+                    Name="btnAddKey"
+                    IsEnabled="{Binding IsNotExecuting}"
                     DockPanel.Dock="Left" 
                     Width="85" 
                     Height="32"
@@ -121,6 +125,8 @@
                     Content="添加按键" />
                 <Button Style="{StaticResource RoundedShadowButtonSmall}"
                     Command="{Binding DeleteSelectedKeysCommand}"
+                    Name="btnDeleteSelectedKeys"
+                    IsEnabled="{Binding IsNotExecuting}"
                     DockPanel.Dock="Right" 
                     Width="85" 
                     Height="32"
@@ -148,6 +154,7 @@
                 <TextBlock Text="启动键" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,10,0"/>
                 <TextBox x:Name="txtStartHotkey"
                          Style="{StaticResource ModernTextBox}"
+                         IsEnabled="{Binding IsNotExecuting}"
                          Tag="空"
                          IsReadOnly="True"
                          Text="{Binding StartHotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
@@ -168,6 +175,7 @@
                 <TextBlock Text="停止键" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,10,0"/>
                 <TextBox x:Name="txtStopHotkey"
                          Style="{StaticResource ModernTextBox}"
+                         IsEnabled="{Binding IsNotExecuting}"
                          Tag="空"
                          IsReadOnly="True"
                          Text="{Binding StopHotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
@@ -213,6 +221,7 @@
                            Width="60"/>
                 <TextBox x:Name="txtKeyInterval"
                          Style="{StaticResource ModernTextBox}"
+                         IsEnabled="{Binding IsNotExecuting}"
                          Width="120"
                          Height="32"
                          VerticalContentAlignment="Center"

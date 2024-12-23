@@ -171,7 +171,6 @@ namespace WpfApp.Styles
                     Application.Current.Dispatcher.InvokeAsync(() =>
                     {
                         tb.Focus();
-                        tb.SelectAll();   // 获得焦点时全选文本
                     }, System.Windows.Threading.DispatcherPriority.Input);
                 }
             };
@@ -193,20 +192,16 @@ namespace WpfApp.Styles
                 }
             };
 
-            // 添加获得焦点时的处理
+            // 修改获得焦点时的处理，移除自动全选
             textBox.GotFocus += (sender, args) =>
             {
                 if (sender is TextBox tb)
                 {
                     _logger.LogDebug(LOG_TAG, $"[Focus] TextBox获得焦点: {GetControlIdentifier(tb)}");
-                    Application.Current.Dispatcher.InvokeAsync(() =>
-                    {
-                        tb.SelectAll();
-                    }, System.Windows.Threading.DispatcherPriority.Input);
                 }
             };
 
-            // 添加失去焦点时的处理
+            // 保持失去焦点时的处理不变
             textBox.LostFocus += (sender, args) =>
             {
                 if (sender is TextBox tb)

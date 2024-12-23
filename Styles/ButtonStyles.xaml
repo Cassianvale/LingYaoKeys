@@ -80,4 +80,57 @@
         <Setter Property="Padding" Value="12,6"/>
     </Style>
     
+    <!-- 主要按钮样式 -->
+    <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Background" Value="#2196F3"/> <!-- Material Design Blue -->
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Padding" Value="15,8"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <!-- 阴影效果 -->
+                        <Border x:Name="shadowBorder"
+                                Background="#22000000"
+                                CornerRadius="6"
+                                Margin="2,2,0,0">
+                        </Border>
+                        
+                        <!-- 主按钮 -->
+                        <Border x:Name="mainBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Margin="0,0,2,2">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <!-- 鼠标悬停效果 -->
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#1976D2"/>
+                            <Setter TargetName="shadowBorder" Property="Opacity" Value="0.3"/>
+                        </Trigger>
+                        <!-- 按下效果 -->
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="#1565C0"/>
+                            <Setter TargetName="mainBorder" Property="Margin" Value="2,2,0,0"/>
+                            <Setter TargetName="shadowBorder" Property="Margin" Value="0"/>
+                        </Trigger>
+                        <!-- 禁用效果 -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Background" Value="#BDBDBD"/>
+                            <Setter Property="Foreground" Value="#757575"/>
+                            <Setter TargetName="shadowBorder" Property="Opacity" Value="0.1"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
 </ResourceDictionary> 
