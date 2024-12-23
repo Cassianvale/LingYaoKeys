@@ -30,11 +30,6 @@ namespace WpfApp.Models
 
         [JsonIgnore]
         public string Author { get; set; } = "慕长秋";
-
-        // GitHub 配置
-        public string GitHubToken { get; set; } = string.Empty;
-        public string GitHubRepoOwner { get; set; } = string.Empty;
-        public string GitHubRepoName { get; set; } = string.Empty;
     }
 
     public class AppInfo
