@@ -24,6 +24,21 @@ namespace WpfApp
         private bool _hasShownMinimizeNotification;
         private Forms.NotifyIcon _trayIcon;
 
+        // 窗口调整大小相关
+        private bool _isResizing;
+        private ResizeDirection _resizeDirection;
+        private Point _startPoint;
+        private double _startWidth;
+        private double _startHeight;
+        private double _startLeft;
+        private double _startTop;
+
+        private enum ResizeDirection
+        {
+            Left, Right, Top, Bottom,
+            TopLeft, TopRight, BottomLeft, BottomRight
+        }
+
         public MainWindow()
         {
             _viewModel = new MainViewModel(App.DDDriver, this);
@@ -267,5 +282,225 @@ namespace WpfApp
             
             base.OnClosed(e);
         }
+
+        #region 窗口大小调整
+
+        private const double RESIZE_THRESHOLD = 1.0; // 调整阈值，避免微小变化
+        private const double RESIZE_ACCELERATION = 1.0; // 调整加速度，使移动更平滑
+        private const int RESIZE_INTERVAL = 16; // 约60fps的更新间隔
+        private DateTime _lastResizeTime = DateTime.MinValue;
+
+        private void StartResize(ResizeDirection direction, MouseButtonEventArgs e)
+        {
+            if (WindowState == WindowState.Maximized) return;
+
+            _isResizing = true;
+            _resizeDirection = direction;
+            _startPoint = PointToScreen(e.GetPosition(this));  // 使用屏幕坐标
+            _startWidth = ActualWidth;
+            _startHeight = ActualHeight;
+            _startLeft = Left;
+            _startTop = Top;
+
+            // 捕获鼠标
+            Mouse.Capture(e.Source as IInputElement);
+            e.Handled = true;
+
+            // 开始调整大小时禁用动画
+            if (FindName("MainBorder") is Border mainBorder)
+            {
+                mainBorder.BeginAnimation(Border.MarginProperty, null);
+            }
+        }
+
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            if (!_isResizing)
+            {
+                base.OnMouseMove(e);
+                return;
+            }
+
+            // 控制更新频率
+            var now = DateTime.Now;
+            if ((now - _lastResizeTime).TotalMilliseconds < RESIZE_INTERVAL)
+            {
+                return;
+            }
+            _lastResizeTime = now;
+
+            Point currentPoint = PointToScreen(e.GetPosition(this));
+            double deltaX = (currentPoint.X - _startPoint.X) * RESIZE_ACCELERATION;
+            double deltaY = (currentPoint.Y - _startPoint.Y) * RESIZE_ACCELERATION;
+
+            // 应用调整阈值
+            if (Math.Abs(deltaX) < RESIZE_THRESHOLD && Math.Abs(deltaY) < RESIZE_THRESHOLD)
+            {
+                return;
+            }
+
+            try
+            {
+                switch (_resizeDirection)
+                {
+                    case ResizeDirection.Left:
+                        HandleLeftResize(deltaX);
+                        break;
+                    case ResizeDirection.Right:
+                        HandleRightResize(deltaX);
+                        break;
+                    case ResizeDirection.Top:
+                        HandleTopResize(deltaY);
+                        break;
+                    case ResizeDirection.Bottom:
+                        HandleBottomResize(deltaY);
+                        break;
+                    case ResizeDirection.TopLeft:
+                        HandleLeftResize(deltaX);
+                        HandleTopResize(deltaY);
+                        break;
+                    case ResizeDirection.TopRight:
+                        HandleRightResize(deltaX);
+                        HandleTopResize(deltaY);
+                        break;
+                    case ResizeDirection.BottomLeft:
+                        HandleLeftResize(deltaX);
+                        HandleBottomResize(deltaY);
+                        break;
+                    case ResizeDirection.BottomRight:
+                        HandleRightResize(deltaX);
+                        HandleBottomResize(deltaY);
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("MainWindow", "调整窗口大小时发生错误", ex);
+            }
+
+            e.Handled = true;
+        }
+
+        protected override void OnMouseUp(MouseButtonEventArgs e)
+        {
+            if (_isResizing)
+            {
+                _isResizing = false;
+                Mouse.Capture(null);
+
+                // 恢复动画
+                if (FindName("MainBorder") is Border mainBorder)
+                {
+                    mainBorder.BeginAnimation(Border.MarginProperty, null);
+                }
+
+                e.Handled = true;
+            }
+            base.OnMouseUp(e);
+        }
+
+        private void HandleLeftResize(double deltaX)
+        {
+            double newWidth = Math.Max(MinWidth, _startWidth - deltaX);
+            double maxWidth = SystemParameters.WorkArea.Width;
+            
+            if (newWidth > MinWidth && newWidth < maxWidth)
+            {
+                double newLeft = _startLeft + (_startWidth - newWidth);
+                if (newLeft >= 0 && newLeft + newWidth <= maxWidth)
+                {
+                    Left = newLeft;
+                    Width = newWidth;
+                }
+            }
+        }
+
+        private void HandleRightResize(double deltaX)
+        {
+            double newWidth = Math.Max(MinWidth, _startWidth + deltaX);
+            double maxWidth = SystemParameters.WorkArea.Width - Left;
+            
+            if (newWidth > MinWidth && newWidth < maxWidth)
+            {
+                Width = newWidth;
+            }
+        }
+
+        private void HandleTopResize(double deltaY)
+        {
+            double newHeight = Math.Max(MinHeight, _startHeight - deltaY);
+            double maxHeight = SystemParameters.WorkArea.Height;
+            
+            if (newHeight > MinHeight && newHeight < maxHeight)
+            {
+                double newTop = _startTop + (_startHeight - newHeight);
+                if (newTop >= 0 && newTop + newHeight <= maxHeight)
+                {
+                    Top = newTop;
+                    Height = newHeight;
+                }
+            }
+        }
+
+        private void HandleBottomResize(double deltaY)
+        {
+            double newHeight = Math.Max(MinHeight, _startHeight + deltaY);
+            double maxHeight = SystemParameters.WorkArea.Height - Top;
+            
+            if (newHeight > MinHeight && newHeight < maxHeight)
+            {
+                Height = newHeight;
+            }
+        }
+
+        private void ResizeLeft_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+                StartResize(ResizeDirection.Left, e);
+        }
+
+        private void ResizeRight_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+                StartResize(ResizeDirection.Right, e);
+        }
+
+        private void ResizeTop_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+                StartResize(ResizeDirection.Top, e);
+        }
+
+        private void ResizeBottom_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+                StartResize(ResizeDirection.Bottom, e);
+        }
+
+        private void ResizeTopLeft_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+                StartResize(ResizeDirection.TopLeft, e);
+        }
+
+        private void ResizeTopRight_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+                StartResize(ResizeDirection.TopRight, e);
+        }
+
+        private void ResizeBottomLeft_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+                StartResize(ResizeDirection.BottomLeft, e);
+        }
+
+        private void ResizeBottomRight_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+                StartResize(ResizeDirection.BottomRight, e);
+        }
+
+        #endregion
     }
 }
