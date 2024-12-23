@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using System;
 using System.Collections.Generic;
+using System.Windows.Media.Animation;
 
 namespace WpfApp.ViewModels
 {
@@ -21,7 +22,7 @@ namespace WpfApp.ViewModels
         private readonly DDDriverService _ddDriver;
         private readonly Window _mainWindow;
         private readonly KeyMappingViewModel _keyMappingViewModel;
-        private readonly SyncSettingsViewModel _syncSettingsViewModel;
+        private readonly FeedbackViewModel _feedbackViewModel;
         private readonly HotkeyService _hotkeyService;
         private readonly LogManager _logger = LogManager.Instance;
         private string _statusMessage = "就绪";
@@ -29,6 +30,12 @@ namespace WpfApp.ViewModels
         private AppConfig? _config;
         private readonly DispatcherTimer _statusMessageTimer;
         private const int STATUS_MESSAGE_TIMEOUT = 3000; // 3秒后消失
+        private readonly AboutViewModel _aboutViewModel;
+        private readonly Dictionary<string, Page> _pageCache = new();
+        private readonly Dictionary<string, Storyboard> _fadeInCache = new();
+        private readonly Dictionary<string, Storyboard> _fadeOutCache = new();
+        private readonly Storyboard? _fadeInStoryboard;
+        private readonly Storyboard? _fadeOutStoryboard;
 
         public AppConfig Config
         {
@@ -77,7 +84,14 @@ namespace WpfApp.ViewModels
 
         public MainViewModel(DDDriverService ddDriver, Window mainWindow)
         {
-            // 首先初始化定时器
+            _ddDriver = ddDriver;
+            _mainWindow = mainWindow;
+
+            // 先获取动画资源
+            _fadeInStoryboard = mainWindow.FindResource("PageFadeIn") as Storyboard;
+            _fadeOutStoryboard = mainWindow.FindResource("PageFadeOut") as Storyboard;
+
+            // 初始化定时器
             _statusMessageTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromMilliseconds(STATUS_MESSAGE_TIMEOUT)
@@ -90,35 +104,112 @@ namespace WpfApp.ViewModels
             };
 
             // 其他初始化
-            _ddDriver = ddDriver;
-            _mainWindow = mainWindow;
             _hotkeyService = new HotkeyService(mainWindow, ddDriver);
             _keyMappingViewModel = new KeyMappingViewModel(_ddDriver, App.ConfigService, _hotkeyService, this);
-            _syncSettingsViewModel = new SyncSettingsViewModel();
+            _feedbackViewModel = new FeedbackViewModel(this);
+            _aboutViewModel = new AboutViewModel();
             
             NavigateCommand = new RelayCommand<string>(Navigate);
             
             // 订阅状态消息事件
             _ddDriver.StatusMessageChanged += OnDriverStatusMessageChanged;
             
-            // 初始化时设置默认页面
+            // 最后设置默认页面
             Navigate("FrontKeys");
         }
 
         // 导航到指定页面
         private void Navigate(string? parameter)
         {
-            CurrentPage = parameter switch
+            if (string.IsNullOrEmpty(parameter)) return;
+
+            // 如果当前页面是 KeyMappingView 并且正在执行按键操作，先停止它
+            if (CurrentPage?.DataContext is KeyMappingViewModel keyMappingVM && keyMappingVM.IsExecuting)
             {
-                "FrontKeys" => new KeyMappingView { DataContext = _keyMappingViewModel },
-                "SyncSettings" => new SyncSettingsView { DataContext = _syncSettingsViewModel },
-                _ => CurrentPage
-            };
-            
-            if (CurrentPage != null)
+                _logger.LogDebug("Navigation", "检测到按键正在执行，正在停止...");
+                keyMappingVM.StopKeyMapping();
+            }
+
+            // 创建或获取页面
+            Page? newPage = GetOrCreatePage(parameter);
+
+            if (newPage != null)
             {
+                var oldPage = CurrentPage;
+                
+                // 如果有旧页面，先播放淡出动画
+                if (oldPage != null && _fadeOutStoryboard != null)
+                {
+                    // 获取或创建动画
+                    var fadeOut = GetOrCreateFadeOutAnimation(parameter);
+                    var fadeIn = GetOrCreateFadeInAnimation(parameter);
+
+                    fadeOut.Completed += (s, e) =>
+                    {
+                        // 动画完成后切换页面
+                        CurrentPage = newPage;
+                        // 播放淡入动画
+                        fadeIn.Begin(newPage);
+                    };
+                    fadeOut.Begin(oldPage);
+                }
+                else
+                {
+                    // 没有旧页面，直接切换并播放淡入动画
+                    CurrentPage = newPage;
+                    GetOrCreateFadeInAnimation(parameter).Begin(newPage);
+                }
+
                 _logger.LogDebug("Navigation", $"页面切换到: {parameter}");
             }
+        }
+
+        private Page? GetOrCreatePage(string parameter)
+        {
+            if (_pageCache.TryGetValue(parameter, out var page))
+            {
+                return page;
+            }
+
+            Page? newPage = parameter switch
+            {
+                "FrontKeys" => new KeyMappingView { DataContext = _keyMappingViewModel },
+                "Feedback" => new FeedbackView { DataContext = _feedbackViewModel },
+                "About" => new AboutView { DataContext = _aboutViewModel },
+                _ => null
+            };
+
+            if (newPage != null)
+            {
+                newPage.Opacity = 0;
+                _pageCache[parameter] = newPage;
+            }
+
+            return newPage;
+        }
+
+        private Storyboard GetOrCreateFadeInAnimation(string parameter)
+        {
+            if (_fadeInCache.TryGetValue(parameter, out var fadeIn))
+            {
+                return fadeIn;
+            }
+
+            var newFadeIn = _fadeInStoryboard!.Clone();
+            _fadeInCache[parameter] = newFadeIn;
+            return newFadeIn;
+        }
+
+        private Storyboard GetOrCreateFadeOutAnimation(string parameter)
+        {
+            if (_fadeOutCache.TryGetValue(parameter, out var fadeOut))
+            {
+                return fadeOut;
+            }
+
+            var newFadeOut = _fadeOutStoryboard!.Clone();
+            _fadeOutCache[parameter] = newFadeOut;
+            return newFadeOut;
         }
 
         public void Cleanup()
@@ -133,6 +224,11 @@ namespace WpfApp.ViewModels
             _hotkeyService?.Dispose();
             _statusMessageTimer.Stop(); // 停止定时器
             _logger.LogDebug("MainViewModel", "资源清理完成");
+
+            // 清理动画缓存
+            _fadeInCache.Clear();
+            _fadeOutCache.Clear();
+            _pageCache.Clear();
         }
 
         // 订阅DDDriverService的事件，用于更新状态栏消息

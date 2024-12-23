@@ -29,10 +29,14 @@
                             Style="{StaticResource NavigationRadioButtonStyle}"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="FrontKeys"/>
-                <RadioButton Content="同步设置" 
+                <RadioButton Content="问题反馈" 
                             Style="{StaticResource NavigationRadioButtonStyle}"
                             Command="{Binding NavigateCommand}"
-                            CommandParameter="SyncSettings"/>
+                            CommandParameter="Feedback"/>
+                <RadioButton Content="关于" 
+                            Style="{StaticResource NavigationRadioButtonStyle}"
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="About"/>
             </StackPanel>
         </Border>
 

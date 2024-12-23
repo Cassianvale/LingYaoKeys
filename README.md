@@ -21,27 +21,28 @@
 <br>
 
 
-❤ ✨ 如果喜欢本项目，可右上角送作者一个`Star` ✨ ❤
+❤ ✨ 如果喜欢本项目，可右上角送作者一个`Star`，QQ 群 `861603314`✨ ❤
 
 </div>
 </br>
 <!-- markdownlint-restore -->
 
 ## 主要功能  
-- [x] 支持全局热键，**支持侧键触发**  
-- [x] 支持按键列表拖拽排序  
-- [x] 支持开启/停止语音提醒  
+- [x] 支持全局热键，**支持侧键触发**    
 - [x] 支持顺序模式触发按键  
-- [ ] 支持按压模式触发按键  
+- [x] 支持按压模式触发按键  
+- [x] 支持开启/停止语音提醒  
+- [x] 支持正常/游戏模式切换  
+- [x] 支持按键列表拖拽排序  
 
 ## 直接下载
 
-您可以从以下位置下载最新版本：
+您可以从以下位置下载最新版本：  
 
-- [最新版本下载](https://github.com/Cassianvale/LingYaoKeys/releases/latest)
-- [查看所有版本](https://github.com/Cassianvale/LingYaoKeys/releases)
+- [最新版本下载](https://github.com/Cassianvale/LingYaoKeys/releases/latest)  
+- [查看所有版本](https://github.com/Cassianvale/LingYaoKeys/releases)  
 
-> 注意：请始终从 GitHub Releases 页面下载最新版本，以确保获得最新的功能和安全更新。
+> 注意：请始终从 GitHub Releases 页面下载最新版本，以确保获得最新的功能和安全更新。  
 
 ## 使用说明
 
@@ -153,13 +154,13 @@ LingYaoKeys/
 </details>
 
 ## 鸣谢
- 该项目是本人利用工作之余首次尝试使用C#和WPF技术栈以及Cursor AI进行开发的实践项目。  
- 在UI/UX与交互逻辑设计上，极简按键提供了优秀的范例，让我在学习过程中获益良多，特此致谢极简按键！  
- 项目中我也融入了一些个人的理解和创新设计，希望能为同样热爱技术的朋友提供参考。  
+ - 该项目是本人利用工作之余首次尝试使用`C#`和`WPF`以及`Cursor AI`技术栈进行开发的实践项目  
+ - 在UI/UX与交互逻辑设计上，极简按键提供了优秀的范例，让我在设计过程中获益良多，特此致谢极简按键  
+ - 项目中我也融入了一些个人的理解和创新设计，希望能为同样热爱技术的朋友提供参考  
 
 ## 许可证
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)  
 
-LingYaoKeys 使用 [GNU General Public License v3.0](LICENSE) 开源许可证。
+LingYaoKeys 使用 [GNU General Public License v3.0](LICENSE) 开源许可证  
 
-Copyright © 2024 by Cassianvale.
+Copyright © 2024 by Cassianvale.  
