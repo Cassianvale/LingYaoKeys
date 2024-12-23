@@ -61,7 +61,7 @@ namespace WpfApp.Models
         [JsonIgnore]
         public int DefaultWidth { get; set; } = 500;
         [JsonIgnore]
-        public int DefaultHeight { get; set; } = 430;
+        public int DefaultHeight { get; set; } = 460;
     }
 
     public class LoggingConfig

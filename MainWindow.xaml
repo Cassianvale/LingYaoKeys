@@ -12,7 +12,7 @@
         Title="{Binding WindowTitle}"
         Icon="/Resource/icon/app.ico"
         SizeToContent="Manual"
-        MinHeight="430"
+        MinHeight="460"
         MinWidth="500"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
@@ -44,21 +44,6 @@
         </Border.Effect>
         
         <Grid>
-            <!-- 托盘图标 -->
-            <tb:TaskbarIcon x:Name="TrayIcon"
-                        IconSource="/Resource/icon/app.ico"
-                        ToolTipText="{Binding WindowTitle}"
-                        TrayLeftMouseDown="TrayIcon_TrayLeftMouseDown"
-                        TrayRightMouseDown="TrayIcon_TrayRightMouseDown">
-                <tb:TaskbarIcon.ContextMenu>
-                    <ContextMenu>
-                        <MenuItem Header="显示主窗口" Click="ShowWindow_Click"/>
-                        <Separator/>
-                        <MenuItem Header="退出" Click="Exit_Click"/>
-                    </ContextMenu>
-                </tb:TaskbarIcon.ContextMenu>
-            </tb:TaskbarIcon>
-
             <!-- 调整大小的区域 -->
             <Grid>
                 <!-- 左边框 -->

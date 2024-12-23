@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using WpfApp.ViewModels;
 using WpfApp.Services;
 using System.Runtime.InteropServices;
@@ -9,6 +10,7 @@ using System.Windows.Interop;
 using Forms = System.Windows.Forms;
 using Drawing = System.Drawing;
 using System.IO;
+using System.Windows.Media;
 
 namespace WpfApp
 {
@@ -23,6 +25,7 @@ namespace WpfApp
         private bool _isShuttingDown;
         private bool _hasShownMinimizeNotification;
         private Forms.NotifyIcon _trayIcon;
+        private ContextMenu _trayContextMenu;
 
         // 窗口调整大小相关
         private bool _isResizing;
@@ -33,10 +36,62 @@ namespace WpfApp
         private double _startLeft;
         private double _startTop;
 
+        // Windows Hook API
+        private const int WH_MOUSE_LL = 14;
+        private const int WM_LBUTTONDOWN = 0x0201;
+        private const int WM_RBUTTONDOWN = 0x0204;
+        private IntPtr _hookID = IntPtr.Zero;
+        private Win32.HookProc _mouseHookProc;
+
+        private static class Win32
+        {
+            public delegate IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+            [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+            public static extern IntPtr SetWindowsHookEx(int idHook, HookProc lpfn, IntPtr hMod, uint dwThreadId);
+
+            [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+            [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+            public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+            [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+            public static extern IntPtr GetModuleHandle(string lpModuleName);
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct POINT
+            {
+                public int x;
+                public int y;
+            }
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct MSLLHOOKSTRUCT
+            {
+                public POINT pt;
+                public uint mouseData;
+                public uint flags;
+                public uint time;
+                public IntPtr dwExtraInfo;
+            }
+        }
+
         private enum ResizeDirection
         {
             Left, Right, Top, Bottom,
             TopLeft, TopRight, BottomLeft, BottomRight
+        }
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        static extern bool GetCursorPos(out POINT pt);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int X;
+            public int Y;
         }
 
         public MainWindow()
@@ -58,14 +113,92 @@ namespace WpfApp
         {
             try
             {
-                string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "app.ico");
+                // 创建WPF样式的上下文菜单
+                _trayContextMenu = new ContextMenu
+                {
+                    Style = TryFindResource("TrayContextMenuStyle") as Style,
+                    Placement = PlacementMode.Custom,
+                    CustomPopupPlacementCallback = new CustomPopupPlacementCallback(MenuCustomPlacementCallback),
+                    StaysOpen = true  // 改为true，由我们自己控制关闭
+                };
+
+                // 添加菜单打开和关闭事件处理
+                _trayContextMenu.Opened += (s, e) =>
+                {
+                    SetMouseHook();  // 设置鼠标钩子
+                    if (_trayContextMenu.Items.Count > 0 && _trayContextMenu.Items[0] is MenuItem firstItem)
+                    {
+                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            firstItem.Focus();
+                        }), System.Windows.Threading.DispatcherPriority.Input);
+                    }
+                };
+
+                _trayContextMenu.Closed += (s, e) =>
+                {
+                    RemoveMouseHook();  // 移除鼠标钩子
+                    Keyboard.ClearFocus();
+                };
+
+                var showMenuItem = new MenuItem
+                {
+                    Header = "显示主窗口",
+                    Style = TryFindResource("TrayMenuItemStyle") as Style,
+                    Icon = new Image
+                    {
+                        Source = new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/Resource/icon/app.ico")),
+                        Width = 16,
+                        Height = 16
+                    }
+                };
+                showMenuItem.Click += (s, e) => 
+                {
+                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        _trayContextMenu.IsOpen = false;
+                        ShowMainWindow();
+                    }), System.Windows.Threading.DispatcherPriority.Normal);
+                };
+
+                var exitMenuItem = new MenuItem
+                {
+                    Header = "退出程序",
+                    Style = TryFindResource("TrayMenuItemStyle") as Style,
+                    Icon = new TextBlock
+                    {
+                        Text = "\uE8BB",
+                        FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets"),
+                        FontSize = 14,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Foreground = System.Windows.Media.Brushes.DarkRed
+                    }
+                };
+                exitMenuItem.Click += (s, e) => Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    _trayContextMenu.IsOpen = false;
+                    _isShuttingDown = true;
+                    Close();
+                }), System.Windows.Threading.DispatcherPriority.Normal);
+
+                var separator = new Separator
+                {
+                    Style = TryFindResource("TrayMenuSeparatorStyle") as Style
+                };
+
+                _trayContextMenu.Items.Add(showMenuItem);
+                _trayContextMenu.Items.Add(separator);
+                _trayContextMenu.Items.Add(exitMenuItem);
+
+                // 初始化托盘图标
+                string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resource", "icon", "app.ico");
                 _trayIcon = new Forms.NotifyIcon
                 {
                     Icon = File.Exists(iconPath) 
                         ? new Drawing.Icon(iconPath) 
                         : Drawing.Icon.ExtractAssociatedIcon(Forms.Application.ExecutablePath),
                     Visible = true,
-                    Text = "剑网3工具箱"
+                    Text = "灵曜按键"
                 };
 
                 // 添加托盘图标的点击事件处理
@@ -73,31 +206,115 @@ namespace WpfApp
                 {
                     if (e.Button == Forms.MouseButtons.Left)
                     {
-                        Application.Current.Dispatcher.Invoke(ShowMainWindow);
+                        Application.Current.Dispatcher.BeginInvoke(new Action(ShowMainWindow), 
+                            System.Windows.Threading.DispatcherPriority.Normal);
+                    }
+                    else if (e.Button == Forms.MouseButtons.Right)
+                    {
+                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            // 确保菜单在显示前是关闭状态
+                            _trayContextMenu.IsOpen = false;
+
+                            // 延迟一帧后显示菜单
+                            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                _trayContextMenu.IsOpen = true;
+                            }), System.Windows.Threading.DispatcherPriority.Loaded);
+                        }), System.Windows.Threading.DispatcherPriority.Normal);
                     }
                 };
 
-                // 添加托盘菜单
-                var contextMenu = new Forms.ContextMenuStrip();
-                var showItem = new Forms.ToolStripMenuItem("显示主窗口");
-                showItem.Click += (s, e) => Application.Current.Dispatcher.Invoke(ShowMainWindow);
-                
-                var exitItem = new Forms.ToolStripMenuItem("退出程序");
-                exitItem.Click += (s, e) => Application.Current.Dispatcher.Invoke(() =>
-                {
-                    _isShuttingDown = true;
-                    Close();
-                });
-
-                contextMenu.Items.Add(showItem);
-                contextMenu.Items.Add(new Forms.ToolStripSeparator());
-                contextMenu.Items.Add(exitItem);
-
-                _trayIcon.ContextMenuStrip = contextMenu;
+                // 初始化鼠标钩子回调
+                _mouseHookProc = new Win32.HookProc(MouseHookCallback);
             }
             catch (Exception ex)
             {
                 _logger.LogError("MainWindow", "初始化托盘图标失败", ex);
+            }
+        }
+
+        private CustomPopupPlacement[] MenuCustomPlacementCallback(
+            Size popupSize, Size targetSize, Point offset)
+        {
+            // 获取鼠标位置（托盘图标位置）
+            GetCursorPos(out POINT pt);
+
+            // 获取工作区
+            var workArea = SystemParameters.WorkArea;
+
+            // 计算菜单位置
+            double x = pt.X;
+            double y = pt.Y;
+
+            // 确保菜单不会超出屏幕
+            if (x + popupSize.Width > workArea.Right)
+            {
+                x = workArea.Right - popupSize.Width;
+            }
+
+            // 默认显示在托盘图标上方
+            y -= popupSize.Height;
+
+            // 如果上方空间不够，则显示在下方
+            if (y < workArea.Top)
+            {
+                y = pt.Y;
+            }
+
+            return new[] { new CustomPopupPlacement(new Point(x, y), PopupPrimaryAxis.Horizontal) };
+        }
+
+        private IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (nCode >= 0 && (wParam == (IntPtr)WM_LBUTTONDOWN || wParam == (IntPtr)WM_RBUTTONDOWN))
+            {
+                var hookStruct = (Win32.MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(Win32.MSLLHOOKSTRUCT));
+                
+                // 检查点击是否在菜单区域外
+                if (_trayContextMenu.IsOpen)
+                {
+                    var menuPosition = _trayContextMenu.PointToScreen(new Point(0, 0));
+                    var menuRect = new Rect(
+                        menuPosition.X, 
+                        menuPosition.Y, 
+                        _trayContextMenu.ActualWidth, 
+                        _trayContextMenu.ActualHeight);
+
+                    if (!menuRect.Contains(new Point(hookStruct.pt.x, hookStruct.pt.y)))
+                    {
+                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            _trayContextMenu.IsOpen = false;
+                        }), System.Windows.Threading.DispatcherPriority.Input);
+                    }
+                }
+            }
+            return Win32.CallNextHookEx(_hookID, nCode, wParam, lParam);
+        }
+
+        private void SetMouseHook()
+        {
+            if (_hookID == IntPtr.Zero)
+            {
+                using (var curProcess = System.Diagnostics.Process.GetCurrentProcess())
+                using (var curModule = curProcess.MainModule)
+                {
+                    _hookID = Win32.SetWindowsHookEx(
+                        WH_MOUSE_LL,
+                        _mouseHookProc,
+                        Win32.GetModuleHandle(curModule.ModuleName),
+                        0);
+                }
+            }
+        }
+
+        private void RemoveMouseHook()
+        {
+            if (_hookID != IntPtr.Zero)
+            {
+                Win32.UnhookWindowsHookEx(_hookID);
+                _hookID = IntPtr.Zero;
             }
         }
 
@@ -155,27 +372,10 @@ namespace WpfApp
             }
         }
 
-        private void TrayIcon_TrayLeftMouseDown(object sender, RoutedEventArgs e)
-        {
-            ShowMainWindow();
-        }
-
-        private void TrayIcon_TrayRightMouseDown(object sender, RoutedEventArgs e)
-        {
-            // 右键点击时显示上下文菜单
-            // 由XAML中的ContextMenu自动处理
-        }
-
-        private void ShowWindow_Click(object sender, RoutedEventArgs e)
-        {
-            ShowMainWindow();
-        }
-
-        private void Exit_Click(object sender, RoutedEventArgs e)
-        {
-            _isShuttingDown = true;
-            Close();
-        }
+        private void TrayIcon_TrayLeftMouseDown(object sender, RoutedEventArgs e) { }
+        private void TrayIcon_TrayRightMouseDown(object sender, RoutedEventArgs e) { }
+        private void ShowWindow_Click(object sender, RoutedEventArgs e) { }
+        private void Exit_Click(object sender, RoutedEventArgs e) { }
 
         private void ShowMainWindow()
         {
@@ -261,6 +461,7 @@ namespace WpfApp
 
         protected override void OnClosed(EventArgs e)
         {
+            RemoveMouseHook();  // 确保钩子被移除
             if (_isClosing) return;
             _isClosing = true;
 

@@ -10,7 +10,8 @@
                 <ResourceDictionary Source="Styles/ButtonStyles.xaml"/>
                 <ResourceDictionary Source="Styles/ControlStyles.xaml"/>
                 <ResourceDictionary Source="Styles/SwitchStyles.xaml"/>
-                <ResourceDictionary Source="/Styles/AnimationStyles.xaml"/>
+                <ResourceDictionary Source="Styles/AnimationStyles.xaml"/>
+                <ResourceDictionary Source="Styles/TrayMenuStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             
             <converters:IntToStringConverter x:Key="IntToStringConverter"/>

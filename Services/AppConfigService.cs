@@ -79,10 +79,10 @@ namespace WpfApp.Services
                 configChanged = true;
             }
             
-            if (_config.UI.MainWindow.DefaultHeight < 430)
+            if (_config.UI.MainWindow.DefaultHeight < 460)
             {
-                _logger.LogWarning("Config", $"窗口高度 {_config.UI.MainWindow.DefaultHeight} 小于最小值，已修正为 430");
-                _config.UI.MainWindow.DefaultHeight = 430;
+                _logger.LogWarning("Config", $"窗口高度 {_config.UI.MainWindow.DefaultHeight} 小于最小值，已修正为 460");
+                _config.UI.MainWindow.DefaultHeight = 460;
                 configChanged = true;
             }
 
