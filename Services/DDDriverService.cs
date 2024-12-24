@@ -555,7 +555,11 @@ namespace WpfApp.Services
         // 设置按键列表
         public void SetKeyList(List<DDKeyCode> keyList)
         {
-            _keyList = keyList ?? new List<DDKeyCode>();
+            _keyList = new List<DDKeyCode>(keyList);
+            if (_currentKeyMode != null)
+            {
+                _currentKeyMode.SetKeyList(new List<DDKeyCode>(_keyList));
+            }
         }
 
         // 设置按键间隔

@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 // 按键按压模式
 namespace WpfApp.Services.KeyModes
@@ -10,7 +11,7 @@ namespace WpfApp.Services.KeyModes
         private volatile bool _isKeyHeld;
         private readonly SemaphoreSlim _executionLock = new SemaphoreSlim(1, 1);
         private readonly object _stateLock = new object();
-        private bool _isExecuting;
+        private bool _isExecuting; 
 
         public HoldKeyMode(DDDriverService driverService) : base(driverService)
         {
@@ -29,7 +30,9 @@ namespace WpfApp.Services.KeyModes
                 _isExecuting = true;
             }
 
-            if (_keyList.Count == 0)
+            // 创建按键列表的副本
+            var keyListCopy = new List<DDKeyCode>(_keyList);
+            if (keyListCopy.Count == 0)
             {
                 _isExecuting = false;
                 return;
@@ -47,7 +50,7 @@ namespace WpfApp.Services.KeyModes
                 int currentIndex = 0;
                 while (_isRunning && _isKeyHeld && !_cts.Token.IsCancellationRequested)
                 {
-                    var key = _keyList[currentIndex];
+                    var key = keyListCopy[currentIndex];
                     
                     if (!_isRunning || !_isKeyHeld || _cts.Token.IsCancellationRequested)
                     {
@@ -66,7 +69,7 @@ namespace WpfApp.Services.KeyModes
                         Metrics.IncrementKeyCount();
                         
                         // 更新索引到下一个按键
-                        currentIndex = (currentIndex + 1) % _keyList.Count;
+                        currentIndex = (currentIndex + 1) % keyListCopy.Count;
                         
                         // 在每个按键之后添加延迟
                         if (_isRunning && _isKeyHeld && !_cts.Token.IsCancellationRequested)

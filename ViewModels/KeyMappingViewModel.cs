@@ -722,7 +722,7 @@ namespace WpfApp.ViewModels
 
                 // 设置按键列表参数
                 _ddDriver.SetKeyList(keys);
-                _hotkeyService.SetKeySequence(keys, KeyInterval); // 确保HotkeyService也获得按键列表
+                _hotkeyService.SetKeySequence(keys, KeyInterval);  // 重要: 重置按键列表
                 _ddDriver.IsSequenceMode = SelectedKeyMode == 0;
                 _ddDriver.SetKeyInterval(KeyInterval);
 
