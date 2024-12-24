@@ -33,6 +33,8 @@ namespace WpfApp.Services
             // 确保音频文件存在
             EnsureAudioFileExists("start.mp3", _startSoundPath);
             EnsureAudioFileExists("stop.mp3", _stopSoundPath);
+            
+            _logger.LogDebug("AudioService", $"音频文件位于：{userDataPath}，可直接替换文件以自定义音效");
         }
 
         private void EnsureAudioFileExists(string fileName, string targetPath)
