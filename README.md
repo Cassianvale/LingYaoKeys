@@ -3,7 +3,7 @@
 
 # LingYaoKeys - 灵曜按键  
 
-✨**基于WPF+DD驱动开发灵动优雅的按键工具**✨  
+✨**基于.NET8.0+WPF开发灵动优雅的按键工具**✨  
 
 <div>
     <img alt="platform" src="https://img.shields.io/badge/platform-Windows-blueviolet">
