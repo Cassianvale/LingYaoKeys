@@ -10,6 +10,7 @@
     <Platforms>x86;x64</Platforms>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <ConsoleOutputRedirection>true</ConsoleOutputRedirection>
+    <ApplicationIcon>Resource\icon\app.ico</ApplicationIcon>
     
     <!-- 项目信息配置 -->
     <Version>1.1.0</Version>
@@ -51,10 +52,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Resource\icon\app.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Markdig" Version="0.39.1" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.77" />
+    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.1.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -62,20 +69,18 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
-    <Content Include="Resource\sound\*.mp3">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
+    <EmbeddedResource Include="Resource\sound\*.mp3" />
     <EmbeddedResource Include="README.md" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.77" />
   </ItemGroup>
 
   <!-- 清理发布目录 -->
   <Target Name="CleanPublishDir" BeforeTargets="Publish">
     <RemoveDir Directories="$(PublishDir)" />
   </Target>
+
+  <ItemGroup>
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
 
 </Project>

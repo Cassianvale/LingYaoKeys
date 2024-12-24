@@ -109,7 +109,7 @@ if exist "!build_output!" (
 
 :: Create zip package
 echo [DEBUG] Preparing to create zip package...
-set "zip_file=!publish_dir!\LingYaoKeys_!version!.zip"
+set "zip_file=!publish_dir!\LingYaoKeys_v!version!.zip"
 echo [DEBUG] Zip file path: !zip_file!
 echo Creating zip package: !zip_file! >> "!logfile!"
 echo Creating zip package: !zip_file!

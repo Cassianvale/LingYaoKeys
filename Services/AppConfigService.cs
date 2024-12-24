@@ -2,13 +2,14 @@ using System;
 using System.IO;
 using Newtonsoft.Json;
 using WpfApp.Models;
+using WpfApp.Services;
 
 namespace WpfApp.Services
 {
     public class AppConfigService
     {
         private static readonly LogManager _logger = LogManager.Instance;
-        private static readonly string ConfigPath = "AppConfig.json";
+        private static string _configPath = "AppConfig.json";  // 默认路径
         private static AppConfig? _config;
         private static readonly object _lockObject = new object();
         // 添加配置变更事件
@@ -32,13 +33,29 @@ namespace WpfApp.Services
             }
         }
 
+        public static void Initialize(string userDataPath)
+        {
+            lock (_lockObject)
+            {
+                _configPath = Path.Combine(userDataPath, "AppConfig.json");
+                _config = null; // 清除现有配置，强制重新加载
+                LoadConfig();
+            }
+        }
+
+        // 保留无参数版本以保持兼容性
+        public static void Initialize()
+        {
+            Initialize("AppConfig.json");
+        }
+
         private static void LoadConfig()
         {
             try
             {
-                if (File.Exists(ConfigPath))
+                if (File.Exists(_configPath))
                 {
-                    string json = File.ReadAllText(ConfigPath);
+                    string json = File.ReadAllText(_configPath);
                     var jsonSettings = new JsonSerializerSettings
                     {
                         ObjectCreationHandling = ObjectCreationHandling.Replace
@@ -46,8 +63,7 @@ namespace WpfApp.Services
                     _config = JsonConvert.DeserializeObject<AppConfig>(json, jsonSettings);
                     
                     _logger.LogDebug("Config", $"从配置文件加载窗口尺寸: {_config?.UI.MainWindow.DefaultWidth}x{_config?.UI.MainWindow.DefaultHeight}");
-                    
-                    _logger.LogInitialization("Config", "配置文件加载成功");
+                    _logger.LogInitialization("Config", $"配置文件加载成功: {_configPath}");
                     
                     ValidateConfig();
                 }
@@ -79,10 +95,10 @@ namespace WpfApp.Services
                 configChanged = true;
             }
             
-            if (_config.UI.MainWindow.DefaultHeight < 430)
+            if (_config.UI.MainWindow.DefaultHeight < 460)
             {
-                _logger.LogWarning("Config", $"窗口高度 {_config.UI.MainWindow.DefaultHeight} 小于最小值，已修正为 430");
-                _config.UI.MainWindow.DefaultHeight = 430;
+                _logger.LogWarning("Config", $"窗口高度 {_config.UI.MainWindow.DefaultHeight} 小于最小值，已修正为 460");
+                _config.UI.MainWindow.DefaultHeight = 460;
                 configChanged = true;
             }
 
@@ -126,29 +142,18 @@ namespace WpfApp.Services
                     if (_config == null) return;
 
                     string json = JsonConvert.SerializeObject(_config, Formatting.Indented);
-                    File.WriteAllText(ConfigPath, json);
+                    File.WriteAllText(_configPath, json);
                     
-                    // 触发配置变更事件
+                    // 确保在保存后触发配置变更事件
                     ConfigChanged?.Invoke(null, _config);
                     
-                    _logger.LogDebug("Config", "配置已保存并通知订阅者");
+                    _logger.LogDebug("Config", $"配置已保存到: {_configPath}");
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError("Config", $"保存配置文件失败: {ex.Message}");
                 throw; // 重新抛出异常，让调用者知道保存失败
-            }
-        }
-
-        public static void Initialize()
-        {
-            lock (_lockObject)
-            {
-                if (_config == null)
-                {
-                    LoadConfig();
-                }
             }
         }
 

@@ -7,66 +7,165 @@
         xmlns:converters="clr-namespace:WpfApp.Converters"
         xmlns:viewModels="clr-namespace:WpfApp.ViewModels"
         xmlns:views="clr-namespace:WpfApp.Views"
+        xmlns:tb="http://www.hardcodet.net/taskbar"
         mc:Ignorable="d"
         Title="{Binding WindowTitle}"
+        Icon="/Resource/icon/app.ico"
         SizeToContent="Manual"
-        MinHeight="430"
+        MinHeight="460"
         MinWidth="500"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        BorderThickness="0"
+        StateChanged="MainWindow_StateChanged"
+        Closing="Window_Closing">
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="25"/>
-        </Grid.RowDefinitions>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Styles/WindowControlStyles.xaml"/>
+                <ResourceDictionary Source="/Styles/WindowStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
 
-        <!-- 顶部导航 -->
-        <Border Grid.Row="0" BorderThickness="0,0,0,1" BorderBrush="#DDDDDD">
-            <StackPanel Orientation="Horizontal">
-                <RadioButton Content="前台按键" 
-                            IsChecked="True"
-                            Style="{StaticResource NavigationRadioButtonStyle}"
-                            Command="{Binding NavigateCommand}"
-                            CommandParameter="FrontKeys"/>
-                <RadioButton Content="问题反馈" 
-                            Style="{StaticResource NavigationRadioButtonStyle}"
-                            Command="{Binding NavigateCommand}"
-                            CommandParameter="Feedback"/>
-                <RadioButton Content="关于" 
-                            Style="{StaticResource NavigationRadioButtonStyle}"
-                            Command="{Binding NavigateCommand}"
-                            CommandParameter="About"/>
-            </StackPanel>
-        </Border>
+    <Border x:Name="WindowBorder" 
+            Background="Transparent" 
+            BorderThickness="0" 
+            Margin="10">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="15" 
+                            Direction="0" 
+                            ShadowDepth="0" 
+                            Opacity="0.2" 
+                            Color="#000000"/>
+        </Border.Effect>
+        
+        <Grid>
+            <!-- 调整大小的区域 -->
+            <Grid>
+                <!-- 左边框 -->
+                <Rectangle x:Name="ResizeLeft" Width="5" HorizontalAlignment="Left" Fill="Transparent" Cursor="SizeWE" MouseDown="ResizeLeft_MouseDown"/>
+                <!-- 右边框 -->
+                <Rectangle x:Name="ResizeRight" Width="5" HorizontalAlignment="Right" Fill="Transparent" Cursor="SizeWE" MouseDown="ResizeRight_MouseDown"/>
+                <!-- 上边框 -->
+                <Rectangle x:Name="ResizeTop" Height="5" VerticalAlignment="Top" Fill="Transparent" Cursor="SizeNS" MouseDown="ResizeTop_MouseDown"/>
+                <!-- 下边框 -->
+                <Rectangle x:Name="ResizeBottom" Height="5" VerticalAlignment="Bottom" Fill="Transparent" Cursor="SizeNS" MouseDown="ResizeBottom_MouseDown"/>
+                <!-- 左上角 -->
+                <Rectangle x:Name="ResizeTopLeft" Width="5" Height="5" HorizontalAlignment="Left" VerticalAlignment="Top" Fill="Transparent" Cursor="SizeNWSE" MouseDown="ResizeTopLeft_MouseDown"/>
+                <!-- 右上角 -->
+                <Rectangle x:Name="ResizeTopRight" Width="5" Height="5" HorizontalAlignment="Right" VerticalAlignment="Top" Fill="Transparent" Cursor="SizeNESW" MouseDown="ResizeTopRight_MouseDown"/>
+                <!-- 左下角 -->
+                <Rectangle x:Name="ResizeBottomLeft" Width="5" Height="5" HorizontalAlignment="Left" VerticalAlignment="Bottom" Fill="Transparent" Cursor="SizeNESW" MouseDown="ResizeBottomLeft_MouseDown"/>
+                <!-- 右下角 -->
+                <Rectangle x:Name="ResizeBottomRight" Width="5" Height="5" HorizontalAlignment="Right" VerticalAlignment="Bottom" Fill="Transparent" Cursor="SizeNWSE" MouseDown="ResizeBottomRight_MouseDown"/>
 
-        <!-- 页面容器 -->
-        <Frame Grid.Row="1"
-               NavigationUIVisibility="Hidden"
-               Content="{Binding CurrentPage}" />
-
-        <!-- 状态栏 -->
-        <StatusBar Grid.Row="2">
-            <StatusBar.ItemsPanel>
-                <ItemsPanelTemplate>
+                <!-- 主窗口内容 -->
+                <Border x:Name="MainBorder" 
+                        Background="White" 
+                        BorderBrush="#EEEEEE"
+                        BorderThickness="1" 
+                        CornerRadius="8"
+                        Margin="5"
+                        ClipToBounds="True">
                     <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="32"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="25"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- 标题栏 -->
+                        <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 图标和标题 -->
+                            <StackPanel Grid.Column="0" 
+                                    Orientation="Horizontal" 
+                                    Margin="10,0,0,0">
+                                <Image Source="/Resource/icon/app.ico" 
+                                    Width="25" 
+                                    Height="25" 
+                                    Margin="0,0,5,0"/>
+                                <TextBlock Text="{Binding WindowTitle}" 
+                                        VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- 窗口控制按钮 -->
+                            <StackPanel Grid.Column="2" 
+                                        Orientation="Horizontal" 
+                                        HorizontalAlignment="Right">
+                                <Button x:Name="TopMostButton"
+                                        Style="{StaticResource TopMostButtonStyle}"
+                                        Click="TopMostButton_Click"/>
+                                <Button x:Name="MinimizeButton"
+                                        Style="{StaticResource MinimizeButtonStyle}"
+                                        Click="MinimizeButton_Click"/>
+                                <Button x:Name="MaximizeButton"
+                                        Style="{StaticResource MaximizeButtonStyle}"
+                                        Click="MaximizeButton_Click"/>
+                                <Button x:Name="CloseButton"
+                                        Style="{StaticResource CloseButtonStyle}"
+                                        Click="CloseButton_Click"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- 顶部导航 -->
+                        <Border Grid.Row="1" BorderThickness="0,0,0,1" BorderBrush="#EEEEEE">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Content="前台按键" 
+                                            IsChecked="True"
+                                            Style="{StaticResource NavigationRadioButtonStyle}"
+                                            Command="{Binding NavigateCommand}"
+                                            CommandParameter="FrontKeys"/>
+                                <RadioButton Content="问题反馈" 
+                                            Style="{StaticResource NavigationRadioButtonStyle}"
+                                            Command="{Binding NavigateCommand}"
+                                            CommandParameter="Feedback"/>
+                                <RadioButton Content="关于" 
+                                            Style="{StaticResource NavigationRadioButtonStyle}"
+                                            Command="{Binding NavigateCommand}"
+                                            CommandParameter="About"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 页面容器 -->
+                        <Frame Grid.Row="2"
+                               NavigationUIVisibility="Hidden"
+                               Content="{Binding CurrentPage}" />
+
+                        <!-- 状态栏 -->
+                        <StatusBar Grid.Row="3" Background="Transparent">
+                            <StatusBar.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                    </Grid>
+                                </ItemsPanelTemplate>
+                            </StatusBar.ItemsPanel>
+                            
+                            <StatusBarItem>
+                                <TextBlock Text="{Binding StatusMessage}"/>
+                            </StatusBarItem>
+                            
+                            <StatusBarItem Grid.Column="1">
+                                <TextBlock Text="{Binding AuthorInfo}" Margin="0,0,10,0"/>
+                            </StatusBarItem>
+                        </StatusBar>
                     </Grid>
-                </ItemsPanelTemplate>
-            </StatusBar.ItemsPanel>
-            
-            <!-- 现有的状态栏项 -->
-            <StatusBarItem>
-                <TextBlock Text="{Binding StatusMessage}"/>
-            </StatusBarItem>
-            
-            <!-- 新增作者和版本号显示 -->
-            <StatusBarItem Grid.Column="1">
-                <TextBlock Text="{Binding AuthorInfo}" Margin="0,0,10,0"/>
-            </StatusBarItem>
-        </StatusBar>
-    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </Border>
 </Window>

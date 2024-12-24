@@ -17,6 +17,7 @@ namespace WpfApp.Services
         private AppConfig _config;
         private volatile bool _isInitialized;
         private readonly object _initLock = new object();
+        private string _baseDirectory;
 
         public static LogManager Instance => _instance.Value;
 
@@ -33,6 +34,9 @@ namespace WpfApp.Services
                     Categories = new LogCategories()
                 }
             };
+            
+            // 默认使用应用程序目录
+            _baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
             
             InitializeLogManager();
         }
@@ -57,7 +61,7 @@ namespace WpfApp.Services
 
         private void UpdateConfig()
         {
-            lock (_lockObject)  // 添加锁以确保线程安全
+            lock (_lockObject)
             {
                 var config = AppConfigService.Config;
                 if (config?.Logging != null)
@@ -66,8 +70,9 @@ namespace WpfApp.Services
                 }
                 
                 string newLogDirectory = Path.Combine(
-                    AppDomain.CurrentDomain.BaseDirectory,
-                    _config.Logging.FileSettings.Directory);
+                    _baseDirectory,
+                    "logs"
+                );
                     
                 if (!Directory.Exists(newLogDirectory))
                 {
@@ -88,9 +93,7 @@ namespace WpfApp.Services
                 {
                     if (!_config.Logging.Enabled) return;
                     
-                    string logDirectory = Path.Combine(
-                        AppDomain.CurrentDomain.BaseDirectory,
-                        _config.Logging.FileSettings.Directory);
+                    string logDirectory = Path.Combine(_baseDirectory, "logs");
                         
                     _currentLogFile = GetNewLogFilePath(logDirectory);
                     _logWriter = new StreamWriter(_currentLogFile, true, Encoding.UTF8)
@@ -305,6 +308,9 @@ namespace WpfApp.Services
 
         public void Dispose()
         {
+            // 取消订阅配置变更事件
+            AppConfigService.ConfigChanged -= OnConfigChanged;
+            
             _logWriter?.Dispose();
             
             // 在程序退出时清理空日志文件
@@ -329,6 +335,64 @@ namespace WpfApp.Services
             string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             string fileName = $"DDDriver_{timestamp}.log";
             return Path.Combine(logDirectory, fileName);
+        }
+
+        public void SetBaseDirectory(string path)
+        {
+            lock (_lockObject)
+            {
+                _baseDirectory = path;
+                // 如果已经初始化且启用了日志，确保目录存在
+                if (_isInitialized && _config.Logging.Enabled)
+                {
+                    string logDirectory = Path.Combine(_baseDirectory, "logs");
+                    Directory.CreateDirectory(logDirectory);
+                }
+                
+                // 重新初始化日志写入器
+                if (_isInitialized)
+                {
+                    _logWriter?.Dispose();
+                    _logWriter = null;
+                    _currentLogFile = string.Empty;
+                    _currentFileSize = 0;
+                    
+                    if (_config.Logging.Enabled)
+                    {
+                        EnsureLogWriterInitialized();
+                    }
+                }
+            }
+        }
+
+        private void OnConfigChanged(object? sender, AppConfig newConfig)
+        {
+            lock (_lockObject)
+            {
+                _config = newConfig;
+                // 如果日志配置发生变化，重新初始化日志系统
+                _logWriter?.Dispose();
+                _logWriter = null;
+                _currentLogFile = string.Empty;
+                _currentFileSize = 0;
+                
+                // 如果启用了日志，确保目录存在并重新初始化
+                if (_config.Logging.Enabled)
+                {
+                    string logDirectory = Path.Combine(_baseDirectory, "logs");
+                    Directory.CreateDirectory(logDirectory);
+                    EnsureLogWriterInitialized();
+                }
+            }
+        }
+
+        // 新增：延迟订阅方法
+        public void InitializeConfigSubscription()
+        {
+            // 订阅配置变更事件
+            AppConfigService.ConfigChanged += OnConfigChanged;
+            // 立即更新一次配置
+            UpdateConfig();
         }
     }
 

@@ -44,42 +44,54 @@ namespace WpfApp.Services.KeyModes
                 LogModeStart();
                 PrepareStart();
 
+                int currentIndex = 0;
                 while (_isRunning && _isKeyHeld && !_cts.Token.IsCancellationRequested)
                 {
-                    foreach (var key in _keyList)
+                    var key = _keyList[currentIndex];
+                    
+                    if (!_isRunning || !_isKeyHeld || _cts.Token.IsCancellationRequested)
                     {
-                        if (!_isRunning || !_isKeyHeld || _cts.Token.IsCancellationRequested)
-                        {
-                            _logger.LogDebug("HoldKeyMode", "检测到按键释放或取消请求，停止循环");
-                            break;
-                        }
-
-                        try
-                        {
-                            if (!_driverService.SimulateKeyPress(key, null, KeyPressInterval))
-                            {
-                                _logger.LogError("HoldKeyMode", $"按键执行失败: {key}");
-                                continue;
-                            }
-
-                            Metrics.IncrementKeyCount();
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError("HoldKeyMode", $"执行按键 {key} 时发生异常", ex);
-                        }
+                        _logger.LogDebug("HoldKeyMode", "检测到按键释放或取消请求，停止循环");
+                        break;
                     }
 
-                    if (_isRunning && _isKeyHeld && !_cts.Token.IsCancellationRequested)
+                    try
                     {
-                        try
+                        if (!_driverService.SimulateKeyPress(key, null, KeyPressInterval))
                         {
-                            await Task.Delay(GetInterval(), _cts.Token);
+                            _logger.LogError("HoldKeyMode", $"按键执行失败: {key}");
+                            continue;
                         }
-                        catch (OperationCanceledException)
+
+                        Metrics.IncrementKeyCount();
+                        
+                        // 更新索引到下一个按键
+                        currentIndex = (currentIndex + 1) % _keyList.Count;
+                        
+                        // 在每个按键之后添加延迟
+                        if (_isRunning && _isKeyHeld && !_cts.Token.IsCancellationRequested)
                         {
-                            _logger.LogDebug("HoldKeyMode", "按键延迟被取消");
-                            break;
+                            try
+                            {
+                                await Task.Delay(GetInterval(), _cts.Token);
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                _logger.LogDebug("HoldKeyMode", "按键延迟被取消");
+                                break;
+                            }
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError("HoldKeyMode", $"执行按键 {key} 时发生异常", ex);
+                        if (!_cts.Token.IsCancellationRequested)
+                        {
+                            continue;
                         }
                     }
                 }

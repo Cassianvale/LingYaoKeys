@@ -55,11 +55,12 @@ namespace WpfApp.Views
                 return;
             }
 
-            // 获取实际按键
-            var key = e.Key == Key.ImeProcessed ? e.SystemKey : e.Key;
+            // 获取实际按键，优先使用SystemKey
+            var key = e.SystemKey != Key.None ? e.SystemKey : 
+                     e.Key == Key.ImeProcessed ? e.SystemKey : e.Key;
             
-            // 过滤系统按键和空按键
-            if (key == Key.System || key == Key.None)
+            // 过滤无效按键，但允许系统功能键
+            if (key == Key.None)
             {
                 return;
             }
@@ -75,10 +76,12 @@ namespace WpfApp.Views
                 }
 
                 ViewModel?.SetCurrentKey(ddKeyCode);
+                _logger.LogDebug("KeyInput", $"按键已转换: {key} -> {ddKeyCode}");
             }
             else
             {
                 ShowError(KEY_ERROR);
+                _logger.LogWarning("KeyInput", $"无法转换按键: {key}");
             }
         }
 
@@ -169,11 +172,19 @@ namespace WpfApp.Views
                 Key.OemQuestion => DDKeyCode.SLASH,
                 Key.OemBackslash => DDKeyCode.BACKSLASH,
 
+                // 添加方向键映射
+                Key.Up => DDKeyCode.ARROW_UP,
+                Key.Down => DDKeyCode.ARROW_DOWN,
+                Key.Left => DDKeyCode.ARROW_LEFT,
+                Key.Right => DDKeyCode.ARROW_RIGHT,
+
                 _ => DDKeyCode.ESC
             };
 
-            // 只要按键被正确映射就返回true
-            return key == Key.Escape || ddKeyCode != DDKeyCode.ESC;
+            // 修改返回逻辑，添加方向键判断
+            return key == Key.Escape || 
+                   (key >= Key.Left && key <= Key.Down) || // 方向键
+                   ddKeyCode != DDKeyCode.ESC;
         }
 
         // 处理按键输入框获得焦点
@@ -340,9 +351,11 @@ namespace WpfApp.Views
                     return;
                 }
 
-                var key = e.Key == Key.ImeProcessed ? e.SystemKey : e.Key;
+                // 获取实际按键，优先使用SystemKey
+                var key = e.SystemKey != Key.None ? e.SystemKey : 
+                         e.Key == Key.ImeProcessed ? e.SystemKey : e.Key;
                 
-                if (key == Key.System || key == Key.None)
+                if (key == Key.None)
                 {
                     return;
                 }
@@ -350,10 +363,12 @@ namespace WpfApp.Views
                 if (TryConvertToDDKeyCode(key, out DDKeyCode ddKeyCode))
                 {
                     HandleHotkeyInput(textBox, ddKeyCode, Keyboard.Modifiers, true);
+                    _logger.LogDebug("HotkeyInput", $"开始热键已转换: {key} -> {ddKeyCode}");
                 }
                 else
                 {
                     ShowError(KEY_ERROR);
+                    _logger.LogWarning("HotkeyInput", $"无法转换开始热键: {key}");
                 }
             }
             catch (Exception ex)
@@ -377,9 +392,11 @@ namespace WpfApp.Views
                     return;
                 }
 
-                var key = e.Key == Key.ImeProcessed ? e.SystemKey : e.Key;
+                // 获取实际按键，优先使用SystemKey
+                var key = e.SystemKey != Key.None ? e.SystemKey : 
+                         e.Key == Key.ImeProcessed ? e.SystemKey : e.Key;
                 
-                if (key == Key.System || key == Key.None)
+                if (key == Key.None)
                 {
                     return;
                 }
@@ -394,10 +411,12 @@ namespace WpfApp.Views
                         return;
                     }
                     HandleHotkeyInput(textBox, ddKeyCode, modifiers, false);
+                    _logger.LogDebug("HotkeyInput", $"停止热键已转换: {key} -> {ddKeyCode}");
                 }
                 else
                 {
                     ShowError(KEY_ERROR);
+                    _logger.LogWarning("HotkeyInput", $"无法转换停止热键: {key}");
                 }
             }
             catch (Exception ex)
@@ -501,7 +520,7 @@ namespace WpfApp.Views
                                     textBox.Text = viewModel.KeyInterval.ToString();
                                     if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
                                     {
-                                        mainViewModel.UpdateStatusMessage($"按键间隔已自动调整为: {viewModel.KeyInterval}ms", true);
+                                        mainViewModel.UpdateStatusMessage($"键间隔已自动调整为: {viewModel.KeyInterval}ms", true);
                                     }
                                 }
                             }

@@ -4,6 +4,7 @@ using System.Windows;
 using System.Threading.Tasks;
 using WpfApp.Services;
 using WpfApp.ViewModels;
+using System.Reflection;
 
 namespace WpfApp
 {
@@ -14,14 +15,28 @@ namespace WpfApp
         public static ConfigService ConfigService { get; private set; } = new ConfigService();
         public static AudioService AudioService { get; private set; } = new AudioService();
         private bool _isShuttingDown;
+        private readonly string _userDataPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".lingyao"
+        );
 
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-            AppConfigService.Initialize();  // 确保配置只加载一次
-
+            
             try
             {
+                // 确保用户数据目录存在
+                Directory.CreateDirectory(_userDataPath);
+                
+                // 初始化配置服务（在日志之前）
+                AppConfigService.Initialize(_userDataPath);
+                
+                // 设置日志管理器的基础目录
+                _logger.SetBaseDirectory(_userDataPath);
+                // 初始化日志管理器的配置订阅
+                _logger.InitializeConfigSubscription();
+
                 _logger.LogDebug("App", $"日志系统初始化完成, 配置: " +
                     $"Level={AppConfigService.Config.Logging.LogLevel}, " +
                     $"MaxSize={AppConfigService.Config.Logging.FileSettings.MaxFileSize/1024/1024}MB");
@@ -31,20 +46,34 @@ namespace WpfApp
                 // 初始化驱动服务
                 DDDriver = new DDDriverService();
                 
-                // 获取当前程序路径
-                string currentDir = AppDomain.CurrentDomain.BaseDirectory;
-                string dllPath = Path.Combine(currentDir, "dd", Environment.Is64BitProcess ? "ddx64.dll" : "ddx32.dll");
-                
-                _logger.LogInitialization("App", $"使用驱动: {dllPath}");
+                // 从嵌入式资源提取驱动文件
+                string dllFileName = Environment.Is64BitProcess ? "ddx64.dll" : "ddx32.dll";
+                string tempPath = Path.Combine(Path.GetTempPath(), "LingYaoKeys");
+                Directory.CreateDirectory(tempPath);
+                string dllPath = Path.Combine(tempPath, dllFileName);
 
-                // 检查文件是否存在
+                // 如果临时文件不存在，从嵌入式资源提取
                 if (!File.Exists(dllPath))
                 {
-                    _logger.LogError("App", $"找不到驱动文件{dllPath}");
-                    MessageBox.Show($"找不到驱动文件：{dllPath}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    Shutdown();
-                    return;
+                    string resourceName = $"WpfApp.Resource.dd.{dllFileName}";
+                    using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                    {
+                        if (stream == null)
+                        {
+                            _logger.LogError("App", $"找不到嵌入的驱动资源：{resourceName}");
+                            MessageBox.Show($"找不到驱动资源：{resourceName}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            Shutdown();
+                            return;
+                        }
+
+                        using (FileStream fileStream = File.Create(dllPath))
+                        {
+                            stream.CopyTo(fileStream);
+                        }
+                    }
                 }
+
+                _logger.LogInitialization("App", $"使用驱动: {dllPath}");
 
                 // 加载驱动
                 _logger.LogInitialization("App", "开始加载驱动...");
