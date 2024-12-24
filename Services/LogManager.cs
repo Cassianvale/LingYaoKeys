@@ -18,6 +18,7 @@ namespace WpfApp.Services
         private volatile bool _isInitialized;
         private readonly object _initLock = new object();
         private string _baseDirectory;
+        private string _userLogDirectory;
 
         public static LogManager Instance => _instance.Value;
 
@@ -34,6 +35,13 @@ namespace WpfApp.Services
                     Categories = new LogCategories()
                 }
             };
+            
+            // 设置用户目录下的日志路径
+            _userLogDirectory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".lingyao",
+                "logs"
+            );
             
             // 默认使用应用程序目录
             _baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
@@ -69,14 +77,14 @@ namespace WpfApp.Services
                     _config = config;
                 }
                 
-                string newLogDirectory = Path.Combine(
-                    _baseDirectory,
-                    "logs"
-                );
-                    
-                if (!Directory.Exists(newLogDirectory))
+                // 根据日志开关决定是否创建目录
+                if (_config.Logging.Enabled)
                 {
-                    Directory.CreateDirectory(newLogDirectory);
+                    string logDirectory = _userLogDirectory;
+                    if (!Directory.Exists(logDirectory))
+                    {
+                        Directory.CreateDirectory(logDirectory);
+                    }
                 }
             }
         }
@@ -93,9 +101,12 @@ namespace WpfApp.Services
                 {
                     if (!_config.Logging.Enabled) return;
                     
-                    string logDirectory = Path.Combine(_baseDirectory, "logs");
-                        
-                    _currentLogFile = GetNewLogFilePath(logDirectory);
+                    // 使用用户目录下的日志路径
+                    _currentLogFile = GetNewLogFilePath(_userLogDirectory);
+                    
+                    // 确保目录存在
+                    Directory.CreateDirectory(_userLogDirectory);
+                    
                     _logWriter = new StreamWriter(_currentLogFile, true, Encoding.UTF8)
                     {
                         AutoFlush = true
@@ -339,30 +350,8 @@ namespace WpfApp.Services
 
         public void SetBaseDirectory(string path)
         {
-            lock (_lockObject)
-            {
-                _baseDirectory = path;
-                // 如果已经初始化且启用了日志，确保目录存在
-                if (_isInitialized && _config.Logging.Enabled)
-                {
-                    string logDirectory = Path.Combine(_baseDirectory, "logs");
-                    Directory.CreateDirectory(logDirectory);
-                }
-                
-                // 重新初始化日志写入器
-                if (_isInitialized)
-                {
-                    _logWriter?.Dispose();
-                    _logWriter = null;
-                    _currentLogFile = string.Empty;
-                    _currentFileSize = 0;
-                    
-                    if (_config.Logging.Enabled)
-                    {
-                        EnsureLogWriterInitialized();
-                    }
-                }
-            }
+            // 不再需要修改基础目录，因为我们现在使用固定的用户目录
+            _baseDirectory = path;
         }
 
         private void OnConfigChanged(object? sender, AppConfig newConfig)
@@ -379,8 +368,7 @@ namespace WpfApp.Services
                 // 如果启用了日志，确保目录存在并重新初始化
                 if (_config.Logging.Enabled)
                 {
-                    string logDirectory = Path.Combine(_baseDirectory, "logs");
-                    Directory.CreateDirectory(logDirectory);
+                    Directory.CreateDirectory(_userLogDirectory);
                     EnsureLogWriterInitialized();
                 }
             }

@@ -39,19 +39,24 @@ namespace WpfApp.Services
         {
             if (!File.Exists(targetPath))
             {
-                string resourceName = $"WpfApp.Resource.sound.{fileName}";
-                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                try
                 {
+                    string resourceName = $"WpfApp.Resource.sound.{fileName}";
+                    using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
+                    
                     if (stream == null)
                     {
-                        _logger.LogError("AudioService", $"找不到音频资源：{resourceName}");
+                        _logger.LogError("AudioService", $"找不到嵌入式音频资源：{resourceName}");
                         return;
                     }
 
-                    using (FileStream fileStream = File.Create(targetPath))
-                    {
-                        stream.CopyTo(fileStream);
-                    }
+                    using var fileStream = File.Create(targetPath);
+                    stream.CopyTo(fileStream);
+                    _logger.LogDebug("AudioService", $"已从嵌入式资源提取音频文件：{fileName}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("AudioService", $"提取音频资源失败：{fileName}", ex);
                 }
             }
         }
