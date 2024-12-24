@@ -13,7 +13,7 @@
     <ApplicationIcon>Resource\icon\app.ico</ApplicationIcon>
     
     <!-- 项目信息配置 -->
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Product>LingYaoKeys</Product>
     <Authors>慕长秋</Authors>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
@@ -26,7 +26,25 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <PublishReadyToRun>false</PublishReadyToRun>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <DebugType>embedded</DebugType>
+    <DebugType>none</DebugType>
+    
+    <!-- 优化输出配置 -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    
+    <!-- 发布输出路径配置 -->
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <OutputPath>bin\$(Configuration)\publish</OutputPath>
+    
+    <!-- WebView2 配置 -->
+    <UseWPF>true</UseWPF>
+    <WebView2LoaderPreference>Static</WebView2LoaderPreference>
+    <WindowsPackageType>None</WindowsPackageType>
+    <SelfContained>false</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <NoWarn>$(NoWarn);NETSDK1187</NoWarn>
   </PropertyGroup>
 
   <!-- 发布配置 -->
@@ -34,53 +52,104 @@
     <DebugSymbols>false</DebugSymbols>
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
+    <!-- 新增：Release模式下的优化配置 -->
+    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <!-- 资源文件配置 -->
   <ItemGroup>
-    <None Include="dd\**">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <!-- 嵌入Resource目录下的所有资源文件 -->
+    <EmbeddedResource Include="Resource\dd\**">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    
+    <EmbeddedResource Include="Resource\sound\**">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    
+    <EmbeddedResource Include="Resource\img\**">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+
+    <!-- 应用图标单独配置为Resource -->
+    <Resource Include="Resource\icon\**" />
   </ItemGroup>
 
+  <!-- 新增：配置程序集依赖项 -->
   <ItemGroup>
-    <Content Include="dd\**">
-      <Link>dd\%(RecursiveDir)%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Resource Include="Resource\icon\app.ico" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Markdig" Version="0.39.1" />
+    <PackageReference Include="Markdig" Version="0.39.1" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="NAudio" Version="2.2.1" />
-    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.77" />
-    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.1.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" PrivateAssets="all" />
+    <PackageReference Include="NAudio" Version="2.2.1" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.77" PrivateAssets="all" />
+    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.1.0" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="AppConfig.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-    <EmbeddedResource Include="Resource\sound\*.mp3" />
-    <EmbeddedResource Include="README.md" />
+    <EmbeddedResource Include="AppConfig.json">
+      <LogicalName>WpfApp.AppConfig.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="README.md">
+      <LogicalName>WpfApp.README.md</LogicalName>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
 
-  <!-- 清理发布目录 -->
-  <Target Name="CleanPublishDir" BeforeTargets="Publish">
-    <RemoveDir Directories="$(PublishDir)" />
+  <!-- 新增：发布后清理临时文件 -->
+  <Target Name="CleanupTempFiles" AfterTargets="Publish">
+    <ItemGroup>
+      <FilesToDelete Include="$(PublishDir)*.pdb"/>
+      <FilesToDelete Include="$(PublishDir)*.xml"/>
+      <FilesToDelete Include="$(PublishDir)*.deps.json"/>
+      <FilesToDelete Include="$(PublishDir)*.dll"/>
+      <FilesToDelete Include="$(PublishDir)runtimes\**\*.*"/>
+      <DirectoriesToDelete Include="$(PublishDir)runtimes"/>
+      <FilesToDelete Include="$(PublishDir)*.exe.WebView2\**\*.*"/>
+      <DirectoriesToDelete Include="$(PublishDir)*.exe.WebView2"/>
+    </ItemGroup>
+    <Delete Files="@(FilesToDelete)"/>
+    <RemoveDir Directories="@(DirectoriesToDelete)"/>
+  </Target>
+
+  <!-- 新增：WebView2资源处理 -->
+  <Target Name="ProcessWebView2" AfterTargets="Build">
+    <PropertyGroup>
+      <WebView2LoaderPath>$(OutputPath)runtimes\win-$(Platform)\native\WebView2Loader.dll</WebView2LoaderPath>
+    </PropertyGroup>
+    <ItemGroup>
+      <WebView2Files Include="$(OutputPath)runtimes\**\*.*"/>
+      <WebView2Dirs Include="$(OutputPath)runtimes"/>
+    </ItemGroup>
+    <Delete Files="@(WebView2Files)" />
+    <RemoveDir Directories="@(WebView2Dirs)"/>
   </Target>
 
   <ItemGroup>
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Costura.Fody" Version="5.7.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Fody" Version="6.8.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>compile; runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- Costura.Fody 配置 -->
+  <ItemGroup>
+    <Content Include="FodyWeavers.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- WebView2 运行时配置 -->
+  <PropertyGroup>
+    <WebView2LoaderPreference>Static</WebView2LoaderPreference>
+  </PropertyGroup>
 
 </Project>

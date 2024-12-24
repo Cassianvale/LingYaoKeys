@@ -2,14 +2,19 @@ using System;
 using System.IO;
 using Newtonsoft.Json;
 using WpfApp.Models;
-using WpfApp.Services;
+using System.Reflection;
+using System.Windows.Input;
 
 namespace WpfApp.Services
 {
     public class AppConfigService
     {
         private static readonly LogManager _logger = LogManager.Instance;
-        private static string _configPath = "AppConfig.json";  // 默认路径
+        private static string _configPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".lingyao",
+            "AppConfig.json"
+        );
         private static AppConfig? _config;
         private static readonly object _lockObject = new object();
         // 添加配置变更事件
@@ -33,13 +38,65 @@ namespace WpfApp.Services
             }
         }
 
-        public static void Initialize(string userDataPath)
+        public static void Initialize(string? userDataPath = null)
         {
+            _logger.LogDebug("Config", "开始初始化配置服务..."); // 添加初始化开始日志
+            
             lock (_lockObject)
             {
-                _configPath = Path.Combine(userDataPath, "AppConfig.json");
-                _config = null; // 清除现有配置，强制重新加载
-                LoadConfig();
+                // 如果指定了自定义路径,则使用自定义路径
+                if (!string.IsNullOrEmpty(userDataPath))
+                {
+                    _configPath = Path.Combine(userDataPath, "AppConfig.json");
+                    _logger.LogDebug("Config", $"使用自定义配置路径: {_configPath}");
+                }
+                
+                // 确保配置目录存在
+                Directory.CreateDirectory(Path.GetDirectoryName(_configPath)!);
+                
+                // 如果用户目录下不存在配置文件,则从嵌入资源复制默认配置
+                if (!File.Exists(_configPath))
+                {
+                    _logger.LogDebug("Config", "配置文件不存在，尝试从嵌入资源创建...");
+                    try
+                    {
+                        // 从嵌入资源读取默认配置
+                        var assembly = Assembly.GetExecutingAssembly();
+                        var resourceName = "WpfApp.AppConfig.json";
+                        
+                        // 调试用：列出所有嵌入资源
+                        var resources = assembly.GetManifestResourceNames();
+                        _logger.LogDebug("Config", $"可用的嵌入资源: {string.Join(", ", resources)}");
+                        
+                        using var stream = assembly.GetManifestResourceStream(resourceName);
+                        if (stream != null)
+                        {
+                            using var reader = new StreamReader(stream);
+                            string defaultConfig = reader.ReadToEnd();
+                            _config = JsonConvert.DeserializeObject<AppConfig>(defaultConfig);
+                            
+                            // 保存到用户目录
+                            SaveConfig();
+                            _logger.LogInitialization("Config", "已从默认模板创建配置文件");
+                        }
+                        else
+                        {
+                            _logger.LogError("Config", $"找不到嵌入资源: {resourceName}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError("Config", $"加载默认配置模板失败: {ex.Message}");
+                        _config = new AppConfig { /* 默认配置 */ };
+                        SaveConfig();
+                    }
+                }
+                else
+                {
+                    LoadConfig();
+                }
+                
+                _logger.LogDebug("Config", "配置服务初始化完成");
             }
         }
 
@@ -58,27 +115,81 @@ namespace WpfApp.Services
                     string json = File.ReadAllText(_configPath);
                     var jsonSettings = new JsonSerializerSettings
                     {
-                        ObjectCreationHandling = ObjectCreationHandling.Replace
+                        ObjectCreationHandling = ObjectCreationHandling.Replace,
+                        NullValueHandling = NullValueHandling.Include
                     };
                     _config = JsonConvert.DeserializeObject<AppConfig>(json, jsonSettings);
                     
-                    _logger.LogDebug("Config", $"从配置文件加载窗口尺寸: {_config?.UI.MainWindow.DefaultWidth}x{_config?.UI.MainWindow.DefaultHeight}");
-                    _logger.LogInitialization("Config", $"配置文件加载成功: {_configPath}");
+                    // 如果配置为空或关键值为null，使用默认值初始化
+                    if (_config == null || HasNullValues(_config))
+                    {
+                        _config = CreateDefaultConfig();
+                        SaveConfig();
+                        _logger.LogInitialization("Config", "使用默认配置初始化");
+                    }
                     
+                    _logger.LogDebug("Config", $"从配置文件加载成功: {_configPath}");
                     ValidateConfig();
                 }
                 else
                 {
-                    _config = new AppConfig();
-                    _logger.LogInitialization("Config", "使用默认配置");
+                    _config = CreateDefaultConfig();
                     SaveConfig();
+                    _logger.LogInitialization("Config", "创建默认配置文件");
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError("Config", $"加载配置文件失败: {ex.Message}");
-                _config = new AppConfig();
+                _config = CreateDefaultConfig();
+                SaveConfig();
             }
+        }
+
+        private static bool HasNullValues(AppConfig config)
+        {
+            return config.soundEnabled == null 
+                || config.IsGameMode == null 
+                || config.KeyPressInterval == null;
+        }
+
+        private static AppConfig CreateDefaultConfig()
+        {
+            return new AppConfig
+            {
+                Logging = new LoggingConfig
+                {
+                    Enabled = false,
+                    LogLevel = "Debug",
+                    FileSettings = new LogFileSettings
+                    {
+                        Directory = "Logs",
+                        MaxFileSize = 10,
+                        MaxFileCount = 10,
+                        RollingInterval = "Day",
+                        RetainDays = 7
+                    },
+                    Categories = new LogCategories
+                    {
+                        KeyOperation = true,
+                        Performance = true,
+                        Driver = true,
+                        Config = true
+                    }
+                },
+                startKey = (DDKeyCode)109,
+                startMods = 0,
+                stopKey = (DDKeyCode)110,
+                stopMods = 0,
+                keyList = new List<DDKeyCode> { (DDKeyCode)404, (DDKeyCode)201, (DDKeyCode)202 },
+                keySelections = new List<bool> { true, false, false },
+                keyMode = 0,
+                interval = 5,
+                soundEnabled = true,
+                IsGameMode = true,
+                KeyPressInterval = 5,
+                IsFloatingWindowEnabled = false
+            };
         }
 
         private static void ValidateConfig()
@@ -88,10 +199,10 @@ namespace WpfApp.Services
             bool configChanged = false;
             
             // 验证并修正窗口尺寸
-            if (_config.UI.MainWindow.DefaultWidth < 500)
+            if (_config.UI.MainWindow.DefaultWidth < 510)
             {
-                _logger.LogWarning("Config", $"窗口宽度 {_config.UI.MainWindow.DefaultWidth} 小于最小值，已修正为 500");
-                _config.UI.MainWindow.DefaultWidth = 500;
+                _logger.LogWarning("Config", $"窗口宽度 {_config.UI.MainWindow.DefaultWidth} 小于最小值，已修正为 510");
+                _config.UI.MainWindow.DefaultWidth = 510;
                 configChanged = true;
             }
             
@@ -141,13 +252,25 @@ namespace WpfApp.Services
                 {
                     if (_config == null) return;
 
-                    string json = JsonConvert.SerializeObject(_config, Formatting.Indented);
-                    File.WriteAllText(_configPath, json);
+                    string newJson = JsonConvert.SerializeObject(_config, Formatting.Indented);
                     
-                    // 确保在保存后触发配置变更事件
+                    // 检查配置是否真的发生了变化
+                    if (File.Exists(_configPath))
+                    {
+                        string existingJson = File.ReadAllText(_configPath);
+                        if (existingJson == newJson)
+                        {
+                            // 配置没有变化，不需要保存和触发事件
+                            return;
+                        }
+                    }
+                    
+                    File.WriteAllText(_configPath, newJson);
+                    
+                    // 只在配置真正发生变化时触发事件
                     ConfigChanged?.Invoke(null, _config);
                     
-                    _logger.LogDebug("Config", $"配置已保存到: {_configPath}");
+                    _logger.LogDebug("Config", $"配置已更新并保存到: {_configPath}");
                 }
             }
             catch (Exception ex)

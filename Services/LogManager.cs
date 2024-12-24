@@ -5,6 +5,9 @@ using System.Text;
 using System.Threading;
 using System.Linq;
 using WpfApp.Models;
+using Newtonsoft.Json;
+
+
 namespace WpfApp.Services
 {
     public class LogManager
@@ -30,9 +33,9 @@ namespace WpfApp.Services
             { 
                 Logging = new LoggingConfig 
                 { 
-                    Enabled = true,
+                    Enabled = false,
                     LogLevel = "Debug",
-                    FileSettings = new FileSettings(),
+                    FileSettings = new LogFileSettings(),
                     Categories = new LogCategories()
                 }
             };
@@ -54,11 +57,7 @@ namespace WpfApp.Services
                 {
                     if (!_isInitialized)
                     {
-                        Task.Run(() => 
-                        {
-                            UpdateConfig();
-                            _isInitialized = true;
-                        });
+                        _isInitialized = true;
                     }
                 }
             }
@@ -68,6 +67,8 @@ namespace WpfApp.Services
         {
             lock (_lockObject)
             {
+                if (!_isInitialized) return;
+
                 var config = AppConfigService.Config;
                 if (config?.Logging != null)
                 {
@@ -96,15 +97,34 @@ namespace WpfApp.Services
                 try
                 {
                     if (!_config.Logging.Enabled) return;
-                    
-                    string logDirectory = Path.Combine(_baseDirectory, LOG_FOLDER_NAME);
-                    _currentLogFile = GetNewLogFilePath(logDirectory);
-                    _logWriter = new StreamWriter(_currentLogFile, true, Encoding.UTF8)
-                    {
-                        AutoFlush = true
-                    };
 
-                    Debug.WriteLine($"创建新日志文件: {_currentLogFile}");
+                    // 如果当前日期的日志文件已存在，就继续使用
+                    string logDirectory = Path.Combine(_baseDirectory, LOG_FOLDER_NAME);
+                    string currentDatePrefix = DateTime.Now.ToString("yyyyMMdd");
+                    var existingLogFile = Directory.GetFiles(logDirectory, $"LingYaoKeys_{currentDatePrefix}*.log")
+                        .OrderByDescending(f => f)
+                        .FirstOrDefault();
+
+                    if (existingLogFile != null)
+                    {
+                        _currentLogFile = existingLogFile;
+                        _logWriter = new StreamWriter(_currentLogFile, true, Encoding.UTF8)
+                        {
+                            AutoFlush = true
+                        };
+                        _currentFileSize = new FileInfo(_currentLogFile).Length;
+                    }
+                    else
+                    {
+                        _currentLogFile = GetNewLogFilePath(logDirectory);
+                        _logWriter = new StreamWriter(_currentLogFile, true, Encoding.UTF8)
+                        {
+                            AutoFlush = true
+                        };
+                        _currentFileSize = 0;
+                    }
+
+                    Debug.WriteLine($"使用日志文件: {_currentLogFile}");
                 }
                 catch (Exception ex)
                 {
@@ -376,7 +396,7 @@ namespace WpfApp.Services
             
             _logWriter?.Dispose();
             
-            // 在程序退出时清理空日志文件
+            // 在程序退出时清理日志文件
             if (!string.IsNullOrEmpty(_currentLogFile))
             {
                 string? directory = Path.GetDirectoryName(_currentLogFile);
@@ -433,19 +453,27 @@ namespace WpfApp.Services
         {
             lock (_lockObject)
             {
+                bool loggingStateChanged = _config.Logging.Enabled != newConfig.Logging.Enabled;
+                bool logLevelChanged = _config.Logging.LogLevel != newConfig.Logging.LogLevel;
+                bool fileSettingsChanged = !JsonConvert.SerializeObject(_config.Logging.FileSettings)
+                    .Equals(JsonConvert.SerializeObject(newConfig.Logging.FileSettings));
+
                 _config = newConfig;
-                // 如果日志配置发生变化，重新初始化日志系统
-                _logWriter?.Dispose();
-                _logWriter = null;
-                _currentLogFile = string.Empty;
-                _currentFileSize = 0;
-                
-                // 如果启用了日志，确保目录存在并重新初始化
-                if (_config.Logging.Enabled)
+
+                // 只有在日志配置实质性变化时才重新初始化
+                if (loggingStateChanged || logLevelChanged || fileSettingsChanged)
                 {
-                    string logDirectory = Path.Combine(_baseDirectory, "logs");
-                    Directory.CreateDirectory(logDirectory);
-                    EnsureLogWriterInitialized();
+                    _logWriter?.Dispose();
+                    _logWriter = null;
+                    _currentLogFile = string.Empty;
+                    _currentFileSize = 0;
+                    
+                    if (_config.Logging.Enabled)
+                    {
+                        string logDirectory = Path.Combine(_baseDirectory, "logs");
+                        Directory.CreateDirectory(logDirectory);
+                        EnsureLogWriterInitialized();
+                    }
                 }
             }
         }

@@ -139,7 +139,8 @@ Adjust analysis depth based on:
 ## Project search priority
 
 ### Project structure
-jx3wpftools/
+
+LingYaoKeys/
 ├── Commands/ # MVVM command
 │   └── RelayCommand.cs # MVVM command implementation class
 │

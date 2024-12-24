@@ -41,13 +41,6 @@
         <wv2:WebView2 x:Name="WebView" 
                       Grid.Row="1"
                       DefaultBackgroundColor="#00FFFFFF">
-            <wv2:WebView2.CreationProperties>
-                <wv2:CoreWebView2CreationProperties>
-                    <wv2:CoreWebView2CreationProperties.BrowserExecutableFolder>
-                        <x:Null/>
-                    </wv2:CoreWebView2CreationProperties.BrowserExecutableFolder>
-                </wv2:CoreWebView2CreationProperties>
-            </wv2:WebView2.CreationProperties>
         </wv2:WebView2>
     </Grid>
 </Page> 

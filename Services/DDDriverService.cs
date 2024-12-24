@@ -555,10 +555,39 @@ namespace WpfApp.Services
         // 设置按键列表
         public void SetKeyList(List<DDKeyCode> keyList)
         {
-            _keyList = new List<DDKeyCode>(keyList);
-            if (_currentKeyMode != null)
+            try
             {
-                _currentKeyMode.SetKeyList(new List<DDKeyCode>(_keyList));
+                _logger.LogDebug("DDDriverService", $"设置按键列表 - 按键数量: {keyList?.Count ?? 0}");
+                
+                if (keyList == null || keyList.Count == 0)
+                {
+                    _logger.LogWarning("DDDriverService", "收到空的按键列表，停止当前运行的序列");
+                    // 如果当前正在运行，则停止
+                    if (_isEnabled)
+                    {
+                        IsEnabled = false;
+                        SetHoldMode(false);
+                    }
+                    _keyList.Clear();
+                    return;
+                }
+                
+                _keyList = new List<DDKeyCode>(keyList);
+                if (_currentKeyMode != null)
+                {
+                    _currentKeyMode.SetKeyList(new List<DDKeyCode>(_keyList));
+                }
+                
+                _logger.LogDebug("DDDriverService", 
+                    $"按键列表已更新 - 按键数量: {_keyList.Count}, 当前模式: {(_currentKeyMode?.GetType().Name ?? "无")}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("DDDriverService", "设置按键列表异常", ex);
+                // 发生异常时清空按键列表并停止服务
+                _keyList.Clear();
+                IsEnabled = false;
+                SetHoldMode(false);
             }
         }
 
@@ -590,29 +619,50 @@ namespace WpfApp.Services
                 {
                     if (isHold)
                     {
+                        // 确保在启动按压模式前设置状态
+                        _isEnabled = true;
                         holdMode.HandleKeyPress();
-                        IsEnabled = true;
                     }
                     else
                     {
                         holdMode.HandleKeyRelease();
-                        // 不在这里设置 IsEnabled = false，让 HoldKeyMode 自己处理停止逻辑
+                        // 在按键释放后重置状态
+                        _isEnabled = false;
                     }
                 }
                 else if (isHold)
                 {
+                    // 如果当前没有按压模式实例，创建一个新的
                     _currentKeyMode = new HoldKeyMode(this);
                     _currentKeyMode.SetKeyList(_keyList);
                     _currentKeyMode.SetKeyInterval(_keyInterval);
-                    IsEnabled = true;
+                    _isEnabled = true;
+                    (_currentKeyMode as HoldKeyMode)?.HandleKeyPress();
                 }
+                
+                _logger.LogDebug("DDDriverService", 
+                    $"[SetHoldMode] 按压模式状态已更新 - " +
+                    $"isHold: {isHold}, " +
+                    $"isEnabled: {_isEnabled}, " +
+                    $"按键数量: {_keyList.Count}");
             }
             catch (Exception ex)
             {
                 _logger.LogError("DDDriverService", "[SetHoldMode] 设置按压模式异常", ex);
                 // 发生异常时确保停止
-                IsEnabled = false;
+                _isEnabled = false;
                 _isHoldMode = false;
+                if (_currentKeyMode is HoldKeyMode holdMode)
+                {
+                    try
+                    {
+                        holdMode.HandleKeyRelease();
+                    }
+                    catch (Exception releaseEx)
+                    {
+                        _logger.LogError("DDDriverService", "[SetHoldMode] 异常处理时释放按键失败", releaseEx);
+                    }
+                }
             }
         }
 

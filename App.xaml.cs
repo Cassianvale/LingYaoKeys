@@ -26,14 +26,26 @@ namespace WpfApp
             
             try
             {
-                // 确保用户数据目录存在
-                Directory.CreateDirectory(_userDataPath);
+                // 使用用户主目录作为配置目录
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    ".lingyao"
+                );
                 
-                // 初始化配置服务（在日志之前）
-                AppConfigService.Initialize(_userDataPath);
+                // 确保目录存在
+                Directory.CreateDirectory(configPath);
                 
-                // 设置日志管理器的基础目录
-                _logger.SetBaseDirectory(_userDataPath);
+                // 初始化配置服务
+                AppConfigService.Initialize(configPath);
+                
+                // 设置日志目录为用户主目录下的.lingyao
+                string logPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    ".lingyao"
+                );
+                Directory.CreateDirectory(logPath);
+                _logger.SetBaseDirectory(logPath);
+                
                 // 初始化日志管理器的配置订阅
                 _logger.InitializeConfigSubscription();
 

@@ -3,7 +3,7 @@
 
 # LingYaoKeys - 灵曜按键  
 
-✨**基于.NET8.0+WPF开发灵动优雅的按键工具**✨  
+✨**基于.NET8.0+WPF开发的灵动、优雅的按键工具**✨  
 
 <div>
     <img alt="platform" src="https://img.shields.io/badge/platform-Windows-blueviolet">
@@ -21,7 +21,7 @@
 <br>
 
 
-❤ ✨ 如果喜欢本项目，可右上角送作者一个`Star`，QQ 群 `861603314`✨ ❤
+❤  如果喜欢本项目可右上角送作者一个`Star`🌟，反馈 QQ 群 `861603314` ❤
 
 </div>
 </br>
@@ -31,6 +31,7 @@
 - [x] 支持全局热键，**支持侧键触发**  
 - [x] 支持顺序/按压模式触发按键  
 - [x] 支持开启/停止语音提醒  
+- [x] 支持浮窗置顶显示按键启动状态
 - [x] 支持正常/游戏模式切换  
 - [x] 支持自定义开启/停止音频  
 - [x] 支持按键列表拖拽排序  
@@ -67,7 +68,7 @@
 
 ### 发布打包
 
-- `.\publish.bat`  
+- `dotnet publish -c Release`
 
 ### 项目结构展示
 <details>

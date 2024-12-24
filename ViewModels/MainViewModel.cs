@@ -126,6 +126,9 @@ namespace WpfApp.ViewModels
                 StatusMessageColor = Brushes.Black;
             };
 
+            // 设置DataContext
+            mainWindow.DataContext = this;
+
             // 其他初始化
             _hotkeyService = new HotkeyService(mainWindow, ddDriver);
             _keyMappingViewModel = new KeyMappingViewModel(_ddDriver, App.ConfigService, _hotkeyService, this, App.AudioService);
@@ -299,17 +302,26 @@ namespace WpfApp.ViewModels
 
         public void UpdateStatusMessage(string message, bool isError = false)
         {
+            if (Application.Current?.Dispatcher == null) return;
+
             Application.Current.Dispatcher.Invoke(() =>
             {
-                // 停止之前的定时器
-                _statusMessageTimer.Stop();
+                try
+                {
+                    // 停止之前的定时器
+                    _statusMessageTimer?.Stop();
 
-                // 更新消息
-                StatusMessage = message;
-                StatusMessageColor = isError ? Brushes.Red : Brushes.Black;
+                    // 更新消息
+                    StatusMessage = message;
+                    StatusMessageColor = isError ? Brushes.Red : Brushes.Black;
 
-                // 启动定时器
-                _statusMessageTimer.Start();
+                    // 启动定时器
+                    _statusMessageTimer?.Start();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("MainViewModel", "更新状态消息失败", ex);
+                }
             });
         }
 
