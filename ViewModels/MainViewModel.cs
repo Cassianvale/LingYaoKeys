@@ -128,7 +128,7 @@ namespace WpfApp.ViewModels
 
             // 其他初始化
             _hotkeyService = new HotkeyService(mainWindow, ddDriver);
-            _keyMappingViewModel = new KeyMappingViewModel(_ddDriver, App.ConfigService, _hotkeyService, this);
+            _keyMappingViewModel = new KeyMappingViewModel(_ddDriver, App.ConfigService, _hotkeyService, this, App.AudioService);
             _feedbackViewModel = new FeedbackViewModel(this);
             _aboutViewModel = new AboutViewModel();
             

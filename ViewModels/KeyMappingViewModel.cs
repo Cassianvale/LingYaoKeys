@@ -214,13 +214,18 @@ namespace WpfApp.ViewModels
         }
 
         public KeyMappingViewModel(DDDriverService ddDriver, ConfigService configService, 
-            HotkeyService hotkeyService, MainViewModel mainViewModel)
+            HotkeyService hotkeyService, MainViewModel mainViewModel, AudioService audioService)
         {
             _ddDriver = ddDriver;
             _configService = configService;
             _hotkeyService = hotkeyService;
             _mainViewModel = mainViewModel;
-            _audioService = App.AudioService;
+            _audioService = audioService;
+            _hotkeyStatus = "初始化中...";
+            _isInitializing = true;
+
+            // 初始化按键列表
+            _keyList = new ObservableCollection<KeyItem>();
 
             // 订阅驱动服务的状态变化
             _ddDriver.EnableStatusChanged += (s, enabled) =>
@@ -235,14 +240,11 @@ namespace WpfApp.ViewModels
             _hotkeyService.StartHotkeyPressed += OnStartHotkeyPressed;
             _hotkeyService.StopHotkeyPressed += OnStopHotkeyPressed;
 
-            // 初始化按键列表
-            _keyList = new ObservableCollection<KeyItem>();
+            // 初始化命令
+            InitializeCommands();
 
             // 加载配置
             LoadConfiguration();
-
-            // 初始化命令
-            InitializeCommands();
 
             // 初始化热键状态
             InitializeHotkeyStatus();
@@ -250,8 +252,29 @@ namespace WpfApp.ViewModels
             // 订阅事件
             SubscribeToEvents();
 
+            // 确保配置同步到服务
+            SyncConfigToServices();
+
             // 在所有初始化完成后
             _isInitializing = false;
+        }
+
+        private void SyncConfigToServices()
+        {
+            try
+            {
+                var selectedKeys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
+                if (selectedKeys.Any())
+                {
+                    _ddDriver.SetKeyList(selectedKeys);
+                    _hotkeyService.SetKeySequence(selectedKeys, KeyInterval);
+                    _logger.LogDebug("ViewModel", $"同步配置到服务 - 按键数量: {selectedKeys.Count}, 间隔: {KeyInterval}ms");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("ViewModel", "同步配置到服务失败", ex);
+            }
         }
 
         private void LoadConfiguration()
@@ -263,12 +286,23 @@ namespace WpfApp.ViewModels
                 // 加载按键列表和选中状态
                 if (appConfig.keyList != null)
                 {
+                    KeyList.Clear();
                     for (int i = 0; i < appConfig.keyList.Count; i++)
                     {
                         var keyItem = new KeyItem(appConfig.keyList[i]);
                         keyItem.IsSelected = i < appConfig.keySelections.Count ? 
                             appConfig.keySelections[i] : true;
+                        keyItem.SelectionChanged += (s, isSelected) => SaveConfig();
                         KeyList.Add(keyItem);
+                    }
+
+                    // 立即同步选中的按键到服务
+                    var selectedKeys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
+                    if (selectedKeys.Any())
+                    {
+                        _ddDriver.SetKeyList(selectedKeys);
+                        _hotkeyService.SetKeySequence(selectedKeys, appConfig.interval);
+                        _logger.LogDebug("Config", $"已加载按键列表 - 按键数量: {selectedKeys.Count}, 间隔: {appConfig.interval}ms");
                     }
                 }
                 
@@ -288,6 +322,8 @@ namespace WpfApp.ViewModels
                 IsSequenceMode = appConfig.keyMode == 0;
                 IsSoundEnabled = appConfig.soundEnabled ?? true;
                 IsGameMode = appConfig.IsGameMode ?? true;
+
+                _logger.LogDebug("Config", $"配置加载完成 - 模式: {(IsSequenceMode ? "顺序" : "按压")}, 游戏模式: {IsGameMode}");
             }
             catch (Exception ex)
             {

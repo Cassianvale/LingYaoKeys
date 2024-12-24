@@ -1693,7 +1693,6 @@ namespace WpfApp.Services
                 // 设置运行状态
                 _isHoldModeRunning = true;
                 _isSequenceRunning = true;
-                _isStarted = true;
                 
                 // 启动驱动服务的按压模式
                 _ddDriverService.SetHoldMode(true);
