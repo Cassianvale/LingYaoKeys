@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Reflection;
 
 namespace WpfApp.Services
 {
@@ -19,9 +20,40 @@ namespace WpfApp.Services
 
         public AudioService()
         {
-            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            _startSoundPath = Path.Combine(baseDir, "Resource", "sound", "start.mp3");
-            _stopSoundPath = Path.Combine(baseDir, "Resource", "sound", "stop.mp3");
+            string userDataPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".lingyao",
+                "sound"
+            );
+            Directory.CreateDirectory(userDataPath);
+
+            _startSoundPath = Path.Combine(userDataPath, "start.mp3");
+            _stopSoundPath = Path.Combine(userDataPath, "stop.mp3");
+
+            // 确保音频文件存在
+            EnsureAudioFileExists("start.mp3", _startSoundPath);
+            EnsureAudioFileExists("stop.mp3", _stopSoundPath);
+        }
+
+        private void EnsureAudioFileExists(string fileName, string targetPath)
+        {
+            if (!File.Exists(targetPath))
+            {
+                string resourceName = $"WpfApp.Resource.sound.{fileName}";
+                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                {
+                    if (stream == null)
+                    {
+                        _logger.LogError("AudioService", $"找不到音频资源：{resourceName}");
+                        return;
+                    }
+
+                    using (FileStream fileStream = File.Create(targetPath))
+                    {
+                        stream.CopyTo(fileStream);
+                    }
+                }
+            }
         }
 
         public async Task PlayStartSound()
