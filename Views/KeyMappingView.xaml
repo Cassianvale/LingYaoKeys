@@ -258,11 +258,11 @@
                               IsChecked="{Binding IsGameMode, Mode=TwoWay}"/>
                 </Grid>
 
-                <!-- 其他设置按钮独占一行 -->
-                <Button Style="{StaticResource RoundedShadowButtonSmall}"
-                        Height="30"
-                        HorizontalAlignment="Stretch" 
-                        Content="其他设置" />
+                <!-- 添加浮窗开关 -->
+                <CheckBox Style="{StaticResource ModernSwitch}"
+                          Content="状态浮窗" 
+                          Padding="0,0,0,0"
+                          IsChecked="{Binding IsFloatingWindowEnabled, Mode=TwoWay}"/>
             </StackPanel>
         </StackPanel>
     </Grid>

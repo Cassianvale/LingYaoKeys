@@ -26,7 +26,13 @@ namespace WpfApp.Services.KeyModes
 
         public virtual void SetKeyList(List<DDKeyCode> keyList)
         {
-            _keyList = keyList ?? new List<DDKeyCode>();
+            if (keyList == null)
+            {
+                _keyList = new List<DDKeyCode>();
+                return;
+            }
+            _keyList = new List<DDKeyCode>(keyList);
+            _logger.LogDebug("KeyMode", $"按键列表已更新: {string.Join(", ", _keyList)}");
         }
 
         public virtual void SetKeyInterval(int interval)

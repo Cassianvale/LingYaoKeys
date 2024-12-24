@@ -207,14 +207,25 @@ namespace WpfApp.ViewModels
         // 是否未在执行（用于绑定）
         public bool IsNotExecuting => !IsExecuting;
 
+        public bool IsFloatingWindowEnabled
+        {
+            get => _mainViewModel.IsFloatingWindowEnabled;
+            set => _mainViewModel.IsFloatingWindowEnabled = value;
+        }
+
         public KeyMappingViewModel(DDDriverService ddDriver, ConfigService configService, 
-            HotkeyService hotkeyService, MainViewModel mainViewModel)
+            HotkeyService hotkeyService, MainViewModel mainViewModel, AudioService audioService)
         {
             _ddDriver = ddDriver;
             _configService = configService;
             _hotkeyService = hotkeyService;
             _mainViewModel = mainViewModel;
-            _audioService = App.AudioService;
+            _audioService = audioService;
+            _hotkeyStatus = "初始化中...";
+            _isInitializing = true;
+
+            // 初始化按键列表
+            _keyList = new ObservableCollection<KeyItem>();
 
             // 订阅驱动服务的状态变化
             _ddDriver.EnableStatusChanged += (s, enabled) =>
@@ -229,14 +240,11 @@ namespace WpfApp.ViewModels
             _hotkeyService.StartHotkeyPressed += OnStartHotkeyPressed;
             _hotkeyService.StopHotkeyPressed += OnStopHotkeyPressed;
 
-            // 初始化按键列表
-            _keyList = new ObservableCollection<KeyItem>();
+            // 初始化命令
+            InitializeCommands();
 
             // 加载配置
             LoadConfiguration();
-
-            // 初始化命令
-            InitializeCommands();
 
             // 初始化热键状态
             InitializeHotkeyStatus();
@@ -244,8 +252,29 @@ namespace WpfApp.ViewModels
             // 订阅事件
             SubscribeToEvents();
 
+            // 确保配置同步到服务
+            SyncConfigToServices();
+
             // 在所有初始化完成后
             _isInitializing = false;
+        }
+
+        private void SyncConfigToServices()
+        {
+            try
+            {
+                var selectedKeys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
+                if (selectedKeys.Any())
+                {
+                    _ddDriver.SetKeyList(selectedKeys);
+                    _hotkeyService.SetKeySequence(selectedKeys, KeyInterval);
+                    _logger.LogDebug("ViewModel", $"同步配置到服务 - 按键数量: {selectedKeys.Count}, 间隔: {KeyInterval}ms");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("ViewModel", "同步配置到服务失败", ex);
+            }
         }
 
         private void LoadConfiguration()
@@ -257,12 +286,23 @@ namespace WpfApp.ViewModels
                 // 加载按键列表和选中状态
                 if (appConfig.keyList != null)
                 {
+                    KeyList.Clear();
                     for (int i = 0; i < appConfig.keyList.Count; i++)
                     {
                         var keyItem = new KeyItem(appConfig.keyList[i]);
                         keyItem.IsSelected = i < appConfig.keySelections.Count ? 
                             appConfig.keySelections[i] : true;
+                        keyItem.SelectionChanged += (s, isSelected) => SaveConfig();
                         KeyList.Add(keyItem);
+                    }
+
+                    // 立即同步选中的按键到服务
+                    var selectedKeys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
+                    if (selectedKeys.Any())
+                    {
+                        _ddDriver.SetKeyList(selectedKeys);
+                        _hotkeyService.SetKeySequence(selectedKeys, appConfig.interval);
+                        _logger.LogDebug("Config", $"已加载按键列表 - 按键数量: {selectedKeys.Count}, 间隔: {appConfig.interval}ms");
                     }
                 }
                 
@@ -282,6 +322,8 @@ namespace WpfApp.ViewModels
                 IsSequenceMode = appConfig.keyMode == 0;
                 IsSoundEnabled = appConfig.soundEnabled ?? true;
                 IsGameMode = appConfig.IsGameMode ?? true;
+
+                _logger.LogDebug("Config", $"配置加载完成 - 模式: {(IsSequenceMode ? "顺序" : "按压")}, 游戏模式: {IsGameMode}");
             }
             catch (Exception ex)
             {
@@ -354,10 +396,6 @@ namespace WpfApp.ViewModels
 
             try
             {
-                _startHotkey = keyCode;
-                _startModifiers = modifiers;
-                UpdateHotkeyText(keyCode, modifiers, true);
-                
                 bool result = _hotkeyService.RegisterStartHotkey(keyCode, modifiers);
                 if (!result && !_hotkeyService.IsMouseButton(keyCode))
                 {
@@ -365,6 +403,11 @@ namespace WpfApp.ViewModels
                     _mainViewModel.UpdateStatusMessage("开始热键注册失败，请尝试其他按键", true);
                     return;
                 }
+                
+                // 只有在注册成功后才更新状态和显示
+                _startHotkey = keyCode;
+                _startModifiers = modifiers;
+                UpdateHotkeyText(keyCode, modifiers, true);
                 
                 _mainViewModel.UpdateStatusMessage($"已设置开始热键: {keyCode.ToDisplayName()}");
                 _logger.LogDebug("KeyMapping", $"设置开始热键: {keyCode}, 修饰键: {modifiers}");
@@ -407,10 +450,6 @@ namespace WpfApp.ViewModels
 
             try
             {
-                _stopHotkey = keyCode;
-                _stopModifiers = modifiers;
-                UpdateHotkeyText(keyCode, modifiers, false);
-                
                 bool result = _hotkeyService.RegisterStopHotkey(keyCode, modifiers);
                 if (!result)
                 {
@@ -418,6 +457,11 @@ namespace WpfApp.ViewModels
                     _mainViewModel.UpdateStatusMessage("停止热键注册失败，请尝试其他按键", true);
                     return;
                 }
+                
+                // 只有在注册成功后才更新状态和显示
+                _stopHotkey = keyCode;
+                _stopModifiers = modifiers;
+                UpdateHotkeyText(keyCode, modifiers, false);
                 
                 _mainViewModel.UpdateStatusMessage($"已设置停止热键: {keyCode.ToDisplayName()}");
                 _logger.LogDebug("Hotkey", $"设置停止热键: {keyCode}, 修饰键: {modifiers}");
@@ -497,8 +541,9 @@ namespace WpfApp.ViewModels
         {
             var selectedKeys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
             _hotkeyService.SetKeySequence(selectedKeys, KeyInterval);
+            _ddDriver.SetKeyList(selectedKeys);
             _logger.LogDebug("KeyMapping", 
-                $"更新HotkeyService按键列表 - 选中按键数: {selectedKeys.Count}, 按键间隔: {KeyInterval}ms");
+                $"更新按键列表 - 选中按键数: {selectedKeys.Count}, 按键间隔: {KeyInterval}ms");
         }
 
         // 保存配置
@@ -513,13 +558,13 @@ namespace WpfApp.ViewModels
                 // 检查热键冲突
                 if (_startHotkey.HasValue && keyList.Contains(_startHotkey.Value))
                 {
-                    MessageBox.Show("启动热键与按键列表存在冲突，请修改后再保存", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    _mainViewModel.UpdateStatusMessage("启动热键与按键列表存在冲突，请修改后再保存", true);
                     return;
                 }
 
                 if (_stopHotkey.HasValue && keyList.Contains(_stopHotkey.Value))
                 {
-                    MessageBox.Show("停止热键与按键列表存在冲突，请修改后再保存", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    _mainViewModel.UpdateStatusMessage("停止热键与按键列表存在冲突，请修改后再保存", true);
                     return;
                 }
 
@@ -586,6 +631,8 @@ namespace WpfApp.ViewModels
                 if (configChanged)
                 {
                     AppConfigService.SaveConfig();
+                    // 确保同步按键列表状态
+                    UpdateHotkeyServiceKeyList();
                     _logger.LogDebug("Config", $"配置已保存 - 声音模式: {IsSoundEnabled}, 游戏模式: {IsGameMode}, 开始热键: {_startHotkey}, 停止热键: {_stopHotkey}, " +
                         $"按键数: {keyList.Count}, 选中按键数: {keySelections.Count(x => x)}");
                 }
@@ -600,76 +647,88 @@ namespace WpfApp.ViewModels
         // 启动按键映射
         public void StartKeyMapping()
         {
-            if (_ddDriver == null) return;
-            
-            try
+            if (!IsExecuting)
             {
-                IsExecuting = true;
-                // 只获取勾选的按键
-                var keys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
-                if (keys.Count == 0)
+                try
                 {
-                    _logger.LogWarning("KeyMapping", "警告：没有选中任何按键");
-                    MessageBox.Show("请至少选择一个按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    // 只获取勾选的按键
+                    var keys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
+                    if (keys.Count == 0)
+                    {
+                        _logger.LogWarning("KeyMapping", "警告：没有选中任何按键");
+                        _mainViewModel.UpdateStatusMessage("请至少选择一个按键", true);
+                        IsHotkeyEnabled = false;
+                        IsExecuting = false;
+                        _mainViewModel.UpdateExecutionStatus(false);
+                        return;
+                    }
+
+                    // 记录按键列表
+                    foreach (var key in keys)
+                    {
+                        _logger.LogDebug("KeyMapping", $"选中的按键: {key} ({(int)key})");
+                    }
+
+                    IsExecuting = true;
+                    _mainViewModel.UpdateExecutionStatus(true);
+                    if (_ddDriver == null) return;
+
+                    // 确保先同步按键列表到服务
+                    _ddDriver.SetKeyList(keys);
+                    _hotkeyService.SetKeySequence(keys, KeyInterval);
+                    
+                    // 设置驱动服务
+                    _ddDriver.IsSequenceMode = SelectedKeyMode == 0;
+                    _ddDriver.SetKeyInterval(KeyInterval);
+                    _ddDriver.IsEnabled = true;
+                    IsHotkeyEnabled = true;
+
+                    _logger.LogDebug("KeyMapping", 
+                        $"按键映射已启动: 模式={SelectedKeyMode}, 选中按键数={keys.Count}, 间隔={KeyInterval}ms");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("KeyMapping", "启动按键映射失败", ex);
                     IsHotkeyEnabled = false;
                     IsExecuting = false;
-                    return;
+                    _mainViewModel.UpdateExecutionStatus(false);
+                    _mainViewModel.UpdateStatusMessage($"启动按键映射失败: {ex.Message}", true);
                 }
-
-                // 记录按键列表
-                foreach (var key in keys)
-                {
-                    _logger.LogDebug("KeyMapping", $"选中的按键: {key} ({(int)key})");
-                }
-
-                // 设置按键列表和间隔时间
-                _hotkeyService.SetKeySequence(keys, KeyInterval);
-                
-                // 设置驱动服务
-                _ddDriver.SetKeyList(keys);
-                _ddDriver.IsSequenceMode = SelectedKeyMode == 0;
-                _ddDriver.SetKeyInterval(KeyInterval);
-                _ddDriver.IsEnabled = true;
-                IsHotkeyEnabled = true;
-
-                _logger.LogDebug("KeyMapping", 
-                    $"按键映射已启动: 模式={SelectedKeyMode}, 选中按键数={keys.Count}, 间隔={KeyInterval}ms");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("KeyMapping", "启动按键映射失败", ex);
-                IsHotkeyEnabled = false;
-                IsExecuting = false;
             }
         }
 
         // 停止按键映射
         public void StopKeyMapping()
         {
-            try
+            if (IsExecuting)
             {
-                if (_ddDriver == null) return;
+                IsExecuting = false;
+                _mainViewModel.UpdateExecutionStatus(false);
+                try
+                {
+                    if (_ddDriver == null) return;
 
-                _logger.LogDebug("KeyMapping", "开始停止按键映射");
-                
-                // 先停止热键服务
-                _hotkeyService?.StopSequence();
-                
-                // 然后停止驱动服务
-                _ddDriver.IsEnabled = false;
-                _ddDriver.SetHoldMode(false);
-                
-                // 最后更新UI状态
-                IsHotkeyEnabled = false;
-                IsExecuting = false;
-                
-                _logger.LogDebug("KeyMapping", "按键映射已停止");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("KeyMapping", "停止按键映射失败", ex);
-                IsHotkeyEnabled = false;
-                IsExecuting = false;
+                    _logger.LogDebug("KeyMapping", "开始停止按键映射");
+                    
+                    // 先停止热键服务
+                    _hotkeyService?.StopSequence();
+                    
+                    // 然后停止驱动服务
+                    _ddDriver.IsEnabled = false;
+                    _ddDriver.SetHoldMode(false);
+                    
+                    // 最后更新UI状态
+                    IsHotkeyEnabled = false;
+                    IsExecuting = false;
+                    
+                    _logger.LogDebug("KeyMapping", "按键映射已停止");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("KeyMapping", "停止按键映射失败", ex);
+                    IsHotkeyEnabled = false;
+                    IsExecuting = false;
+                }
             }
         }
 
@@ -690,21 +749,22 @@ namespace WpfApp.ViewModels
         {
             try
             {
-                IsExecuting = true;
-                _logger.LogDebug("Hotkey", $"开始热键按下 - 当前模式: {(SelectedKeyMode == 0 ? "顺序模式" : "按压模式")}");
-                
-                // 只获取勾选的按键
+                // 先检查是否有选中的按键，避免不必要的状态更新
                 var keys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
                 if (!keys.Any())
                 {
                     _logger.LogWarning("Hotkey", "没有选中任何按键");
-                    MessageBox.Show("请至少选择一个按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    _mainViewModel.UpdateStatusMessage("请至少选择一个按键", true);
                     return;
                 }
+                // 只有在确实有选中按键时才更新UI状态和执行后续操作
+                IsExecuting = true;
+                _mainViewModel.UpdateExecutionStatus(true);
+                _logger.LogDebug("Hotkey", $"开始热键按下 - 当前模式: {(SelectedKeyMode == 0 ? "顺序模式" : "按压模式")}");
 
                 // 设置按键列表参数
                 _ddDriver.SetKeyList(keys);
-                _hotkeyService.SetKeySequence(keys, KeyInterval); // 确保HotkeyService也获得按键列表
+                _hotkeyService.SetKeySequence(keys, KeyInterval);  // 重要: 重置按键列表
                 _ddDriver.IsSequenceMode = SelectedKeyMode == 0;
                 _ddDriver.SetKeyInterval(KeyInterval);
 
@@ -725,6 +785,7 @@ namespace WpfApp.ViewModels
                 _logger.LogError("Hotkey", "启动按键映射异常", ex);
                 IsHotkeyEnabled = false;
                 IsExecuting = false;
+                _mainViewModel.UpdateExecutionStatus(false);
             }
         }
 
@@ -738,11 +799,15 @@ namespace WpfApp.ViewModels
                 _ddDriver.SetHoldMode(false);
                 IsHotkeyEnabled = false;
                 IsExecuting = false;
+                _mainViewModel.UpdateExecutionStatus(false);
             }
             catch (Exception ex)
             {
                 _logger.LogError("Hotkey", "停止按键映射异常", ex);
+                // 确保状态被重置
+                IsHotkeyEnabled = false;
                 IsExecuting = false;
+                _mainViewModel.UpdateExecutionStatus(false);
             }
         }
 

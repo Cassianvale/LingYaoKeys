@@ -16,6 +16,7 @@
 output/
 logs/
 packages/
+DvlErrLog.txt
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -27,10 +28,37 @@ packages/
 [Rr]eleases/
 x64/
 x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
 bld/
 [Bb]in/
 [Oo]bj/
 [Ll]og/
+[Ll]ogs/
+
+# Visual Studio files
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.dll
+*.pdb
+*.xml
+*.cache
+*.json
+!AppConfig.json  # 排除应用配置文件
+!package.json    # 排除包配置文件
+
+# Build and publish files
+publish/
+*.nupkg
+*.snupkg
+
+# Temporary files
+DvlErrLog.txt
+*.log
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/

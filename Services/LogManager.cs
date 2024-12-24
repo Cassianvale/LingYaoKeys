@@ -3,7 +3,11 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
+using System.Linq;
 using WpfApp.Models;
+using Newtonsoft.Json;
+
+
 namespace WpfApp.Services
 {
     public class LogManager
@@ -17,6 +21,8 @@ namespace WpfApp.Services
         private AppConfig _config;
         private volatile bool _isInitialized;
         private readonly object _initLock = new object();
+        private string _baseDirectory;
+        private const string LOG_FOLDER_NAME = "logs";
 
         public static LogManager Instance => _instance.Value;
 
@@ -27,12 +33,18 @@ namespace WpfApp.Services
             { 
                 Logging = new LoggingConfig 
                 { 
-                    Enabled = true,
+                    Enabled = false,
                     LogLevel = "Debug",
-                    FileSettings = new FileSettings(),
+                    FileSettings = new LogFileSettings(),
                     Categories = new LogCategories()
                 }
             };
+            
+            // 默认使用用户目录下的.lingyao
+            _baseDirectory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".lingyao"
+            );
             
             InitializeLogManager();
         }
@@ -45,11 +57,7 @@ namespace WpfApp.Services
                 {
                     if (!_isInitialized)
                     {
-                        Task.Run(() => 
-                        {
-                            UpdateConfig();
-                            _isInitialized = true;
-                        });
+                        _isInitialized = true;
                     }
                 }
             }
@@ -57,22 +65,24 @@ namespace WpfApp.Services
 
         private void UpdateConfig()
         {
-            lock (_lockObject)  // 添加锁以确保线程安全
+            lock (_lockObject)
             {
+                if (!_isInitialized) return;
+
                 var config = AppConfigService.Config;
                 if (config?.Logging != null)
                 {
                     _config = config;
                 }
                 
-                string newLogDirectory = Path.Combine(
-                    AppDomain.CurrentDomain.BaseDirectory,
-                    _config.Logging.FileSettings.Directory);
-                    
-                if (!Directory.Exists(newLogDirectory))
+                string logDirectory = Path.Combine(_baseDirectory, LOG_FOLDER_NAME);
+                if (!Directory.Exists(logDirectory))
                 {
-                    Directory.CreateDirectory(newLogDirectory);
+                    Directory.CreateDirectory(logDirectory);
                 }
+
+                // 初始化时清理旧日志
+                CleanupOldLogFiles(logDirectory);
             }
         }
 
@@ -87,16 +97,34 @@ namespace WpfApp.Services
                 try
                 {
                     if (!_config.Logging.Enabled) return;
-                    
-                    string logDirectory = Path.Combine(
-                        AppDomain.CurrentDomain.BaseDirectory,
-                        _config.Logging.FileSettings.Directory);
-                        
-                    _currentLogFile = GetNewLogFilePath(logDirectory);
-                    _logWriter = new StreamWriter(_currentLogFile, true, Encoding.UTF8)
+
+                    // 如果当前日期的日志文件已存在，就继续使用
+                    string logDirectory = Path.Combine(_baseDirectory, LOG_FOLDER_NAME);
+                    string currentDatePrefix = DateTime.Now.ToString("yyyyMMdd");
+                    var existingLogFile = Directory.GetFiles(logDirectory, $"LingYaoKeys_{currentDatePrefix}*.log")
+                        .OrderByDescending(f => f)
+                        .FirstOrDefault();
+
+                    if (existingLogFile != null)
                     {
-                        AutoFlush = true
-                    };
+                        _currentLogFile = existingLogFile;
+                        _logWriter = new StreamWriter(_currentLogFile, true, Encoding.UTF8)
+                        {
+                            AutoFlush = true
+                        };
+                        _currentFileSize = new FileInfo(_currentLogFile).Length;
+                    }
+                    else
+                    {
+                        _currentLogFile = GetNewLogFilePath(logDirectory);
+                        _logWriter = new StreamWriter(_currentLogFile, true, Encoding.UTF8)
+                        {
+                            AutoFlush = true
+                        };
+                        _currentFileSize = 0;
+                    }
+
+                    Debug.WriteLine($"使用日志文件: {_currentLogFile}");
                 }
                 catch (Exception ex)
                 {
@@ -247,19 +275,77 @@ namespace WpfApp.Services
 
             lock (_sizeLock)
             {
-                // 将MB转换为字节进行比较
-                long maxSizeInBytes = _config.Logging.FileSettings.MaxFileSize * 1024 * 1024;
-                if (_currentFileSize >= maxSizeInBytes)
+                try
                 {
-                    _logWriter?.Dispose();
-                    string logDirectory = Path.GetDirectoryName(_currentLogFile)!;
-                    _currentLogFile = GetNewLogFilePath(logDirectory);
-                    EnsureLogWriterInitialized();
-                    _currentFileSize = 0;
-                    
-                    // 检查并删除超出数量的旧文件
-                    EnforceFileCountLimit(logDirectory);
+                    // 检查是否需要按日期滚动
+                    if (_currentLogFile != null && ShouldRollByDate())
+                    {
+                        RollLogFile();
+                        return;
+                    }
+
+                    // 检查文件大小
+                    long maxSizeInBytes = _config.Logging.FileSettings.MaxFileSize * 1024 * 1024;
+                    if (_currentFileSize >= maxSizeInBytes)
+                    {
+                        RollLogFile();
+                    }
+
+                    // 清理过期的日志文件
+                    CleanupOldLogFiles();
                 }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"检查日志文件大小时发生错误: {ex.Message}");
+                }
+            }
+        }
+
+        private bool ShouldRollByDate()
+        {
+            if (string.IsNullOrEmpty(_currentLogFile)) return false;
+
+            var currentDate = DateTime.Now.Date;
+            var fileDate = File.GetCreationTime(_currentLogFile).Date;
+
+            return _config.Logging.FileSettings.RollingInterval.ToLower() == "day" 
+                && currentDate > fileDate;
+        }
+
+        private void RollLogFile()
+        {
+            _logWriter?.Dispose();
+            string logDirectory = Path.GetDirectoryName(_currentLogFile)!;
+            _currentLogFile = GetNewLogFilePath(logDirectory);
+            EnsureLogWriterInitialized();
+            _currentFileSize = 0;
+            
+            // 检查并删除超出数量的旧文件
+            EnforceFileCountLimit(logDirectory);
+        }
+
+        private void CleanupOldLogFiles()
+        {
+            try
+            {
+                string logDirectory = Path.GetDirectoryName(_currentLogFile)!;
+                var retainDate = DateTime.Now.AddDays(-_config.Logging.FileSettings.RetainDays);
+                
+                var files = Directory.GetFiles(logDirectory, "LingYaoKeys_*.log")
+                    .Select(f => new FileInfo(f))
+                    .Where(f => f.CreationTime < retainDate);
+
+                foreach (var file in files)
+                {
+                    if (file.FullName != _currentLogFile)
+                    {
+                        File.Delete(file.FullName);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"清理旧日志文件失败: {ex.Message}");
             }
         }
 
@@ -267,7 +353,7 @@ namespace WpfApp.Services
         {
             try
             {
-                var files = Directory.GetFiles(logDirectory, "DDDriver_*.log")
+                var files = Directory.GetFiles(logDirectory, "LingYaoKeys_*.log")
                                    .OrderByDescending(f => new FileInfo(f).CreationTime)
                                    .Skip(_config.Logging.FileSettings.MaxFileCount);
                                    
@@ -287,7 +373,7 @@ namespace WpfApp.Services
         {
             try
             {
-                var files = Directory.GetFiles(directory, "DDDriver_*.log");
+                var files = Directory.GetFiles(directory, "LingYaoKeys_*.log");
                 foreach (var file in files)
                 {
                     var fi = new FileInfo(file);
@@ -305,9 +391,12 @@ namespace WpfApp.Services
 
         public void Dispose()
         {
+            // 取消订阅配置变更事件
+            AppConfigService.ConfigChanged -= OnConfigChanged;
+            
             _logWriter?.Dispose();
             
-            // 在程序退出时清理空日志文件
+            // 在程序退出时清理日志文件
             if (!string.IsNullOrEmpty(_currentLogFile))
             {
                 string? directory = Path.GetDirectoryName(_currentLogFile);
@@ -327,8 +416,125 @@ namespace WpfApp.Services
         private string GetNewLogFilePath(string logDirectory)
         {
             string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-            string fileName = $"DDDriver_{timestamp}.log";
+            string fileName = $"LingYaoKeys_{timestamp}.log";
             return Path.Combine(logDirectory, fileName);
+        }
+
+        public void SetBaseDirectory(string path)
+        {
+            lock (_lockObject)
+            {
+                _baseDirectory = path;
+                string logDirectory = Path.Combine(_baseDirectory, LOG_FOLDER_NAME);
+                
+                if (_isInitialized && _config.Logging.Enabled)
+                {
+                    Directory.CreateDirectory(logDirectory);
+                    CleanupOldLogFiles(logDirectory);
+                }
+                
+                // 重新初始化日志写入器
+                if (_isInitialized)
+                {
+                    _logWriter?.Dispose();
+                    _logWriter = null;
+                    _currentLogFile = string.Empty;
+                    _currentFileSize = 0;
+                    
+                    if (_config.Logging.Enabled)
+                    {
+                        EnsureLogWriterInitialized();
+                    }
+                }
+            }
+        }
+
+        private void OnConfigChanged(object? sender, AppConfig newConfig)
+        {
+            lock (_lockObject)
+            {
+                bool loggingStateChanged = _config.Logging.Enabled != newConfig.Logging.Enabled;
+                bool logLevelChanged = _config.Logging.LogLevel != newConfig.Logging.LogLevel;
+                bool fileSettingsChanged = !JsonConvert.SerializeObject(_config.Logging.FileSettings)
+                    .Equals(JsonConvert.SerializeObject(newConfig.Logging.FileSettings));
+
+                _config = newConfig;
+
+                // 只有在日志配置实质性变化时才重新初始化
+                if (loggingStateChanged || logLevelChanged || fileSettingsChanged)
+                {
+                    _logWriter?.Dispose();
+                    _logWriter = null;
+                    _currentLogFile = string.Empty;
+                    _currentFileSize = 0;
+                    
+                    if (_config.Logging.Enabled)
+                    {
+                        string logDirectory = Path.Combine(_baseDirectory, "logs");
+                        Directory.CreateDirectory(logDirectory);
+                        EnsureLogWriterInitialized();
+                    }
+                }
+            }
+        }
+
+        // 新增：延迟订阅方法
+        public void InitializeConfigSubscription()
+        {
+            // 订阅配置变更事件
+            AppConfigService.ConfigChanged += OnConfigChanged;
+            // 立即更新一次配置
+            UpdateConfig();
+        }
+
+        private void CleanupOldLogFiles(string logDirectory)
+        {
+            try
+            {
+                // 按保留天数清理
+                var retainDate = DateTime.Now.AddDays(-_config.Logging.FileSettings.RetainDays);
+                var oldFiles = Directory.GetFiles(logDirectory, "LingYaoKeys_*.log")
+                    .Select(f => new FileInfo(f))
+                    .Where(f => f.CreationTime < retainDate);
+
+                foreach (var file in oldFiles)
+                {
+                    if (file.FullName != _currentLogFile)
+                    {
+                        File.Delete(file.FullName);
+                        Debug.WriteLine($"删除过期日志文件: {file.Name}");
+                    }
+                }
+
+                // 按文件数量清理
+                var excessFiles = Directory.GetFiles(logDirectory, "LingYaoKeys_*.log")
+                    .OrderByDescending(f => new FileInfo(f).CreationTime)
+                    .Skip(_config.Logging.FileSettings.MaxFileCount);
+
+                foreach (var file in excessFiles)
+                {
+                    if (file != _currentLogFile)
+                    {
+                        File.Delete(file);
+                        Debug.WriteLine($"删除超出数量限制的日志文件: {Path.GetFileName(file)}");
+                    }
+                }
+
+                // 清理空文件
+                var emptyFiles = Directory.GetFiles(logDirectory, "LingYaoKeys_*.log")
+                    .Select(f => new FileInfo(f))
+                    .Where(f => f.Length == 0 && f.FullName != _currentLogFile);
+
+                foreach (var file in emptyFiles)
+                {
+                    File.Delete(file.FullName);
+                    Debug.WriteLine($"删除空日志文件: {file.Name}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"清理日志文件失败: {ex.Message}");
+            }
         }
     }
 

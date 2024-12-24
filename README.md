@@ -3,7 +3,7 @@
 
 # LingYaoKeys - 灵曜按键  
 
-✨**基于WPF+DD驱动开发灵动优雅的按键工具**✨  
+✨**基于.NET8.0+WPF开发的灵动、优雅的按键工具**✨  
 
 <div>
     <img alt="platform" src="https://img.shields.io/badge/platform-Windows-blueviolet">
@@ -21,18 +21,19 @@
 <br>
 
 
-❤ ✨ 如果喜欢本项目，可右上角送作者一个`Star`，QQ 群 `861603314`✨ ❤
+❤  如果喜欢本项目可右上角送作者一个`Star`🌟，反馈 QQ 群 `861603314` ❤
 
 </div>
 </br>
 <!-- markdownlint-restore -->
 
 ## 主要功能  
-- [x] 支持全局热键，**支持侧键触发**    
-- [x] 支持顺序模式触发按键  
-- [x] 支持按压模式触发按键  
+- [x] 支持全局热键，**支持侧键触发**  
+- [x] 支持顺序/按压模式触发按键  
 - [x] 支持开启/停止语音提醒  
+- [x] 支持浮窗置顶显示按键启动状态
 - [x] 支持正常/游戏模式切换  
+- [x] 支持自定义开启/停止音频  
 - [x] 支持按键列表拖拽排序  
 
 ## 直接下载
@@ -47,13 +48,14 @@
 ## 使用说明
 
 > [!IMPORTANT]
-> 经过长时间的测试并且结合其他按键的测试结果，按键速度每秒高于两三百的话会导致按键响应延迟或者造成卡位移(看自己cpu内存性能)，所以游戏的话按键速度不需要太快，根据测试结果我取了一个合适的区间，原因可能是windows的消息机制导致的，所以就增加了默认开启的游戏模式  
+> 经过长时间的测试并且结合其他按键的测试结果，按键速度每秒高于两三百的话会导致按键响应延迟或者造成卡位移(看自己cpu内存性能)，原因可能是windows的消息机制导致的，所以玩游戏的话按键速度，不需要太快。根据测试结果我取了一个合适的区间，所以就加入了针对游戏进行优化的游戏模式  
 > DEFAULT_KEY_PRESS_INTERVAL：按键按下到松开的固定时间  
 > MIN_KEY_INTERVAL: 最小可设置的按键间隔  
 
 - _**游戏模式打开(默认)**_：测试后平均按键速度为120+，适用于游戏内  
 - _**游戏模式关闭**_：解除按键速度限制平均速度320+，适用于一般场景  
-
+- _**自定义音频**_：打开 `C:\Users\用户\.lingyao\sound`，保持文件名替换 `start.mp3`/`stop.mp3` 即可  
+- _**Debug模式**_：打开 `C:\Users\用户\.lingyao\AppConfig.json` 将 `"Logging": {"Enabled": false,}` 中的 `false` 设为 `true`，后续的操作记录在 `.lingyao\logs` 目录下生成日志文件  
 
 ## 项目展示  
 ![image](https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/home.png)  
@@ -66,7 +68,7 @@
 
 ### 发布打包
 
-- `.\publish.bat`  
+- `dotnet publish -c Release`
 
 ### 项目结构展示
 <details>

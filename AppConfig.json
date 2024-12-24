@@ -16,18 +16,22 @@
       "Config": true
     }
   },
-  "startKey": 510,
+  "startKey": 109,
   "startMods": 0,
-  "stopKey": 510,
+  "stopKey": 110,
   "stopMods": 0,
   "keyList": [
-    405
+    404,
+    201,
+    202
   ],
   "keySelections": [
-    true
+    true,
+    false,
+    false
   ],
   "keyMode": 0,
-  "interval": 1,
+  "interval": 5,
   "soundEnabled": true,
   "IsGameMode": true,
   "KeyPressInterval": 5

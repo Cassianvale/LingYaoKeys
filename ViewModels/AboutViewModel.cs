@@ -15,7 +15,7 @@ namespace WpfApp.ViewModels
         private readonly LogManager _logger = LogManager.Instance;
         private string _readmeContent = string.Empty;
         private string _htmlContent = string.Empty;
-        private const string GITHUB_URL = "https://github.com/LingYaoKe/jx3wpftools";
+        private const string GITHUB_URL = "https://github.com/Cassianvale/LingYaoKeys";
         private ICommand? _openGitHubCommand;
 
         public string HtmlContent

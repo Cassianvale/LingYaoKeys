@@ -28,13 +28,16 @@ namespace WpfApp.Models
         public bool? IsGameMode { get; set; }
         public int? KeyPressInterval { get; set; }
 
+        // 浮窗状态
+        public bool? IsFloatingWindowEnabled { get; set; }
+
         [JsonIgnore]
         public string Author { get; set; } = "慕长秋";
 
-        // GitHub 配置
-        public string GitHubToken { get; set; } = string.Empty;
-        public string GitHubRepoOwner { get; set; } = string.Empty;
-        public string GitHubRepoName { get; set; } = string.Empty;
+        public AppConfig()
+        {
+            IsFloatingWindowEnabled = false; // 默认关闭浮窗
+        }
     }
 
     public class AppInfo
@@ -64,23 +67,15 @@ namespace WpfApp.Models
     public class MainWindowConfig
     {
         [JsonIgnore]
-        public int DefaultWidth { get; set; } = 500;
+        public int DefaultWidth { get; set; } = 510;
         [JsonIgnore]
-        public int DefaultHeight { get; set; } = 430;
+        public int DefaultHeight { get; set; } = 450;
     }
 
-    public class LoggingConfig
-    {
-        public bool Enabled { get; set; } = true;
-        public string LogLevel { get; set; } = "Debug";
-        public FileSettings FileSettings { get; set; } = new FileSettings();
-        public LogCategories Categories { get; set; } = new LogCategories();
-    }
-
-    public class FileSettings
+    public class LogFileSettings
     {
         public string Directory { get; set; } = "Logs";
-        public int MaxFileSize { get; set; } = 10;  // 以MB为单位
+        public int MaxFileSize { get; set; } = 10;
         public int MaxFileCount { get; set; } = 10;
         public string RollingInterval { get; set; } = "Day";
         public int RetainDays { get; set; } = 7;
@@ -92,5 +87,13 @@ namespace WpfApp.Models
         public bool Performance { get; set; } = true;
         public bool Driver { get; set; } = true;
         public bool Config { get; set; } = true;
+    }
+
+    public class LoggingConfig
+    {
+        public bool Enabled { get; set; } = true;
+        public string LogLevel { get; set; } = "Debug";
+        public LogFileSettings FileSettings { get; set; } = new();
+        public LogCategories Categories { get; set; } = new();
     }
 } 
