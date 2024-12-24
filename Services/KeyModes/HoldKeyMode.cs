@@ -132,27 +132,23 @@ namespace WpfApp.Services.KeyModes
         // 处理按键释放
         public void HandleKeyRelease()
         {
-            if (_isKeyHeld)
-            {
-                _isKeyHeld = false;
-                _logger.LogDebug("HoldKeyMode", "检测到按键释放，准备停止循环");
-                
-                // 触发取消
-                if (_cts != null && !_cts.IsCancellationRequested)
-                {
-                    _cts.Cancel();
-                }
-            }
+            _isKeyHeld = false;
+            // 停止按键序列
+            _ = StopAsync();
         }
 
         // 处理按键按下
         public void HandleKeyPress()
         {
-            if (!_isExecuting)
+            if (_isExecuting)
             {
-                _isKeyHeld = true;
-                _logger.LogDebug("HoldKeyMode", "检测到按键按下，准备开始循环");
+                _logger.LogWarning("HoldKeyMode", "已有按键序列在执行中");
+                return;
             }
+
+            _isKeyHeld = true;
+            // 启动按键序列
+            _ = StartAsync();
         }
 
         private async Task CleanupAsync()
