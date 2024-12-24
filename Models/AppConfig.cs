@@ -28,8 +28,16 @@ namespace WpfApp.Models
         public bool? IsGameMode { get; set; }
         public int? KeyPressInterval { get; set; }
 
+        // 浮窗状态
+        public bool? IsFloatingWindowEnabled { get; set; }
+
         [JsonIgnore]
         public string Author { get; set; } = "慕长秋";
+
+        public AppConfig()
+        {
+            IsFloatingWindowEnabled = false; // 默认关闭浮窗
+        }
     }
 
     public class AppInfo
@@ -61,7 +69,7 @@ namespace WpfApp.Models
         [JsonIgnore]
         public int DefaultWidth { get; set; } = 500;
         [JsonIgnore]
-        public int DefaultHeight { get; set; } = 460;
+        public int DefaultHeight { get; set; } = 450;
     }
 
     public class LoggingConfig

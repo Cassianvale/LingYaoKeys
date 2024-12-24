@@ -207,6 +207,12 @@ namespace WpfApp.ViewModels
         // 是否未在执行（用于绑定）
         public bool IsNotExecuting => !IsExecuting;
 
+        public bool IsFloatingWindowEnabled
+        {
+            get => _mainViewModel.IsFloatingWindowEnabled;
+            set => _mainViewModel.IsFloatingWindowEnabled = value;
+        }
+
         public KeyMappingViewModel(DDDriverService ddDriver, ConfigService configService, 
             HotkeyService hotkeyService, MainViewModel mainViewModel)
         {
@@ -602,76 +608,85 @@ namespace WpfApp.ViewModels
         // 启动按键映射
         public void StartKeyMapping()
         {
-            if (_ddDriver == null) return;
-            
-            try
+            if (!IsExecuting)
             {
                 IsExecuting = true;
-                // 只获取勾选的按键
-                var keys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
-                if (keys.Count == 0)
+                _mainViewModel.UpdateExecutionStatus(true);
+                if (_ddDriver == null) return;
+                
+                try
                 {
-                    _logger.LogWarning("KeyMapping", "警告：没有选中任何按键");
-                    MessageBox.Show("请至少选择一个按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    // 只获取勾选的按键
+                    var keys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
+                    if (keys.Count == 0)
+                    {
+                        _logger.LogWarning("KeyMapping", "警告：没有选中任何按键");
+                        MessageBox.Show("请至少选择一个按键", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        IsHotkeyEnabled = false;
+                        IsExecuting = false;
+                        return;
+                    }
+
+                    // 记录按键列表
+                    foreach (var key in keys)
+                    {
+                        _logger.LogDebug("KeyMapping", $"选中的按键: {key} ({(int)key})");
+                    }
+
+                    // 设置按键列表和间隔时间
+                    _hotkeyService.SetKeySequence(keys, KeyInterval);
+                    
+                    // 设置驱动服务
+                    _ddDriver.SetKeyList(keys);
+                    _ddDriver.IsSequenceMode = SelectedKeyMode == 0;
+                    _ddDriver.SetKeyInterval(KeyInterval);
+                    _ddDriver.IsEnabled = true;
+                    IsHotkeyEnabled = true;
+
+                    _logger.LogDebug("KeyMapping", 
+                        $"按键映射已启动: 模式={SelectedKeyMode}, 选中按键数={keys.Count}, 间隔={KeyInterval}ms");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("KeyMapping", "启动按键映射失败", ex);
                     IsHotkeyEnabled = false;
                     IsExecuting = false;
-                    return;
                 }
-
-                // 记录按键列表
-                foreach (var key in keys)
-                {
-                    _logger.LogDebug("KeyMapping", $"选中的按键: {key} ({(int)key})");
-                }
-
-                // 设置按键列表和间隔时间
-                _hotkeyService.SetKeySequence(keys, KeyInterval);
-                
-                // 设置驱动服务
-                _ddDriver.SetKeyList(keys);
-                _ddDriver.IsSequenceMode = SelectedKeyMode == 0;
-                _ddDriver.SetKeyInterval(KeyInterval);
-                _ddDriver.IsEnabled = true;
-                IsHotkeyEnabled = true;
-
-                _logger.LogDebug("KeyMapping", 
-                    $"按键映射已启动: 模式={SelectedKeyMode}, 选中按键数={keys.Count}, 间隔={KeyInterval}ms");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("KeyMapping", "启动按键映射失败", ex);
-                IsHotkeyEnabled = false;
-                IsExecuting = false;
             }
         }
 
         // 停止按键映射
         public void StopKeyMapping()
         {
-            try
+            if (IsExecuting)
             {
-                if (_ddDriver == null) return;
+                IsExecuting = false;
+                _mainViewModel.UpdateExecutionStatus(false);
+                try
+                {
+                    if (_ddDriver == null) return;
 
-                _logger.LogDebug("KeyMapping", "开始停止按键映射");
-                
-                // 先停止热键服务
-                _hotkeyService?.StopSequence();
-                
-                // 然后停止驱动服务
-                _ddDriver.IsEnabled = false;
-                _ddDriver.SetHoldMode(false);
-                
-                // 最后更新UI状态
-                IsHotkeyEnabled = false;
-                IsExecuting = false;
-                
-                _logger.LogDebug("KeyMapping", "按键映射已停止");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("KeyMapping", "停止按键映射失败", ex);
-                IsHotkeyEnabled = false;
-                IsExecuting = false;
+                    _logger.LogDebug("KeyMapping", "开始停止按键映射");
+                    
+                    // 先停止热键服务
+                    _hotkeyService?.StopSequence();
+                    
+                    // 然后停止驱动服务
+                    _ddDriver.IsEnabled = false;
+                    _ddDriver.SetHoldMode(false);
+                    
+                    // 最后更新UI状态
+                    IsHotkeyEnabled = false;
+                    IsExecuting = false;
+                    
+                    _logger.LogDebug("KeyMapping", "按键映射已停止");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("KeyMapping", "停止按键映射失败", ex);
+                    IsHotkeyEnabled = false;
+                    IsExecuting = false;
+                }
             }
         }
 
@@ -693,6 +708,7 @@ namespace WpfApp.ViewModels
             try
             {
                 IsExecuting = true;
+                _mainViewModel.UpdateExecutionStatus(true);
                 _logger.LogDebug("Hotkey", $"开始热键按下 - 当前模式: {(SelectedKeyMode == 0 ? "顺序模式" : "按压模式")}");
                 
                 // 只获取勾选的按键
@@ -727,6 +743,7 @@ namespace WpfApp.ViewModels
                 _logger.LogError("Hotkey", "启动按键映射异常", ex);
                 IsHotkeyEnabled = false;
                 IsExecuting = false;
+                _mainViewModel.UpdateExecutionStatus(false);
             }
         }
 
@@ -740,11 +757,13 @@ namespace WpfApp.ViewModels
                 _ddDriver.SetHoldMode(false);
                 IsHotkeyEnabled = false;
                 IsExecuting = false;
+                _mainViewModel.UpdateExecutionStatus(false);
             }
             catch (Exception ex)
             {
                 _logger.LogError("Hotkey", "停止按键映射异常", ex);
                 IsExecuting = false;
+                _mainViewModel.UpdateExecutionStatus(false);
             }
         }
 

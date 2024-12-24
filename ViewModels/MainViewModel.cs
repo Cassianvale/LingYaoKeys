@@ -36,6 +36,9 @@ namespace WpfApp.ViewModels
         private readonly Dictionary<string, Storyboard> _fadeOutCache = new();
         private readonly Storyboard? _fadeInStoryboard;
         private readonly Storyboard? _fadeOutStoryboard;
+        private bool _isFloatingWindowEnabled;
+        private FloatingWindow? _floatingWindow;
+        private FloatingWindowViewModel? _floatingWindowViewModel;
 
         public AppConfig Config
         {
@@ -82,10 +85,30 @@ namespace WpfApp.ViewModels
 
         public ICommand NavigateCommand { get; }
 
+        public bool IsFloatingWindowEnabled
+        {
+            get => _isFloatingWindowEnabled;
+            set
+            {
+                if (SetProperty(ref _isFloatingWindowEnabled, value))
+                {
+                    UpdateFloatingWindowVisibility();
+                    // 保存到配置文件
+                    AppConfigService.UpdateConfig(config =>
+                    {
+                        config.IsFloatingWindowEnabled = value;
+                    });
+                }
+            }
+        }
+
         public MainViewModel(DDDriverService ddDriver, Window mainWindow)
         {
             _ddDriver = ddDriver;
             _mainWindow = mainWindow;
+
+            // 从配置文件加载浮窗状态
+            _isFloatingWindowEnabled = AppConfigService.Config.IsFloatingWindowEnabled ?? false;
 
             // 先获取动画资源
             _fadeInStoryboard = mainWindow.FindResource("PageFadeIn") as Storyboard;
@@ -114,6 +137,12 @@ namespace WpfApp.ViewModels
             // 订阅状态消息事件
             _ddDriver.StatusMessageChanged += OnDriverStatusMessageChanged;
             
+            // 初始化浮窗（如果启用）
+            if (_isFloatingWindowEnabled)
+            {
+                UpdateFloatingWindowVisibility();
+            }
+
             // 最后设置默认页面
             Navigate("FrontKeys");
         }
@@ -217,6 +246,17 @@ namespace WpfApp.ViewModels
             _logger.LogDebug("MainViewModel", "开始清理资源...");
             _logger.LogDebug("MainViewModel", "开始保存应用程序配置...");
 
+            // 关闭并清理浮窗
+            if (_floatingWindow != null)
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    _floatingWindow.Close();
+                    _floatingWindow = null;
+                    _floatingWindowViewModel = null;
+                });
+            }
+
             _keyMappingViewModel.SaveConfig();  // 保存配置
             _logger.LogDebug("MainViewModel", "配置保存完成");
             _logger.LogDebug("MainViewModel", "--------------------------------");
@@ -271,6 +311,44 @@ namespace WpfApp.ViewModels
                 // 启动定时器
                 _statusMessageTimer.Start();
             });
+        }
+
+        private void UpdateFloatingWindowVisibility()
+        {
+            if (IsFloatingWindowEnabled)
+            {
+                if (_floatingWindow == null)
+                {
+                    _floatingWindowViewModel = new FloatingWindowViewModel(_ddDriver);
+                    _floatingWindow = new FloatingWindow(_mainWindow as MainWindow)
+                    {
+                        DataContext = _floatingWindowViewModel,
+                        ShowInTaskbar = false
+                    };
+                }
+                _floatingWindow.Show();
+            }
+            else
+            {
+                _floatingWindow?.Hide();
+            }
+        }
+
+        public void UpdateExecutionStatus(bool isExecuting)
+        {
+            if (_floatingWindowViewModel != null)
+            {
+                _floatingWindowViewModel.UpdateExecutionStatus(isExecuting);
+            }
+        }
+
+        public void HandleMainWindowStateChanged(WindowState state)
+        {
+            if (state == WindowState.Minimized && _floatingWindow != null && IsFloatingWindowEnabled)
+            {
+                _floatingWindow.Show();
+                _floatingWindow.Topmost = true;
+            }
         }
     }
 } 

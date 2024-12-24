@@ -25,7 +25,7 @@ namespace WpfApp
         private bool _isShuttingDown;
         private bool _hasShownMinimizeNotification;
         private Forms.NotifyIcon _trayIcon;
-        private ContextMenu _trayContextMenu;
+        internal ContextMenu _trayContextMenu;
 
         // 窗口调整大小相关
         private bool _isResizing;
@@ -332,6 +332,12 @@ namespace WpfApp
                 // 最小化到托盘
                 Hide();
                 
+                // 通知 ViewModel 处理浮窗状态
+                if (DataContext is MainViewModel viewModel)
+                {
+                    viewModel.HandleMainWindowStateChanged(WindowState);
+                }
+                
                 // 首次最小化时显示通知
                 if (!_hasShownMinimizeNotification)
                 {
@@ -339,9 +345,9 @@ namespace WpfApp
                     if (_trayIcon != null)
                     {
                         _trayIcon.ShowBalloonTip(
-                            3000,  // 显示时间（毫秒）
-                            "剑网3工具箱",  // 标题
-                            "程序已最小化到系统托盘，双击托盘图标可以重新打开窗口。",  // 提示内容
+                            1000,  // 显示时间（毫秒）
+                            _viewModel.Config.AppInfo.Title,  // 从ViewModel获取标题
+                            "程序已最小化到系统托盘\n双击托盘图标或浮窗可重新打开窗口！",  // 提示内容
                             Forms.ToolTipIcon.Info  // 提示图标
                         );
                     }
@@ -369,6 +375,12 @@ namespace WpfApp
                     }
                     Padding = new Thickness(0);
                 }
+
+                // 通知 ViewModel 处理浮窗状态
+                if (DataContext is MainViewModel viewModel)
+                {
+                    viewModel.HandleMainWindowStateChanged(WindowState);
+                }
             }
         }
 
@@ -379,17 +391,69 @@ namespace WpfApp
 
         private void ShowMainWindow()
         {
-            Show();
-            WindowState = WindowState.Normal;
-            Activate();
-            Focus();
-            _logger.LogDebug("MainWindow", "从托盘还原窗口");
+            _logger.LogDebug("MainWindow", "正在从托盘还原窗口...");
+            RestoreFromMinimized();
+        }
+
+        public void RestoreFromMinimized()
+        {
+            try
+            {
+                // 确保窗口可见
+                Show();
+                
+                // 如果窗口被最小化，先恢复到普通状态
+                if (WindowState == WindowState.Minimized)
+                {
+                    WindowState = WindowState.Normal;
+                }
+                
+                // 取消置顶状态
+                Topmost = false;
+                if (FindName("TopMostButton") is Button topMostButton)
+                {
+                    topMostButton.Content = "\uE840";  // 使用未置顶图标
+                }
+                
+                // 激活窗口并设置焦点
+                Activate();
+                Focus();
+                
+                _logger.LogDebug("MainWindow", "窗口已成功还原并激活");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("MainWindow", "还原窗口时发生错误", ex);
+            }
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             _isShuttingDown = true;
             _logger.LogDebug("MainWindow", "正在关闭应用程序");
+
+            // 设置关闭模式为显式关闭，这样浮窗才会真正关闭
+            Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+            // 清理资源
+            try 
+            {
+                _logger.LogDebug("MainWindow", "开始清理窗口资源...");
+                if (_trayIcon != null)
+                {
+                    _trayIcon.Dispose();
+                    _trayIcon = null;
+                }
+                _viewModel.Cleanup();
+                _logger.LogDebug("MainWindow", "窗口资源清理完成");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("MainWindow", "窗口关闭异常", ex);
+            }
+
+            // 确保应用程序退出
+            Application.Current.Shutdown();
         }
 
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -464,23 +528,6 @@ namespace WpfApp
             RemoveMouseHook();  // 确保钩子被移除
             if (_isClosing) return;
             _isClosing = true;
-
-            try 
-            {
-                _logger.LogDebug("MainWindow", "开始清理窗口资源...");
-                if (_trayIcon != null)
-                {
-                    _trayIcon.Dispose();
-                    _trayIcon = null;
-                }
-                _viewModel.Cleanup();
-                _logger.LogDebug("MainWindow", "窗口资源清理完成");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("MainWindow", "窗口关闭异常", ex);
-            }
-            
             base.OnClosed(e);
         }
 

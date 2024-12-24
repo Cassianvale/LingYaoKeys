@@ -53,8 +53,8 @@
 
 - _**游戏模式打开(默认)**_：测试后平均按键速度为120+，适用于游戏内  
 - _**游戏模式关闭**_：解除按键速度限制平均速度320+，适用于一般场景  
-- _**自定义音频**_：打开`C:\Users\用户\.lingyao`，保持文件名替换`start.mp3`/`stop.mp3`即可  
-
+- _**自定义音频**_：打开 `C:\Users\用户\.lingyao\sound`，保持文件名替换 `start.mp3`/`stop.mp3` 即可  
+- _**Debug模式**_：打开 `C:\Users\用户\.lingyao\AppConfig.json` 将 `"Logging": {"Enabled": false,}` 中的 `false` 设为 `true`，后续的操作记录在 `.lingyao\logs` 目录下生成日志文件  
 
 ## 项目展示  
 ![image](https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/home.png)  

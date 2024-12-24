@@ -12,7 +12,7 @@
         Title="{Binding WindowTitle}"
         Icon="/Resource/icon/app.ico"
         SizeToContent="Manual"
-        MinHeight="460"
+        MinHeight="450"
         MinWidth="500"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
