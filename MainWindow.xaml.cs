@@ -116,7 +116,7 @@ namespace WpfApp
                 // 创建WPF样式的上下文菜单
                 _trayContextMenu = new ContextMenu
                 {
-                    Style = TryFindResource("TrayContextMenuStyle") as Style,
+                    Style = Application.Current.FindResource("TrayContextMenuStyle") as Style,
                     Placement = PlacementMode.Custom,
                     CustomPopupPlacementCallback = new CustomPopupPlacementCallback(MenuCustomPlacementCallback),
                     StaysOpen = true  // 改为true，由我们自己控制关闭
@@ -144,7 +144,7 @@ namespace WpfApp
                 var showMenuItem = new MenuItem
                 {
                     Header = "显示主窗口",
-                    Style = TryFindResource("TrayMenuItemStyle") as Style,
+                    Style = Application.Current.FindResource("TrayMenuItemStyle") as Style,
                     Icon = new Image
                     {
                         Source = new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/Resource/icon/app.ico")),
@@ -164,7 +164,7 @@ namespace WpfApp
                 var exitMenuItem = new MenuItem
                 {
                     Header = "退出程序",
-                    Style = TryFindResource("TrayMenuItemStyle") as Style,
+                    Style = Application.Current.FindResource("TrayMenuItemStyle") as Style,
                     Icon = new TextBlock
                     {
                         Text = "\uE8BB",
@@ -183,7 +183,7 @@ namespace WpfApp
 
                 var separator = new Separator
                 {
-                    Style = TryFindResource("TrayMenuSeparatorStyle") as Style
+                    Style = Application.Current.FindResource("TrayMenuSeparatorStyle") as Style
                 };
 
                 _trayContextMenu.Items.Add(showMenuItem);
