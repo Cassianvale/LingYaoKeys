@@ -199,7 +199,19 @@ namespace WpfApp.ViewModels
         {
             try
             {
-                string issueTitle = $"[{FeedbackTypes[SelectedFeedbackType]}] {GetFirstLine(FeedbackContent)}";
+                // 根据反馈类型获取对应的标签
+                string issueLabel = SelectedFeedbackType switch
+                {
+                    0 => "[BUG]",
+                    1 => "[Enhancement]",
+                    2 => "[Question]",
+                    _ => "[Other]"
+                };
+
+                // 获取第一个非空的实际内容行作为标题
+                string title = GetFirstContentLine();
+                string issueTitle = $"{issueLabel} {title}";
+                
                 string issueBody = GenerateIssueBody();
                 
                 string githubUrl = $"https://github.com/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/issues/new?";
@@ -221,6 +233,25 @@ namespace WpfApp.ViewModels
             }
         }
 
+        private string GetFirstContentLine()
+        {
+            var lines = FeedbackContent.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+                string trimmedLine = line.Trim();
+                // 跳过标题行和空行
+                if (trimmedLine.StartsWith("###") || 
+                    trimmedLine.StartsWith("请") || 
+                    string.IsNullOrWhiteSpace(trimmedLine))
+                {
+                    continue;
+                }
+                // 找到第一个有效内容行
+                return trimmedLine.Length > 50 ? trimmedLine[..47] + "..." : trimmedLine;
+            }
+            return "新建反馈";
+        }
+
         private void OpenQQGroup()
         {
             try
@@ -240,22 +271,6 @@ namespace WpfApp.ViewModels
                 _logger.LogError("QQ", "打开QQ群链接失败", ex);
                 _mainViewModel.UpdateStatusMessage("打开QQ群链接失败，请手动加群：" + QQ_GROUP_NUMBER, true);
             }
-        }
-
-        private string GetFirstLine(string text)
-        {
-            // 获取第一个非空的描述行作为标题
-            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var line in lines)
-            {
-                if (line.StartsWith("###")) continue; // 跳过标题行
-                var content = line.Trim();
-                if (!string.IsNullOrWhiteSpace(content))
-                {
-                    return content.Length > 50 ? content.Substring(0, 47) + "..." : content;
-                }
-            }
-            return "新建反馈";
         }
 
         private string GenerateIssueBody()
