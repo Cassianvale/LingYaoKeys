@@ -7,7 +7,7 @@
       xmlns:vm="clr-namespace:WpfApp.ViewModels"
       mc:Ignorable="d">
 
-    <Grid Margin="20">
+    <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -27,14 +27,24 @@
                       FontSize="24"
                       FontWeight="Bold"/>
 
-            <!-- GitHub按钮 -->
-            <Button Grid.Column="2"
-                    Content="访问 GitHub 仓库"
-                    Command="{Binding OpenGitHubCommand}"
-                    Style="{StaticResource PrimaryButtonStyle}"
-                    Height="35"
-                    Width="130"
-                    Padding="0,0"/>
+            <!-- GitHub按钮和支持作者按钮 -->
+            <StackPanel Grid.Column="2" 
+                        Orientation="Horizontal">
+                <Button Content="访问 GitHub 仓库"
+                        Command="{Binding OpenGitHubCommand}"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Height="35"
+                        Width="130"
+                        Padding="0,0"
+                        Margin="0,0,10,0"/>
+                
+                <Button Content="支持作者"
+                        Command="{Binding ShowQRCodeCommand}"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Height="35"
+                        Width="100"
+                        Padding="0,0"/>
+            </StackPanel>
         </Grid>
 
         <!-- README内容 -->

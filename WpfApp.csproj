@@ -60,7 +60,11 @@
 
   <!-- 资源文件配置 -->
   <ItemGroup>
-    <!-- 嵌入Resource目录下的所有资源文件 -->
+    <!-- 所有资源文件配置为Resource -->
+    <Resource Include="Resource\img\**" />
+    <Resource Include="Resource\icon\**" />
+    
+    <!-- DD驱动和音频文件配置为EmbeddedResource -->
     <EmbeddedResource Include="Resource\dd\**">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
@@ -68,13 +72,6 @@
     <EmbeddedResource Include="Resource\sound\**">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
-    
-    <EmbeddedResource Include="Resource\img\**">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </EmbeddedResource>
-
-    <!-- 应用图标单独配置为Resource -->
-    <Resource Include="Resource\icon\**" />
   </ItemGroup>
 
   <!-- 新增：配置程序集依赖项 -->
