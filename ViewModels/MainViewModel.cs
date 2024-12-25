@@ -208,6 +208,7 @@ namespace WpfApp.ViewModels
                 "FrontKeys" => new KeyMappingView { DataContext = _keyMappingViewModel },
                 "Feedback" => new FeedbackView { DataContext = _feedbackViewModel },
                 "About" => new AboutView { DataContext = _aboutViewModel },
+                "QRCode" => new QRCodeView(),
                 _ => null
             };
 

@@ -1,12 +1,14 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Windows;
 using WpfApp.Services;
 using Markdig;
 using Microsoft.Web.WebView2.Core;
 using System.Windows.Input;
 using System.Diagnostics;
 using WpfApp.Commands;
+using WpfApp.Views;
 
 namespace WpfApp.ViewModels
 {
@@ -17,6 +19,7 @@ namespace WpfApp.ViewModels
         private string _htmlContent = string.Empty;
         private const string GITHUB_URL = "https://github.com/Cassianvale/LingYaoKeys";
         private ICommand? _openGitHubCommand;
+        private ICommand? _showQRCodeCommand;
 
         public string HtmlContent
         {
@@ -25,10 +28,28 @@ namespace WpfApp.ViewModels
         }
 
         public ICommand OpenGitHubCommand => _openGitHubCommand ??= new RelayCommand(OpenGitHub);
+        public ICommand ShowQRCodeCommand => _showQRCodeCommand ??= new RelayCommand(ShowQRCode);
 
         public AboutViewModel()
         {
             LoadReadmeContent();
+        }
+
+        private void ShowQRCode()
+        {
+            try
+            {
+                var mainWindow = Application.Current.MainWindow;
+                if (mainWindow?.DataContext is MainViewModel mainViewModel)
+                {
+                    mainViewModel.NavigateCommand.Execute("QRCode");
+                }
+                _logger.LogDebug("About", "导航到二维码页面");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("About", "导航到二维码页面失败", ex);
+            }
         }
 
         private void LoadReadmeContent()

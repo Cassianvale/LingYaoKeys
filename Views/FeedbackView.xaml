@@ -51,7 +51,8 @@
                      Padding="15"
                      Height="Auto"
                      MinHeight="200"
-                     MaxHeight="400">
+                     MaxHeight="400"
+                     PreviewKeyDown="FeedbackTextBox_PreviewKeyDown">
                 <TextBox.Resources>
                     <Style TargetType="TextBox" BasedOn="{StaticResource ModernTextBox}">
                         <Setter Property="Background" Value="#FAFAFA"/>
