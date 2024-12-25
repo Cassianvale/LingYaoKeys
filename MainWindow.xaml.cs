@@ -96,17 +96,38 @@ namespace WpfApp
 
         public MainWindow()
         {
-            _viewModel = new MainViewModel(App.DDDriver, this);
-            DataContext = _viewModel;
-            Width = _viewModel.Config.UI.MainWindow.DefaultWidth;
-            Height = _viewModel.Config.UI.MainWindow.DefaultHeight;
-            InitializeComponent();
-            InitializeTrayIcon();
-            
-            UpdateMaximizeButtonState();
-            
-            // 注册窗口状态改变事件
-            StateChanged += MainWindow_StateChanged;
+            try
+            {
+                // 先初始化ViewModel
+                _viewModel = new MainViewModel(App.DDDriver, this);
+                
+                // 设置初始窗口大小
+                Width = _viewModel.Config.UI.MainWindow.DefaultWidth;
+                Height = _viewModel.Config.UI.MainWindow.DefaultHeight;
+                
+                // 初始化组件
+                InitializeComponent();
+                
+                // 设置DataContext
+                DataContext = _viewModel;
+                
+                // 初始化托盘图标
+                InitializeTrayIcon();
+                
+                // 更新最大化按钮状态
+                UpdateMaximizeButtonState();
+                
+                // 注册窗口状态改变事件
+                StateChanged += MainWindow_StateChanged;
+                
+                _logger.LogDebug("MainWindow", $"窗口初始化完成 - 尺寸: {Width}x{Height}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("MainWindow", "窗口初始化失败", ex);
+                MessageBox.Show($"窗口初始化失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                Application.Current.Shutdown();
+            }
         }
 
         private void InitializeTrayIcon()
@@ -332,11 +353,6 @@ namespace WpfApp
                 // 最小化到托盘
                 Hide();
                 
-                // 通知 ViewModel 处理浮窗状态
-                if (DataContext is MainViewModel viewModel)
-                {
-                    viewModel.HandleMainWindowStateChanged(WindowState);
-                }
                 
                 // 首次最小化时显示通知
                 if (!_hasShownMinimizeNotification)
@@ -376,11 +392,7 @@ namespace WpfApp
                     Padding = new Thickness(0);
                 }
 
-                // 通知 ViewModel 处理浮窗状态
-                if (DataContext is MainViewModel viewModel)
-                {
-                    viewModel.HandleMainWindowStateChanged(WindowState);
-                }
+
             }
         }
 

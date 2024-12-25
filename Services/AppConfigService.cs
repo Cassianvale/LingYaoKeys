@@ -188,7 +188,7 @@ namespace WpfApp.Services
                 soundEnabled = true,
                 IsGameMode = true,
                 KeyPressInterval = 5,
-                IsFloatingWindowEnabled = false
+                // IsFloatingWindowEnabled = false
             };
         }
 
