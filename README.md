@@ -57,7 +57,8 @@
 - _**Debug模式**_：打开 `C:\Users\用户\.lingyao\AppConfig.json` 将 `"Logging": {"Enabled": false,}` 中的 `false` 设为 `true`，后续的操作记录在 `.lingyao\logs` 目录下生成日志文件  
 
 ## 🖼️ 项目展示  
-![image](https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/home.png)  
+
+<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/home.png" width="500px"/>  
 
 ## 🎙 关于与建议  
 - 该项目是本人利用工作之余首次尝试使用`C#`和`WPF`以及`Cursor AI`技术栈进行开发的实践项目，目前项目处于开发初期，新功能正在持续添加中，如果你对软件有任何功能与建议，欢迎在 `Issues` 中提出，如果对项目感兴趣，欢迎参与讨论。  
@@ -162,7 +163,7 @@ LingYaoKeys/
 
 **如果您喜欢这个项目，可以支持一下作者，这将是对我极大的鼓励**  
   
-<img  src="https://github.com/Cassianvale/LingYaoKeys/blob/main/Resource/img/wechat_qr.png" width="200px"/>  
+<img  src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/wechat_qr.png" width="200px"/>  
 
 ## 📢 免责声明  
 - **仅供个人学习研究使用，禁止用于商业及非法用途**  
