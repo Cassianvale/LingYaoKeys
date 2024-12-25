@@ -14,7 +14,7 @@
     <ApplicationIcon>Resource\icon\app.ico</ApplicationIcon>
     
     <!-- 项目信息配置 -->
-    <Version>1.2.1</Version>
+    <Version>1.2.2</Version>
     <Product>LingYaoKeys</Product>
     <Authors>慕长秋</Authors>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
