@@ -50,6 +50,9 @@ namespace WpfApp.Models
         
         [JsonIgnore]
         public string Copyright { get; } = "Copyright © 2024";
+
+        [JsonIgnore]
+        public string GitHubUrl { get; } = "https://github.com/Cassianvale/LingYaoKeys";
     }
 
     public class UIConfig

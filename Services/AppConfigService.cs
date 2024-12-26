@@ -172,10 +172,28 @@ namespace WpfApp.Services
                         RollingInterval = "Day",
                         RetainDays = 7
                     },
-                    ExcludedTags = new List<string>(),
-                    ExcludedSources = new List<string>(),
-                    ExcludedMethods = new List<string>(),
-                    ExcludedPatterns = new List<string>()
+                    // 排除一些常见的调试和性能日志
+                    ExcludedTags = new List<string>
+                    {
+                        // 日志级别标签
+                        "Debug",      // 调试信息
+                        "Trace",      // 跟踪信息
+                        "Info",       // 普通信息
+                        
+                        // 功能模块标签
+                        "Sequence",   // 按键序列相关
+                        "Driver",     // 驱动相关
+                        "Init",       // 初始化相关
+                        "UI",         // UI相关
+                        "Config",     // 配置相关
+                        "Performance" // 性能相关
+                    },
+                    // 排除一些不太重要的类的日志
+                    ExcludedSources = new List<string>{},
+                    // 排除一些常见的方法日志
+                    ExcludedMethods = new List<string>{},
+                    // 排除一些常见的消息模式
+                    ExcludedPatterns = new List<string>{}
                 },
                 startKey = (DDKeyCode)109,
                 startMods = 0,

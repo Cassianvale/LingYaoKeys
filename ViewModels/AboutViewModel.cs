@@ -9,15 +9,15 @@ using System.Windows.Input;
 using System.Diagnostics;
 using WpfApp.Commands;
 using WpfApp.Views;
+using WpfApp.Models;
 
 namespace WpfApp.ViewModels
 {
     public class AboutViewModel : ViewModelBase
     {
         private readonly SerilogManager _logger = SerilogManager.Instance;
-        private string _readmeContent = string.Empty;
         private string _htmlContent = string.Empty;
-        private const string GITHUB_URL = "https://github.com/Cassianvale/LingYaoKeys";
+        private readonly string _githubUrl = AppConfigService.Config.AppInfo.GitHubUrl;
         private ICommand? _openGitHubCommand;
         private ICommand? _showQRCodeCommand;
         private CoreWebView2? _webView;
@@ -351,7 +351,7 @@ namespace WpfApp.ViewModels
             {
                 ProcessStartInfo psi = new ProcessStartInfo
                 {
-                    FileName = GITHUB_URL,
+                    FileName = _githubUrl,
                     UseShellExecute = true
                 };
                 Process.Start(psi);
