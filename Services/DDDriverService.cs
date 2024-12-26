@@ -725,11 +725,11 @@ namespace WpfApp.Services
                 switch (modifier)
                 {
                     case KeyModifiers.Control:
-                        return IsKeyPressed(DDKeyCode.LEFT_CTRL) || IsKeyPressed(DDKeyCode.RIGHT_CTRL);
+                        return IsKeyPressedByDriver(DDKeyCode.LEFT_CTRL) || IsKeyPressedByDriver(DDKeyCode.RIGHT_CTRL);
                     case KeyModifiers.Alt:
-                        return IsKeyPressed(DDKeyCode.LEFT_ALT) || IsKeyPressed(DDKeyCode.RIGHT_ALT);
+                        return IsKeyPressedByDriver(DDKeyCode.LEFT_ALT) || IsKeyPressedByDriver(DDKeyCode.RIGHT_ALT);
                     case KeyModifiers.Shift:
-                        return IsKeyPressed(DDKeyCode.LEFT_SHIFT) || IsKeyPressed(DDKeyCode.RIGHT_SHIFT);
+                        return IsKeyPressedByDriver(DDKeyCode.LEFT_SHIFT) || IsKeyPressedByDriver(DDKeyCode.RIGHT_SHIFT);
                     default:
                         return false;
                 }
@@ -741,8 +741,8 @@ namespace WpfApp.Services
             }
         }
 
-        // 检查按键是否按下
-        private bool IsKeyPressed(DDKeyCode keyCode)
+        // 使用DD驱动检测按键状态
+        private bool IsKeyPressedByDriver(DDKeyCode keyCode)
         {
             if (_dd.key == null) return false;
             return _dd.key((int)keyCode, 3) == 1; // 3表示检查按键状态

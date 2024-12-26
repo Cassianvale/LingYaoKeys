@@ -818,7 +818,8 @@ namespace WpfApp.Services
             }
         }
 
-        private bool IsKeyPressed(DDKeyCode ddKeyCode)
+        // 使用Windows API检查按键是否按下
+        private bool IsKeyPressedBySystem(DDKeyCode ddKeyCode)
         {
             if (ddKeyCode == DDKeyCode.None) return false;
             
