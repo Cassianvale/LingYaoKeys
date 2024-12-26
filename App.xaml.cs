@@ -22,7 +22,10 @@ namespace WpfApp
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-
+            
+            // 预初始化WebView2环境
+            _ = Services.WebView2Service.Instance.GetEnvironmentAsync();
+            
             try
             {
                 // 确保用户数据目录存在

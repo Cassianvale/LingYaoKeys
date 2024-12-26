@@ -23,7 +23,10 @@
                 Margin="0,0,0,10"/>
 
         <!-- 二维码容器 -->
-        <Grid Grid.Row="1" VerticalAlignment="Center">
+        <Grid Grid.Row="1" 
+              VerticalAlignment="Center"
+              RenderOptions.BitmapScalingMode="HighQuality"
+              UseLayoutRounding="True">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
@@ -33,20 +36,30 @@
             <StackPanel Grid.Column="0" 
                         Margin="0,10,20,0"
                         HorizontalAlignment="Center">
-                <Image Source="pack://application:,,,/Resource/img/wechat_qr.png" 
+                <Image x:Name="WechatQRImage"
                        Width="200" 
                        Height="200"
-                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                       SnapsToDevicePixels="True"
+                       CacheMode="BitmapCache"/>
+                <TextBlock Text="微信赞赏码"
+                          HorizontalAlignment="Center"
+                          Margin="0,10,0,0"
+                          FontSize="14"/>
             </StackPanel>
 
             <!-- 右侧二维码 -->
             <StackPanel Grid.Column="1" 
                         Margin="40,10,10,0"
                         HorizontalAlignment="Center">
-                <Image Source="pack://application:,,,/Resource/img/wechat_qr_1.png" 
+                <Image x:Name="WechatQR1Image"
                        Width="200" 
                        Height="200"
-                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                       SnapsToDevicePixels="True"
+                       CacheMode="BitmapCache"/>
+                <TextBlock Text="微信打赏码"
+                          HorizontalAlignment="Center"
+                          Margin="0,10,0,0"
+                          FontSize="14"/>
             </StackPanel>
         </Grid>
 

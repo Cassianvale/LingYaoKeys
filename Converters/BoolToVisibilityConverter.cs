@@ -25,4 +25,4 @@ namespace WpfApp.Converters
             return false;
         }
     }
-} 
+}
