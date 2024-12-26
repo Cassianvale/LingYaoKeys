@@ -7,7 +7,7 @@ namespace WpfApp.ViewModels
 {
     public class QRCodeViewModel : ViewModelBase
     {
-        private readonly LogManager _logger = LogManager.Instance;
+        private readonly SerilogManager _logger = SerilogManager.Instance;
         private ICommand? _goBackCommand;
 
         public ICommand GoBackCommand => _goBackCommand ??= new RelayCommand(GoBack);
@@ -21,11 +21,11 @@ namespace WpfApp.ViewModels
                 {
                     mainViewModel.NavigateCommand.Execute("About");
                 }
-                _logger.LogDebug("QRCode", "返回About页面");
+                _logger.Debug("返回About页面");
             }
             catch (System.Exception ex)
             {
-                _logger.LogError("QRCode", "返回About页面失败", ex);
+                _logger.Error("返回About页面失败", ex);
             }
         }
     }

@@ -9,7 +9,7 @@ namespace WpfApp.Services
 {
     public class AudioService
     {
-        private readonly LogManager _logger = LogManager.Instance;
+        private readonly SerilogManager _logger = SerilogManager.Instance;
         private readonly string _startSoundPath;
         private readonly string _stopSoundPath;
         private WaveOutEvent _outputDevice;
@@ -34,7 +34,7 @@ namespace WpfApp.Services
             EnsureAudioFileExists("start.mp3", _startSoundPath);
             EnsureAudioFileExists("stop.mp3", _stopSoundPath);
             
-            _logger.LogDebug("AudioService", $"音频文件位于：{userDataPath}，可直接替换文件以自定义音效");
+            _logger.Debug($"音频文件位于：{userDataPath}，可直接替换文件以自定义音效");
         }
 
         private void EnsureAudioFileExists(string fileName, string targetPath)
@@ -46,7 +46,7 @@ namespace WpfApp.Services
                 {
                     if (stream == null)
                     {
-                        _logger.LogError("AudioService", $"找不到音频资源：{resourceName}");
+                        _logger.Error($"找不到音频资源：{resourceName}");
                         return;
                     }
 
@@ -80,7 +80,7 @@ namespace WpfApp.Services
         {
             if (!File.Exists(path))
             {
-                _logger.LogError("AudioService", $"音频文件不存在: {path}");
+                _logger.Error($"音频文件不存在: {path}");
                 return;
             }
 
@@ -143,12 +143,12 @@ namespace WpfApp.Services
                 }
                 catch (OperationCanceledException)
                 {
-                    _logger.LogDebug("AudioService", "音频播放被取消");
+                    _logger.Debug("音频播放被取消");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError("AudioService", $"播放声音失败: {path}", ex);
+                _logger.Error($"播放声音失败: {path}", ex);
                 lock (_lockObject)
                 {
                     _isPlayingStopSound = false;

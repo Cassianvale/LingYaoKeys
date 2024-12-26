@@ -68,27 +68,30 @@ namespace WpfApp.Models
 
     public class LogFileSettings
     {
-        public string Directory { get; set; } = "Logs";
         public int MaxFileSize { get; set; } = 10;
         public int MaxFileCount { get; set; } = 10;
         public string RollingInterval { get; set; } = "Day";
         public int RetainDays { get; set; } = 7;
     }
 
-    public class LogCategories
-    {
-        public bool KeyOperation { get; set; } = true;
-        public bool Performance { get; set; } = true;
-        public bool Driver { get; set; } = true;
-        public bool Config { get; set; } = true;
-    }
-
     public class LoggingConfig
     {
-        public bool Enabled { get; set; } = true;
+        public bool Enabled { get; set; }
         public string LogLevel { get; set; } = "Debug";
+
+        // 日志：文件配置
         public LogFileSettings FileSettings { get; set; } = new();
-        public LogCategories Categories { get; set; } = new();
-        public List<string> ExcludedTags { get; set; } = new() { "ControlStyles" };
+
+        // 日志：排除特定标签
+        public List<string> ExcludedTags { get; set; } = new();
+        
+        // 日志：排除特定源上下文日志（类名）
+        public List<string> ExcludedSources { get; set; } = new();
+        
+        // 日志：排除特定方法名
+        public List<string> ExcludedMethods { get; set; } = new();
+        
+        // 日志：排除特定消息模式（支持通配符 * ）
+        public List<string> ExcludedPatterns { get; set; } = new();
     }
 } 

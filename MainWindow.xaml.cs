@@ -19,7 +19,7 @@ namespace WpfApp
     /// </summary>
     public partial class MainWindow : System.Windows.Window
     {
-        private readonly LogManager _logger = LogManager.Instance;
+        private readonly SerilogManager _logger = SerilogManager.Instance;
         private readonly MainViewModel _viewModel;
         private bool _isClosing;
         private bool _isShuttingDown;
@@ -120,11 +120,11 @@ namespace WpfApp
                 // 注册窗口状态改变事件
                 StateChanged += MainWindow_StateChanged;
                 
-                _logger.LogDebug("MainWindow", $"窗口初始化完成 - 尺寸: {Width}x{Height}");
+                _logger.Debug($"窗口初始化完成 - 尺寸: {Width}x{Height}");
             }
             catch (Exception ex)
             {
-                _logger.LogError("MainWindow", "窗口初始化失败", ex);
+                _logger.Error("窗口初始化失败", ex);
                 MessageBox.Show($"窗口初始化失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 Application.Current.Shutdown();
             }
@@ -251,7 +251,7 @@ namespace WpfApp
             }
             catch (Exception ex)
             {
-                _logger.LogError("MainWindow", "初始化托盘图标失败", ex);
+                _logger.Error("初始化托盘图标失败", ex);
             }
         }
 
@@ -342,8 +342,7 @@ namespace WpfApp
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
-            _logger.LogInitialization("App", 
-                $"窗口源初始化 - 实际尺寸: {Width}x{Height}");
+            _logger.Debug($"窗口源初始化 - 实际尺寸: {Width}x{Height}");
         }
 
         private void MainWindow_StateChanged(object sender, EventArgs e)
@@ -368,7 +367,7 @@ namespace WpfApp
                         );
                     }
                 }
-                _logger.LogDebug("MainWindow", "窗口已最小化到托盘");
+                _logger.Debug("窗口已最小化到托盘");
             }
             else
             {
@@ -403,7 +402,7 @@ namespace WpfApp
 
         private void ShowMainWindow()
         {
-            _logger.LogDebug("MainWindow", "正在从托盘还原窗口...");
+            _logger.Debug("正在从托盘还原窗口...");
             RestoreFromMinimized();
         }
 
@@ -431,18 +430,18 @@ namespace WpfApp
                 Activate();
                 Focus();
                 
-                _logger.LogDebug("MainWindow", "窗口已成功还原并激活");
+                _logger.Debug("窗口已成功还原并激活");
             }
             catch (Exception ex)
             {
-                _logger.LogError("MainWindow", "还原窗口时发生错误", ex);
+                _logger.Error("还原窗口时发生错误", ex);
             }
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             _isShuttingDown = true;
-            _logger.LogDebug("MainWindow", "正在关闭应用程序");
+            _logger.Debug("正在关闭应用程序");
 
             // 设置关闭模式为显式关闭，这样浮窗才会真正关闭
             Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
@@ -450,18 +449,18 @@ namespace WpfApp
             // 清理资源
             try 
             {
-                _logger.LogDebug("MainWindow", "开始清理窗口资源...");
+                _logger.Debug("开始清理窗口资源...");
                 if (_trayIcon != null)
                 {
                     _trayIcon.Dispose();
                     _trayIcon = null;
                 }
                 _viewModel.Cleanup();
-                _logger.LogDebug("MainWindow", "窗口资源清理完成");
+                _logger.Debug("窗口资源清理完成");
             }
             catch (Exception ex)
             {
-                _logger.LogError("MainWindow", "窗口关闭异常", ex);
+                _logger.Error("窗口关闭异常", ex);
             }
 
             // 确保应用程序退出
@@ -635,7 +634,7 @@ namespace WpfApp
             }
             catch (Exception ex)
             {
-                _logger.LogError("MainWindow", "调整窗口大小时发生错误", ex);
+                _logger.Error("调整窗口大小时发生错误", ex);
             }
 
             e.Handled = true;

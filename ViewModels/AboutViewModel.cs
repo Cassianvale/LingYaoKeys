@@ -14,7 +14,7 @@ namespace WpfApp.ViewModels
 {
     public class AboutViewModel : ViewModelBase
     {
-        private readonly LogManager _logger = LogManager.Instance;
+        private readonly SerilogManager _logger = SerilogManager.Instance;
         private string _readmeContent = string.Empty;
         private string _htmlContent = string.Empty;
         private const string GITHUB_URL = "https://github.com/Cassianvale/LingYaoKeys";
@@ -44,11 +44,11 @@ namespace WpfApp.ViewModels
                 {
                     mainViewModel.NavigateCommand.Execute("QRCode");
                 }
-                _logger.LogDebug("About", "导航到二维码页面");
+                _logger.Debug("导航到二维码页面");
             }
             catch (Exception ex)
             {
-                _logger.LogError("About", "导航到二维码页面失败", ex);
+                _logger.Error("导航到二维码页面失败", ex);
             }
         }
 
@@ -64,11 +64,11 @@ namespace WpfApp.ViewModels
                     {
                         using var reader = new StreamReader(stream, Encoding.UTF8);
                         markdown = reader.ReadToEnd();
-                        _logger.LogDebug("About", $"成功读取README文件，内容长度: {markdown.Length}");
+                        _logger.Debug($"成功读取README文件，内容长度: {markdown.Length}");
                     }
                     else
                     {
-                        _logger.LogWarning("About", "未找到嵌入式README.md资源");
+                        _logger.Warning("未找到嵌入式README.md资源");
                         markdown = "# 灵曜按键\n\n欢迎使用灵曜按键！";
                     }
                 }
@@ -143,7 +143,7 @@ namespace WpfApp.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogError("About", "加载README.md内容失败", ex);
+                _logger.Error("加载README.md内容失败", ex);
                 HtmlContent = $@"
                     <!DOCTYPE html>
                     <html>
@@ -169,13 +169,13 @@ namespace WpfApp.ViewModels
                 string? currentDir = AppContext.BaseDirectory;
                 while (!string.IsNullOrEmpty(currentDir))
                 {
-                    _logger.LogDebug("About", $"正在检查目录: {currentDir}");
+                    _logger.Debug($"正在检查目录: {currentDir}");
                     
                     // 检查是否存在 WpfApp.csproj 或 README.md
                     if (File.Exists(Path.Combine(currentDir, "WpfApp.csproj")) || 
                         File.Exists(Path.Combine(currentDir, "README.md")))
                     {
-                        _logger.LogDebug("About", $"找到项目根目录: {currentDir}");
+                        _logger.Debug($"找到项目根目录: {currentDir}");
                         return currentDir;
                     }
                     
@@ -187,30 +187,30 @@ namespace WpfApp.ViewModels
                 string devPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"..\..\..\"));
                 if (File.Exists(Path.Combine(devPath, "README.md")))
                 {
-                    _logger.LogDebug("About", $"使用开发环境目录: {devPath}");
+                    _logger.Debug($"使用开发环境目录: {devPath}");
                     return devPath;
                 }
 
                 // 如果都找不到，返回当前目录
-                _logger.LogWarning("About", "未找到项目根目录，使用当前目录");
+                _logger.Warning("未找到项目根目录，使用当前目录");
                 return AppContext.BaseDirectory;
             }
             catch (Exception ex)
             {
-                _logger.LogError("About", "获取项目根目录失败", ex);
+                _logger.Error("获取项目根目录失败", ex);
                 return AppContext.BaseDirectory;
             }
         }
 
         public void HandleWebViewError(CoreWebView2WebErrorStatus status)
         {
-            _logger.LogError("About", $"WebView2导航错误: {status}");
+            _logger.Error($"WebView2导航错误: {status}");
             LoadErrorContent($"加载失败: {status}");
         }
 
         public void HandleWebViewError(Exception ex)
         {
-            _logger.LogError("About", "WebView2初始化错误", ex);
+            _logger.Error("WebView2初始化错误", ex);
             LoadErrorContent($"初始化失败: {ex.Message}");
         }
 
@@ -246,11 +246,11 @@ namespace WpfApp.ViewModels
                     UseShellExecute = true
                 };
                 Process.Start(psi);
-                _logger.LogDebug("About", "成功打开GitHub仓库链接");
+                _logger.Debug("成功打开GitHub仓库链接");
             }
             catch (Exception ex)
             {
-                _logger.LogError("About", "打开GitHub仓库链接失败", ex);
+                _logger.Error("打开GitHub仓库链接失败", ex);
                 // 可以考虑添加一个错误提示
             }
         }

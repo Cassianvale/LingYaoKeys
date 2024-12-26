@@ -42,7 +42,7 @@ namespace WpfApp.Services
         private List<DDKeyCode> _keyList = new List<DDKeyCode>();
         private readonly object _stateLock = new object();
         private readonly Stopwatch _sequenceStopwatch = new Stopwatch();
-        private readonly LogManager _logger = LogManager.Instance;
+        private readonly SerilogManager _logger = SerilogManager.Instance;
         public event EventHandler<bool>? InitializationStatusChanged;
         public event EventHandler<bool>? EnableStatusChanged;
         public event EventHandler<int>? KeyIntervalChanged;
@@ -77,7 +77,7 @@ namespace WpfApp.Services
         {
             try
             {
-                _logger.LogInitialization("开始", $"加载驱动文件: {dllPath}");
+                _logger.Debug($"加载驱动文件: {dllPath}");
                 
                 // 1. 清理现有实例
                 if(_isInitialized)
@@ -90,7 +90,7 @@ namespace WpfApp.Services
                 int ret = _dd.Load(dllPath);
                 if (ret != 1)
                 {
-                    _logger.LogError("LoadDllFile", $"驱动加载失败，返回值: {ret}");
+                    _logger.Error($"驱动加载失败，返回值: {ret}");
                     return false;
                 }
 
@@ -100,7 +100,7 @@ namespace WpfApp.Services
                     ret = _dd.btn(0);
                     if (ret != 1)
                     {
-                        _logger.LogError("LoadDllFile", "驱动初始化失败");
+                        _logger.Error("驱动初始化失败");
                         MessageBox.Show("驱动初始化失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                         SendStatusMessage("驱动初始化失败", true);
                         return false;
@@ -108,7 +108,7 @@ namespace WpfApp.Services
                 }
                 else
                 {
-                    _logger.LogError("LoadDllFile", "驱动对象或 btn 方法为空");
+                    _logger.Error("驱动对象或 btn 方法为空");
                     return false;
                 }
 
@@ -120,7 +120,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError("LoadDllFile", "驱动加载异常", ex);
+                _logger.Error("驱动加载异常", ex);
                 return false;
             }
         }
@@ -143,7 +143,7 @@ namespace WpfApp.Services
                         {
                             if (t.Exception != null)
                             {
-                                _logger.LogError("StartKeySequence", "按键序列启动异常", t.Exception);
+                                _logger.Error("按键序列启动异常", t.Exception);
                                 _isEnabled = false;
                             }
                         });
@@ -155,7 +155,7 @@ namespace WpfApp.Services
                         {
                             if (t.Exception != null)
                             {
-                                _logger.LogError("StartKeySequence", "按键序列停止异常", t.Exception);
+                                _logger.Error("按键序列停止异常", t.Exception);
                             }
                         });
                     }
@@ -196,7 +196,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError("StartKeySequence", "启动序列异常", ex);
+                _logger.Error("启动序列异常", ex);
                 await StopKeySequenceAsync();
             }
         }
@@ -212,13 +212,13 @@ namespace WpfApp.Services
                 if (_currentKeyMode != null)
                 {
                     await _currentKeyMode.StopAsync();
-                    _currentKeyMode.LogMetrics();
+                    // _currentKeyMode.LogMetrics();
                 }
 
             }
             catch (Exception ex)
             {
-                _logger.LogError("StopKeySequence", "停止序列异常", ex);
+                _logger.Error("停止序列异常", ex);
             }
         }
 
@@ -256,7 +256,7 @@ namespace WpfApp.Services
         {
             if (!_isInitialized || _dd.str == null)
             {
-                _logger.LogError("SimulateText", "驱动未初始化或str函数指针为空");
+                _logger.Error("驱动未初始化或str函数指针为空");
                 return false;
             }
             try
@@ -265,7 +265,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError("SimulateText", "模拟文本输入异常", ex);
+                _logger.Error("模拟文本输入异常", ex);
                 return false;
             }
         }
@@ -275,7 +275,7 @@ namespace WpfApp.Services
         {
             if (!_isInitialized || _dd.btn == null)
             {
-                _logger.LogError("MouseOperation", "驱动未初始化或btn函数指针为空");
+                _logger.Error("驱动未初始化或btn函数指针为空");
                 return false;
             }
 
@@ -298,7 +298,7 @@ namespace WpfApp.Services
                 int ret = _dd.btn(down);
                 if (ret != 1)
                 {
-                    _logger.LogWarning("MouseOperation", $"鼠标按下失败，返回值：{ret}");
+                    _logger.Warning($"鼠标按下失败，返回值：{ret}");
                     return false;
                 }
 
@@ -309,7 +309,7 @@ namespace WpfApp.Services
                 ret = _dd.btn(up);
                 if (ret != 1)
                 {
-                    _logger.LogWarning("MouseOperation", $"鼠标释放失败，返回值：{ret}");
+                    _logger.Warning($"鼠标释放失败，返回值：{ret}");
                     return false;
                 }
 
@@ -317,7 +317,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError("MouseOperation", "鼠标点击异常", ex);
+                _logger.Error("鼠标点击异常", ex);
                 return false;
             }
         }
@@ -327,7 +327,7 @@ namespace WpfApp.Services
         {
             if (!_isInitialized || _dd.mov == null)
             {
-                _logger.LogError("MoveMouse", "驱动未初始化或mov函数指针为空");
+                _logger.Error("驱动未初始化或mov函数指针为空");
                 return false;
             }
 
@@ -336,14 +336,14 @@ namespace WpfApp.Services
                 int ret = _dd.mov(x, y);
                 if (ret != 1)
                 {
-                    _logger.LogWarning("MoveMouse", $"鼠标移动失败，返回值：{ret}");
+                    _logger.Warning($"鼠标移动失败，返回值：{ret}");
                     return false;
                 }
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError("MoveMouse", "鼠标移动异常", ex);
+                _logger.Error("鼠标移动异常", ex);
                 return false;
             }
         }
@@ -353,7 +353,7 @@ namespace WpfApp.Services
         {
             if (!_isInitialized || _dd.whl == null)
             {
-                _logger.LogError("MouseWheel", "驱动未初始化或whl函数指针为空");
+                _logger.Error("驱动未初始化或whl函数指针为空");
                 return false;
             }
 
@@ -362,14 +362,14 @@ namespace WpfApp.Services
                 int ret = _dd.whl(isForward ? 1 : 2);
                 if (ret != 1)
                 {
-                    _logger.LogWarning("MouseWheel", $"鼠标滚轮操作失败，返回值：{ret}");
+                    _logger.Warning($"鼠标滚轮操作失败，返回值：{ret}");
                     return false;
                 }
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError("MouseWheel", "鼠标滚轮操作异常", ex);
+                _logger.Error("鼠标滚轮操作异常", ex);
                 return false;
             }
         }
@@ -379,7 +379,7 @@ namespace WpfApp.Services
         {
             if (!_isInitialized || _dd.key == null)
             {
-                _logger.LogError("SendKey", "驱动未初始化或key函数指针为空");
+                _logger.Error("驱动未初始化或key函数指针为空");
                 return false;
             }
 
@@ -387,7 +387,7 @@ namespace WpfApp.Services
             {
                 if (!KeyCodeMapping.IsValidDDKeyCode(keyCode))
                 {
-                    _logger.LogError("SendKey", $"无效的DD键码: {keyCode} ({(int)keyCode})");
+                    _logger.Error($"无效的DD键码: {keyCode} ({(int)keyCode})");
                     return false;
                 }
                 
@@ -400,7 +400,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError("SendKey", "按键操作异常", ex);
+                _logger.Error("按键操作异常", ex);
                 return false;
             }
         }
@@ -422,7 +422,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError("SendVirtualKey", "虚拟按键操作异常", ex);
+                _logger.Error("虚拟按键操作异常", ex);
                 return false;
             }
         }
@@ -451,7 +451,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError("SimulateKeyPress", "模拟按键异常", ex);
+                _logger.Error("模拟按键异常", ex);
                 return false;
             }
         }
@@ -461,7 +461,7 @@ namespace WpfApp.Services
         {
             try
             {
-                _logger.LogDebug("Dispose", "开始释放驱动资源");
+                _logger.Debug("开始释放驱动资源");
                 
                 IsEnabled = false;
                 
@@ -476,11 +476,11 @@ namespace WpfApp.Services
                 _isInitialized = false;
                 _dd = new CDD();
 
-                _logger.LogDebug("Dispose", "驱动资源释放完成");
+                _logger.Debug("驱动资源释放完成");
             }
             catch (Exception ex)
             {
-                _logger.LogError("Dispose", "释放资源时发生异常", ex);
+                _logger.Error("释放资源时发生异常", ex);
             }
         }
 
@@ -494,8 +494,8 @@ namespace WpfApp.Services
                 bool wasSequenceMode = IsSequenceMode;
                 if (wasSequenceMode == value) return;
                 
-                _logger.LogDebug("DDDriverService", 
-                    $"[IsSequenceMode] 切换模式 - " +
+                _logger.Debug(
+                    $"切换模式 - " +
                     $"当前: {(wasSequenceMode ? "顺序模式" : "按压模式")}, " +
                     $"目标: {(value ? "顺序模式" : "按压模式")}");
                 
@@ -528,13 +528,13 @@ namespace WpfApp.Services
                     // 触发模式切换事件
                     ModeSwitched?.Invoke(this, value);
                     
-                    _logger.LogDebug("DDDriverService", 
-                        $"[IsSequenceMode] 模式切换完成 - " +
+                    _logger.Debug(
+                        $"模式切换完成 - " +
                         $"新模式: {(value ? "顺序模式" : "按压模式")}");
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError("DDDriverService", "[IsSequenceMode] 模式切换异常", ex);
+                    _logger.Error("模式切换异常", ex);
                     // 发生异常时恢复到原始状态
                     if (_currentKeyMode != null)
                     {
@@ -557,11 +557,11 @@ namespace WpfApp.Services
         {
             try
             {
-                _logger.LogDebug("DDDriverService", $"设置按键列表 - 按键数量: {keyList?.Count ?? 0}");
+                _logger.Debug($"设置按键列表 - 按键数量: {keyList?.Count ?? 0}");
                 
                 if (keyList == null || keyList.Count == 0)
                 {
-                    _logger.LogWarning("DDDriverService", "收到空的按键列表，停止当前运行的序列");
+                    _logger.Warning("收到空的按键列表，停止当前运行的序列");
                     // 如果当前正在运行，则停止
                     if (_isEnabled)
                     {
@@ -578,12 +578,12 @@ namespace WpfApp.Services
                     _currentKeyMode.SetKeyList(new List<DDKeyCode>(_keyList));
                 }
                 
-                _logger.LogDebug("DDDriverService", 
+                _logger.Debug(
                     $"按键列表已更新 - 按键数量: {_keyList.Count}, 当前模式: {(_currentKeyMode?.GetType().Name ?? "无")}");
             }
             catch (Exception ex)
             {
-                _logger.LogError("DDDriverService", "设置按键列表异常", ex);
+                _logger.Error("设置按键列表异常", ex);
                 // 发生异常时清空按键列表并停止服务
                 _keyList.Clear();
                 IsEnabled = false;
@@ -602,14 +602,14 @@ namespace WpfApp.Services
         {
             try
             {
-                _logger.LogDebug("DDDriverService", 
-                    $"[SetHoldMode] 设置按压模式 - " +
+                _logger.Debug(
+                    $"设置按压模式 - " +
                     $"isHold: {isHold}, " +
                     $"当前模式: {(IsSequenceMode ? "顺序模式" : "按压模式")}");
 
                 if (IsSequenceMode)
                 {
-                    _logger.LogWarning("DDDriverService", "[SetHoldMode] 当前为顺序模式，忽略按压模式设置");
+                    _logger.Warning("当前为顺序模式，忽略按压模式设置");
                     return;
                 }
 
@@ -640,15 +640,15 @@ namespace WpfApp.Services
                     (_currentKeyMode as HoldKeyMode)?.HandleKeyPress();
                 }
                 
-                _logger.LogDebug("DDDriverService", 
-                    $"[SetHoldMode] 按压模式状态已更新 - " +
+                _logger.Debug(
+                    $"按压模式状态已更新 - " +
                     $"isHold: {isHold}, " +
                     $"isEnabled: {_isEnabled}, " +
                     $"按键数量: {_keyList.Count}");
             }
             catch (Exception ex)
             {
-                _logger.LogError("DDDriverService", "[SetHoldMode] 设置按压模式异常", ex);
+                _logger.Error("设置按压模式异常", ex);
                 // 发生异常时确保停止
                 _isEnabled = false;
                 _isHoldMode = false;
@@ -660,7 +660,7 @@ namespace WpfApp.Services
                     }
                     catch (Exception releaseEx)
                     {
-                        _logger.LogError("DDDriverService", "[SetHoldMode] 异常处理时释放按键失败", releaseEx);
+                        _logger.Error("异常处理时释放按键失败", releaseEx);
                     }
                 }
             }
@@ -706,7 +706,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError("SimulateKeyWithModifiers", "模拟组合键异常", ex);
+                _logger.Error("模拟组合键异常", ex);
                 // 确保释放所有按键
                 foreach (var modifier in modifierKeys)
                 {
@@ -736,7 +736,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError("IsModifierKeyPressed", "检查修饰键状态异常", ex);
+                _logger.Error("检查修饰键状态异常", ex);
                 return false;
             }
         }
@@ -756,7 +756,7 @@ namespace WpfApp.Services
         {
             if (!_isInitialized || _dd.todc == null)
             {
-                _logger.LogError("ConvertVirtualKeyToDDCode", "驱动未初始化或todc函数指针为空");
+                _logger.Error("驱动未初始化或todc函数指针为空");
                 return null;
             }
 
@@ -765,14 +765,14 @@ namespace WpfApp.Services
                 int ddCode = _dd.todc(vkCode);
                 if (ddCode <= 0)
                 {
-                    _logger.LogWarning("ConvertVirtualKeyToDDCode", $"虚拟键码转换失败: {vkCode}");
+                    _logger.Warning($"虚拟键码转换失败: {vkCode}");
                     return null;
                 }
                 return ddCode;
             }
             catch (Exception ex)
             {
-                _logger.LogError("ConvertVirtualKeyToDDCode", "虚拟键码转换异常", ex);
+                _logger.Error("虚拟键码转换异常", ex);
                 return null;
             }
         }
@@ -782,9 +782,9 @@ namespace WpfApp.Services
         {
             StatusMessageChanged?.Invoke(this, new StatusMessageEventArgs(message, isError));
             if (isError)
-                _logger.LogError("DDDriver", message);
+                 _logger.Error($"发送状态消息失败: {message}");
             else
-                _logger.LogDriverEvent("Status", message);
+                _logger.DriverEvent("Status", message);
         }
 
         // 修改现有的按键间隔字段和属性
@@ -798,7 +798,7 @@ namespace WpfApp.Services
                 {
                     _keyInterval = validValue;
                     KeyIntervalChanged?.Invoke(this, validValue);
-                    _logger.LogSequenceEvent("KeyInterval", $"按键间隔已更新为: {validValue}ms");
+                    _logger.SequenceEvent($"按键间隔已更新为: {validValue}ms");
                     
                     // 如果有当前模式，同步更新
                     _currentKeyMode?.SetKeyInterval(validValue);
@@ -817,8 +817,7 @@ namespace WpfApp.Services
                 {
                     _keyPressInterval = validValue;
                     KeyPressIntervalChanged?.Invoke(this, validValue);
-                    _logger.LogSequenceEvent("KeyPressInterval", 
-                        $"按键按下时长已更新为: {validValue}ms (默认值: {DEFAULT_KEY_PRESS_INTERVAL}ms)");
+                    _logger.SequenceEvent($"按键按下时长已更新为: {validValue}ms (默认值: {DEFAULT_KEY_PRESS_INTERVAL}ms)");
                     
                     // 保存到配置
                     AppConfigService.Config.KeyPressInterval = validValue;

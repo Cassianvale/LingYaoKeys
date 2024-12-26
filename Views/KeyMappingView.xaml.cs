@@ -16,7 +16,7 @@ namespace WpfApp.Views
 {
     public partial class KeyMappingView : Page
     {   
-        private readonly LogManager _logger = LogManager.Instance;
+        private readonly SerilogManager _logger = SerilogManager.Instance;
         private const string KEY_ERROR = "无法识别按键，请检查输入法是否关闭";
         private const string HOTKEY_CONFLICT = "无法设置与热键相同的按键";
         private HotkeyService? _hotkeyService;
@@ -38,7 +38,7 @@ namespace WpfApp.Views
             if (e.NewValue is KeyMappingViewModel viewModel)
             {
                 _hotkeyService = viewModel.GetHotkeyService();
-                _logger.LogDebug("KeyMappingView", "已获取HotkeyService实例");
+                _logger.Debug("已获取HotkeyService实例");
             }
         }
 
@@ -76,12 +76,12 @@ namespace WpfApp.Views
                 }
 
                 ViewModel?.SetCurrentKey(ddKeyCode);
-                _logger.LogDebug("KeyInput", $"按键已转换: {key} -> {ddKeyCode}");
+                _logger.Debug("KeyInput", $"按键已转换: {key} -> {ddKeyCode}");
             }
             else
             {
                 ShowError(KEY_ERROR);
-                _logger.LogWarning("KeyInput", $"无法转换按键: {key}");
+                _logger.Warning("KeyInput", $"无法转换按键: {key}");
             }
         }
 
@@ -235,7 +235,7 @@ namespace WpfApp.Views
                 if (_hotkeyService != null)
                 {
                     _hotkeyService.IsInputFocused = true;
-                    _logger.LogDebug("KeyMappingView", $"输入框获得焦点: {textBox.Name}");
+                    _logger.Debug($"输入框获得焦点: {textBox.Name}");
                 }
             }
         }
@@ -248,7 +248,7 @@ namespace WpfApp.Views
                 if (_hotkeyService != null)
                 {
                     _hotkeyService.IsInputFocused = false;
-                    _logger.LogDebug("KeyMappingView", $"输入框失去焦点: {textBox.Name}");
+                    _logger.Debug($"输入框失去焦点: {textBox.Name}");
                 }
             }
         }
@@ -279,7 +279,7 @@ namespace WpfApp.Views
         {
             if (textBox == null)
             {
-                _logger.LogWarning("HotkeyInput", "HandleHotkeyInput: textBox is null");
+                _logger.Warning("HandleHotkeyInput: textBox is null");
                 return;
             }
 
@@ -290,8 +290,7 @@ namespace WpfApp.Views
             }
 
             // 记录热键输入处理
-            _logger.LogDebug("HotkeyInput", 
-                $"处理热键输入 - keyCode: {keyCode}, 修饰键: {modifiers}, isStartHotkey: {isStartHotkey}");
+            _logger.Debug($"处理热键输入 - keyCode: {keyCode}, 修饰键: {modifiers}, isStartHotkey: {isStartHotkey}");
 
             // 区分当前处理的是开始热键还是停止热键
             if (isStartHotkey)
@@ -318,23 +317,23 @@ namespace WpfApp.Views
         // 处理开始热键
         private void StartHotkeyInput_KeyDown(object sender, KeyEventArgs e)
         {
-            _logger.LogDebug("HotkeyInput", "StartHotkeyInput_KeyDown 已触发");
-            _logger.LogDebug("HotkeyInput", $"Key: {e.Key}, SystemKey: {e.SystemKey}, KeyStates: {e.KeyStates}");
+            _logger.Debug("StartHotkeyInput_KeyDown 已触发");
+            _logger.Debug($"Key: {e.Key}, SystemKey: {e.SystemKey}, KeyStates: {e.KeyStates}");
             StartHotkeyInput_PreviewKeyDown(sender, e);
         }
 
         private void StartHotkeyInput_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            _logger.LogDebug("HotkeyInput", "StartHotkeyInput_MouseDown 已触发");
-            _logger.LogDebug("HotkeyInput", $"ChangedButton: {e.ChangedButton}");
+            _logger.Debug("StartHotkeyInput_MouseDown 已触发");
+            _logger.Debug($"ChangedButton: {e.ChangedButton}");
             StartHotkeyInput_PreviewMouseDown(sender, e);
         }
 
         // 处理开始热键的鼠标释放
         private void StartHotkeyInput_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
-            _logger.LogDebug("HotkeyInput", "StartHotkeyInput_PreviewMouseUp 已触发");
-            _logger.LogDebug("HotkeyInput", $"ChangedButton: {e.ChangedButton}");
+            _logger.Debug("StartHotkeyInput_PreviewMouseUp 已触发");
+            _logger.Debug($"ChangedButton: {e.ChangedButton}");
         }
 
         private void StartHotkeyInput_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -363,17 +362,17 @@ namespace WpfApp.Views
                 if (TryConvertToDDKeyCode(key, out DDKeyCode ddKeyCode))
                 {
                     HandleHotkeyInput(textBox, ddKeyCode, Keyboard.Modifiers, true);
-                    _logger.LogDebug("HotkeyInput", $"开始热键已转换: {key} -> {ddKeyCode}");
+                    _logger.Debug($"开始热键已转换: {key} -> {ddKeyCode}");
                 }
                 else
                 {
                     ShowError(KEY_ERROR);
-                    _logger.LogWarning("HotkeyInput", $"无法转换开始热键: {key}");
+                    _logger.Warning($"无法转换开始热键: {key}");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError("HotkeyInput", "StartHotkeyInput_PreviewKeyDown 处理异常", ex);
+                _logger.Error("StartHotkeyInput_PreviewKeyDown 处理异常", ex);
             }
         }
 
@@ -411,17 +410,17 @@ namespace WpfApp.Views
                         return;
                     }
                     HandleHotkeyInput(textBox, ddKeyCode, modifiers, false);
-                    _logger.LogDebug("HotkeyInput", $"停止热键已转换: {key} -> {ddKeyCode}");
+                    _logger.Debug($"停止热键已转换: {key} -> {ddKeyCode}");
                 }
                 else
                 {
                     ShowError(KEY_ERROR);
-                    _logger.LogWarning("HotkeyInput", $"无法转换停止热键: {key}");
+                    _logger.Warning($"无法转换停止热键: {key}");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError("HotkeyInput", "StopHotkeyInput_PreviewKeyDown 处理异常", ex);
+                _logger.Error("StopHotkeyInput_PreviewKeyDown 处理异常", ex);
             }
         }
 
@@ -440,7 +439,7 @@ namespace WpfApp.Views
 
                 if (keyCode.HasValue)
                 {
-                    _logger.LogDebug("HotkeyInput", $"检测到鼠标按键: {keyCode.Value}");
+                    _logger.Debug($"检测到鼠标按键: {keyCode.Value}");
                     HandleHotkeyInput(textBox, keyCode.Value, Keyboard.Modifiers, true);
                     e.Handled = true; // 阻止事件继续传播
                 }
@@ -462,7 +461,7 @@ namespace WpfApp.Views
 
                 if (keyCode.HasValue)
                 {
-                    _logger.LogDebug("HotkeyInput", $"检测到鼠标按键: {keyCode.Value}");
+                    _logger.Debug($"检测到鼠标按键: {keyCode.Value}");
                     HandleHotkeyInput(textBox, keyCode.Value, Keyboard.Modifiers, false);
                     e.Handled = true; // 阻止事件继续传播
                 }
@@ -483,7 +482,7 @@ namespace WpfApp.Views
                 if (_hotkeyService != null)
                 {
                     _hotkeyService.IsInputFocused = false;
-                    _logger.LogDebug("KeyMappingView", "数字输入框失去焦点");
+                    _logger.Debug("数字输入框失去焦点");
                 }
 
                 // 验证并纠正值
@@ -494,7 +493,7 @@ namespace WpfApp.Views
                         if (value <= 0)
                         {
                             // 处理无效值（小于等于0）
-                            _logger.LogDebug("KeyMappingView", $"按键间隔值 {value} 无效，必须大于0");
+                            _logger.Debug($"按键间隔值 {value} 无效，必须大于0");
                             if (DataContext is KeyMappingViewModel viewModel)
                             {
                                 viewModel.KeyInterval = 1; // 设置为最小值
@@ -529,7 +528,7 @@ namespace WpfApp.Views
                     else
                     {
                         // 输入的不是有效数字
-                        _logger.LogDebug("KeyMappingView", "输入的不是有效数字");
+                        _logger.Debug("输入的不是有效数字");
                         if (DataContext is KeyMappingViewModel viewModel)
                         {
                             textBox.Text = viewModel.KeyInterval.ToString(); // 恢复为当前值
@@ -555,7 +554,7 @@ namespace WpfApp.Views
         {
             if (ViewModel == null)
             {
-                _logger.LogWarning("HotkeyHandler", "ViewModel is null");
+                _logger.Warning("ViewModel is null");
                 return;
             }
             
@@ -563,7 +562,7 @@ namespace WpfApp.Views
             {
                 if (ViewModel.SelectedKeyMode == 0) // 顺序模式
                 {
-                    _logger.LogDebug("HotkeyHandler", $"顺序模式 - 按键{(isKeyDown ? "按下" : "释放")}");
+                    _logger.Debug($"顺序模式 - 按键{(isKeyDown ? "按下" : "释放")}");
                     if (isKeyDown) // 按下时启动
                     {
                         ViewModel.StartKeyMapping();
@@ -571,7 +570,7 @@ namespace WpfApp.Views
                 }
                 else // 按压模式
                 {
-                    _logger.LogDebug("HotkeyHandler", $"按压模式 - 按键{(isKeyDown ? "按下" : "释放")}");
+                    _logger.Debug($"按压模式 - 按键{(isKeyDown ? "按下" : "释放")}");
                     if (isKeyDown)
                     {
                         ViewModel.StartKeyMapping();
@@ -585,7 +584,7 @@ namespace WpfApp.Views
             }
             catch (Exception ex)
             {
-                _logger.LogError("HotkeyHandler", "处理开始热键异常", ex);
+                _logger.Error("处理开始热键异常", ex);
             }
         }
 
@@ -595,16 +594,16 @@ namespace WpfApp.Views
             {
                 if (ViewModel == null)
                 {
-                    _logger.LogWarning("HotkeyHandler", "ViewModel is null");
+                    _logger.Warning("ViewModel is null");
                     return;
                 }
                 
-                _logger.LogDebug("HotkeyHandler", "处理停止热键");
+                _logger.Debug("处理停止热键");
                 ViewModel.StopKeyMapping();
             }
             catch (Exception ex)
             {
-                _logger.LogError("HotkeyHandler", "处理理停止热键异常", ex);
+                _logger.Error("处理理停止热键异常", ex);
             }
         }
 
@@ -614,7 +613,7 @@ namespace WpfApp.Views
             if (_hotkeyService != null)
             {
                 _hotkeyService.IsInputFocused = true;
-                _logger.LogDebug("KeyMappingView", "数字输入框获得焦点");
+                _logger.Debug("数字输入框获得焦点");
             }
         }
 

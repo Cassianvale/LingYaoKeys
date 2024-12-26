@@ -24,7 +24,7 @@ namespace WpfApp.ViewModels
         private readonly KeyMappingViewModel _keyMappingViewModel;
         private readonly FeedbackViewModel _feedbackViewModel;
         private readonly HotkeyService _hotkeyService;
-        private readonly LogManager _logger = LogManager.Instance;
+        private readonly SerilogManager _logger = SerilogManager.Instance;
         private string _statusMessage = "就绪";
         private Brush _statusMessageColor = Brushes.Black;
         private AppConfig? _config;
@@ -130,7 +130,7 @@ namespace WpfApp.ViewModels
             // 如果当前页面是 KeyMappingView 并且正在执行按键操作，先停止它
             if (CurrentPage?.DataContext is KeyMappingViewModel keyMappingVM && keyMappingVM.IsExecuting)
             {
-                _logger.LogDebug("Navigation", "检测到按键正在执行，正在停止...");
+                _logger.Debug("检测到按键正在执行，正在停止...");
                 keyMappingVM.StopKeyMapping();
             }
 
@@ -164,7 +164,7 @@ namespace WpfApp.ViewModels
                     GetOrCreateFadeInAnimation(parameter).Begin(newPage);
                 }
 
-                _logger.LogDebug("Navigation", $"页面切换到: {parameter}");
+                _logger.Debug($"页面切换到: {parameter}");
             }
         }
 
@@ -219,16 +219,16 @@ namespace WpfApp.ViewModels
 
         public void Cleanup()
         {
-            _logger.LogDebug("MainViewModel", "开始清理资源...");
-            _logger.LogDebug("MainViewModel", "开始保存应用程序配置...");
+            _logger.Debug("开始清理资源...");
+            _logger.Debug("开始保存应用程序配置...");
 
             _keyMappingViewModel.SaveConfig();  // 保存配置
-            _logger.LogDebug("MainViewModel", "配置保存完成");
-            _logger.LogDebug("MainViewModel", "--------------------------------");
+            _logger.Debug("配置保存完成");
+            _logger.Debug("--------------------------------");
 
             _hotkeyService?.Dispose();
             _statusMessageTimer.Stop(); // 停止定时器
-            _logger.LogDebug("MainViewModel", "资源清理完成");
+            _logger.Debug("资源清理完成");
 
             // 清理动画缓存
             _fadeInCache.Clear();
@@ -253,11 +253,11 @@ namespace WpfApp.ViewModels
                 // 如果是错误消息，记录到日志
                 if (e.IsError)
                 {
-                    _logger.LogError("MainViewModel", $"驱动状态错误: {e.Message}");
+                    _logger.Error($"驱动状态错误: {e.Message}");
                 }
                 else
                 {
-                    _logger.LogDebug("MainViewModel", $"驱动状态更新: {e.Message}");
+                    _logger.Debug($"驱动状态更新: {e.Message}");
                 }
             });
         }
@@ -282,7 +282,7 @@ namespace WpfApp.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError("MainViewModel", "更新状态消息失败", ex);
+                    _logger.Error("更新状态消息失败", ex);
                 }
             });
         }

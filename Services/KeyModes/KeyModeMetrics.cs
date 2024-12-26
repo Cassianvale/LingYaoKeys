@@ -8,13 +8,13 @@ namespace WpfApp.Services.KeyModes
 {
     public class KeyModeMetrics
     {
+        private readonly SerilogManager _logger = SerilogManager.Instance;
         private readonly Queue<TimeSpan> _keyPressDurations;
         private readonly Queue<TimeSpan> _keyIntervals;
         private readonly object _metricsLock;
         private readonly Stopwatch _sequenceStopwatch;
         private int _totalKeyPresses;
         private const int MAX_TIMING_SAMPLES = 100;
-        private readonly LogManager _logger;
         private int _keyCount = 0;
         
 
@@ -25,7 +25,6 @@ namespace WpfApp.Services.KeyModes
             _metricsLock = new object();
             _sequenceStopwatch = new Stopwatch();
             _totalKeyPresses = 0;
-            _logger = LogManager.Instance;
         }
 
         public void StartTracking()
@@ -73,20 +72,20 @@ namespace WpfApp.Services.KeyModes
             }
         }
 
-        public PerformanceMetrics GetCurrentMetrics(IEnumerable<DDKeyCode> currentSequence)
-        {
-            lock (_metricsLock)
-            {
-                return new PerformanceMetrics
-                {
-                    AverageKeyPressTime = CalculateAverage(_keyPressDurations),
-                    AverageKeyInterval = CalculateAverage(_keyIntervals),
-                    TotalExecutionTime = _sequenceStopwatch.Elapsed,
-                    TotalKeyPresses = _totalKeyPresses,
-                    CurrentSequence = string.Join(", ", currentSequence)
-                };
-            }
-        }
+        // public PerformanceMetrics GetCurrentMetrics(IEnumerable<DDKeyCode> currentSequence)
+        // {
+        //     lock (_metricsLock)
+        //     {
+        //         return new PerformanceMetrics
+        //         {
+        //             AverageKeyPressTime = CalculateAverage(_keyPressDurations),
+        //             AverageKeyInterval = CalculateAverage(_keyIntervals),
+        //             TotalExecutionTime = _sequenceStopwatch.Elapsed,
+        //             TotalKeyPresses = _totalKeyPresses,
+        //             CurrentSequence = string.Join(", ", currentSequence)
+        //         };
+        //     }
+        // }
 
         private double CalculateAverage(Queue<TimeSpan> timings)
         {
@@ -109,25 +108,25 @@ namespace WpfApp.Services.KeyModes
             }
         }
 
-        public void LogSequenceEnd(int keyInterval)
-        {
-            double avgPressDuration;
-            double avgInterval;
+        // public void LogSequenceEnd(int keyInterval)
+        // {
+        //     double avgPressDuration;
+        //     double avgInterval;
 
-            lock (_metricsLock)
-            {
-                avgPressDuration = CalculateAverage(_keyPressDurations);
-                avgInterval = CalculateAverage(_keyIntervals);
-            }
+        //     lock (_metricsLock)
+        //     {
+        //         avgPressDuration = CalculateAverage(_keyPressDurations);
+        //         avgInterval = CalculateAverage(_keyIntervals);
+        //     }
 
-            // var details = $"\n├─ 执行时间: {_sequenceStopwatch.Elapsed.TotalSeconds:F2}s\n" +
-            //              $"├─ 总按键次数: {_totalKeyPresses}\n" +
-            //              $"├─ 平均按压时长: {avgPressDuration:F2}ms\n" +
-            //              $"├─ 平均实际间隔: {avgInterval:F2}ms\n" +
-            //              $"└─ 设定间隔: {keyInterval}ms";
+        //     var details = $"\n├─ 执行时间: {_sequenceStopwatch.Elapsed.TotalSeconds:F2}s\n" +
+        //                  $"├─ 总按键次数: {_totalKeyPresses}\n" +
+        //                  $"├─ 平均按压时长: {avgPressDuration:F2}ms\n" +
+        //                  $"├─ 平均实际间隔: {avgInterval:F2}ms\n" +
+        //                  $"└─ 设定间隔: {keyInterval}ms";
             
-            // _logger.LogSequenceEvent("结束", details);
-        }
+        //     _logger.SequenceEvent("结束", details);
+        // }
 
         public void IncrementKeyCount()
         {

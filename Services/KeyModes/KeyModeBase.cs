@@ -9,7 +9,7 @@ namespace WpfApp.Services.KeyModes
     public abstract class KeyModeBase : IDisposable
     {
         protected readonly DDDriverService _driverService;
-        protected readonly LogManager _logger;
+        protected readonly SerilogManager _logger;
         protected List<DDKeyCode> _keyList;
         protected bool _isRunning;
         protected CancellationTokenSource? _cts;
@@ -19,7 +19,7 @@ namespace WpfApp.Services.KeyModes
         protected KeyModeBase(DDDriverService driverService)
         {
             _driverService = driverService;
-            _logger = LogManager.Instance;
+            _logger = SerilogManager.Instance;
             _keyList = new List<DDKeyCode>();
             Metrics = new KeyModeMetrics();
         }
@@ -32,7 +32,7 @@ namespace WpfApp.Services.KeyModes
                 return;
             }
             _keyList = new List<DDKeyCode>(keyList);
-            _logger.LogDebug("KeyMode", $"按键列表已更新: {string.Join(", ", _keyList)}");
+            _logger.Debug($"按键列表已更新: {string.Join(", ", _keyList)}");
         }
 
         public virtual void SetKeyInterval(int interval)
@@ -60,19 +60,19 @@ namespace WpfApp.Services.KeyModes
             }
         }
 
-        public virtual void LogMetrics()
-        {
-            Metrics.LogSequenceEnd(_driverService.KeyInterval);
-        }
+        // public virtual void LogMetrics()
+        // {
+        //     Metrics.SequenceEnd(_driverService.KeyInterval);
+        // }
 
         protected virtual void LogModeStart()
         {
-            _logger.LogSequenceEvent("开始", $"模式: {GetType().Name} | 按键列表: {string.Join(", ", _keyList)} | 间隔: {_driverService.KeyInterval}ms");
+            _logger.SequenceEvent("开始", $"模式: {GetType().Name} | 按键列表: {string.Join(", ", _keyList)} | 间隔: {_driverService.KeyInterval}ms");
         }
 
         protected virtual void LogModeEnd()
         {
-            _logger.LogSequenceEvent("结束", $"模式: {GetType().Name} 已停止");
+            _logger.SequenceEvent("结束", $"模式: {GetType().Name} 已停止");
         }
 
         protected virtual void PrepareStart()
@@ -85,7 +85,7 @@ namespace WpfApp.Services.KeyModes
         // 设置按键 [按下->松开] 的时间间隔
         public virtual void SetKeyPressInterval(int interval)
         {
-            _logger.LogDebug("KeyMode", $"按键按下时长更新: {interval}ms");
+            _logger.Debug($"按键按下时长更新: {interval}ms");
         }
 
         protected virtual async Task PressKeyAsync(DDKeyCode key)

@@ -13,7 +13,7 @@ namespace WpfApp.ViewModels
 {
     public class FeedbackViewModel : ViewModelBase
     {
-        private readonly LogManager _logger = LogManager.Instance;
+        private readonly SerilogManager _logger = SerilogManager.Instance;
         private readonly MainViewModel _mainViewModel;
         private string _feedbackContent = string.Empty;
         private int _selectedFeedbackType = 0;
@@ -228,7 +228,7 @@ namespace WpfApp.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogError("GitHub", "打开GitHub Issues失败", ex);
+                _logger.Error("打开GitHub Issues失败", ex);
                 _mainViewModel.UpdateStatusMessage("打开GitHub Issues失败", true);
             }
         }
@@ -268,7 +268,7 @@ namespace WpfApp.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogError("QQ", "打开QQ群链接失败", ex);
+                _logger.Error("打开QQ群链接失败", ex);
                 _mainViewModel.UpdateStatusMessage("打开QQ群链接失败，请手动加群：" + QQ_GROUP_NUMBER, true);
             }
         }
@@ -315,7 +315,7 @@ namespace WpfApp.ViewModels
                 _mainViewModel.UpdateStatusMessage("正在提交反馈...");
 
                 // 记录反馈信息
-                _logger.LogDebug("Feedback", $"提交反馈 - 类型: {FeedbackTypes[SelectedFeedbackType]}, " +
+                _logger.Debug($"提交反馈 - 类型: {FeedbackTypes[SelectedFeedbackType]}, " +
                     $"内容长度: {FeedbackContent.Length}");
 
                 // TODO: 实现实际的反馈提交逻辑
@@ -328,7 +328,7 @@ namespace WpfApp.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogError("Feedback", "提交反馈失败", ex);
+                _logger.Error("提交反馈失败", ex);
                 _mainViewModel.UpdateStatusMessage("提交反馈失败，请稍后重试", true);
             }
             finally

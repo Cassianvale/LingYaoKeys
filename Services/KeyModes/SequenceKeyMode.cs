@@ -39,7 +39,7 @@ namespace WpfApp.Services.KeyModes
                         // 这样可以确保按键有足够的按下时间
                         if (!_driverService.SimulateKeyPress(key, null, KeyPressInterval))
                         {
-                            _logger.LogError("SequenceKeyMode", $"按键执行失败: {key}");
+                            _logger.Error($"按键执行失败: {key}");
                             continue;
                         }
 
@@ -56,7 +56,7 @@ namespace WpfApp.Services.KeyModes
             }
             catch (Exception ex)
             {
-                _logger.LogError("SequenceKeyMode", "按键序列执行异常", ex);
+                _logger.Error("按键序列执行异常", ex);
             }
             finally
             {
