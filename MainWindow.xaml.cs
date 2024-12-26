@@ -537,10 +537,6 @@ namespace WpfApp
         protected override void OnClosed(EventArgs e)
         {
             RemoveMouseHook();  // 确保钩子被移除
-            
-            // 清理页面缓存
-            Services.PageCacheService.ClearCache();
-            
             if (_isClosing) return;
             _isClosing = true;
             base.OnClosed(e);
@@ -765,21 +761,5 @@ namespace WpfApp
         }
 
         #endregion
-
-        public void NavigateToPage<T>() where T : Page, new()
-        {
-            try
-            {
-                var page = Services.PageCacheService.GetPage<T>();
-                if (FindName("MainFrame") is Frame mainFrame)
-                {
-                    mainFrame.Navigate(page);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"导航到页面 {typeof(T).Name} 失败", ex);
-            }
-        }
     }
 }

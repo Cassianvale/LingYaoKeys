@@ -4,15 +4,11 @@ using System.Windows.Input;
 
 namespace WpfApp.Views
 {
-    public partial class FeedbackView : Page, IDisposable
+    public partial class FeedbackView : Page
     {
-        private bool _disposedValue;
-        private readonly ViewModels.FeedbackViewModel _viewModel;
-
         public FeedbackView()
         {
             InitializeComponent();
-            _viewModel = DataContext as ViewModels.FeedbackViewModel;
         }
 
         private void FeedbackTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -24,8 +20,10 @@ namespace WpfApp.Views
             }
             else if (e.Key == Key.Enter)
             {
+                // 阻止默认的Enter键行为
                 e.Handled = true;
                 
+                // 在光标位置插入换行
                 if (sender is TextBox textBox)
                 {
                     int caretIndex = textBox.CaretIndex;
@@ -33,28 +31,6 @@ namespace WpfApp.Views
                     textBox.CaretIndex = caretIndex + Environment.NewLine.Length;
                 }
             }
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposedValue)
-            {
-                if (disposing)
-                {
-                    // 释放托管资源
-                    if (_viewModel is IDisposable disposableViewModel)
-                    {
-                        disposableViewModel.Dispose();
-                    }
-                }
-                _disposedValue = true;
-            }
-        }
-
-        public void Dispose()
-        {
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
         }
     }
 } 

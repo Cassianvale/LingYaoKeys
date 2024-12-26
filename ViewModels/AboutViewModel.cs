@@ -20,7 +20,6 @@ namespace WpfApp.ViewModels
         private const string GITHUB_URL = "https://github.com/Cassianvale/LingYaoKeys";
         private ICommand? _openGitHubCommand;
         private ICommand? _showQRCodeCommand;
-        private CoreWebView2? _webView;
 
         public string HtmlContent
         {
@@ -33,236 +32,28 @@ namespace WpfApp.ViewModels
 
         public AboutViewModel()
         {
-            // 构造函数中不再直接加载内容
-        }
-
-        public void Initialize(CoreWebView2 webView)
-        {
-            _webView = webView;
-            // 初始化时预加载HTML头部
-            LoadHtmlHeader();
-            // 然后开始加载内容
             LoadReadmeContent();
         }
 
-        private void LoadHtmlHeader()
+        private void ShowQRCode()
         {
-            if (_webView == null) return;
-
-            string htmlHeader = $@"
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset='utf-8'>
-                    <meta name='viewport' content='width=device-width, initial-scale=1'>
-                    <style>
-                        :root {{
-                            color-scheme: light dark;
-                        }}
-                        body {{
-                            font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji;
-                            line-height: 1.6;
-                            color: #24292f;
-                            width: 100%;
-                            max-width: 100%;
-                            margin: 0 auto;
-                            padding: 16px 24px;
-                            word-wrap: break-word;
-                            box-sizing: border-box;
-                            -webkit-font-smoothing: antialiased;
-                        }}
-                        .markdown-body {{
-                            width: 100%;
-                            max-width: 1012px;
-                            margin: 0 auto;
-                        }}
-                        h1, h2, h3, h4, h5, h6 {{
-                            margin-top: 24px;
-                            margin-bottom: 16px;
-                            font-weight: 600;
-                            line-height: 1.25;
-                            padding-bottom: .3em;
-                            border-bottom: 1px solid #eaecef;
-                        }}
-                        h1 {{ font-size: 2em; margin-top: 0; }}
-                        h2 {{ font-size: 1.5em; }}
-                        h3 {{ font-size: 1.25em; }}
-                        p {{ margin-bottom: 16px; }}
-                        a {{ color: #0969da; text-decoration: none; }}
-                        a:hover {{ text-decoration: underline; }}
-                        ul, ol {{ padding-left: 2em; margin-bottom: 16px; }}
-                        li {{ margin: 0.25em 0; }}
-                        li + li {{ margin-top: 0.25em; }}
-                        code {{
-                            padding: .2em .4em;
-                            margin: 0;
-                            font-size: 85%;
-                            font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
-                            background-color: rgba(175,184,193,0.2);
-                            border-radius: 6px;
-                        }}
-                        pre {{
-                            padding: 16px;
-                            overflow: auto;
-                            font-size: 85%;
-                            line-height: 1.45;
-                            background-color: #f6f8fa;
-                            border-radius: 6px;
-                            margin-bottom: 16px;
-                        }}
-                        pre code {{
-                            padding: 0;
-                            margin: 0;
-                            word-break: normal;
-                            white-space: pre;
-                            background: transparent;
-                            border: 0;
-                            display: inline;
-                            overflow: visible;
-                            line-height: inherit;
-                        }}
-                        blockquote {{
-                            padding: 0 1em;
-                            color: #57606a;
-                            border-left: .25em solid #d0d7de;
-                            margin: 0 0 16px;
-                        }}
-                        table {{
-                            border-spacing: 0;
-                            border-collapse: collapse;
-                            margin-bottom: 16px;
-                            display: block;
-                            width: max-content;
-                            max-width: 100%;
-                            overflow: auto;
-                        }}
-                        table th, table td {{
-                            padding: 6px 13px;
-                            border: 1px solid #d0d7de;
-                        }}
-                        table th {{
-                            font-weight: 600;
-                            background-color: #f6f8fa;
-                        }}
-                        img {{
-                            max-width: 100%;
-                            border-style: none;
-                            box-sizing: content-box;
-                            background-color: #ffffff;
-                        }}
-                        hr {{
-                            height: .25em;
-                            padding: 0;
-                            margin: 24px 0;
-                            background-color: #d0d7de;
-                            border: 0;
-                        }}
-                        @media (prefers-color-scheme: dark) {{
-                            body {{ 
-                                color: #c9d1d9;
-                                background: #0d1117;
-                            }}
-                            h1, h2, h3, h4, h5, h6 {{
-                                border-bottom: 1px solid #21262d;
-                            }}
-                            a {{ color: #58a6ff; }}
-                            code {{
-                                background-color: rgba(110,118,129,0.4);
-                            }}
-                            pre {{
-                                background-color: #161b22;
-                            }}
-                            blockquote {{
-                                color: #8b949e;
-                                border-left-color: #30363d;
-                            }}
-                            table th, table td {{
-                                border-color: #30363d;
-                            }}
-                            table th {{
-                                background-color: #161b22;
-                            }}
-                            hr {{
-                                background-color: #30363d;
-                            }}
-                        }}
-                        .content-container {{
-                            opacity: 0;
-                            transition: opacity 0.3s ease-in-out;
-                        }}
-                        .content-container.visible {{
-                            opacity: 1;
-                        }}
-                        details {{
-                            margin: 1em 0;
-                        }}
-                        details summary {{
-                            cursor: pointer;
-                            font-weight: 600;
-                            padding: 8px 0;
-                        }}
-                        details summary:hover {{
-                            color: #0969da;
-                        }}
-                        details[open] summary {{
-                            margin-bottom: 12px;
-                        }}
-                        @media (prefers-color-scheme: dark) {{
-                            details summary:hover {{
-                                color: #58a6ff;
-                            }}
-                        }}
-                    </style>
-                    <script>
-                        function appendContent(content) {{
-                            const container = document.createElement('div');
-                            container.className = 'content-container markdown-body';
-                            container.innerHTML = content;
-                            document.body.appendChild(container);
-                            
-                            // 为所有details元素添加动画效果
-                            container.querySelectorAll('details').forEach(details => {{
-                                details.addEventListener('toggle', event => {{
-                                    if (details.open) {{
-                                        const content = details.querySelector('div');
-                                        if (content) {{
-                                            content.style.maxHeight = content.scrollHeight + 'px';
-                                        }}
-                                    }}
-                                }});
-                            }});
-                            
-                            // 强制重排以触发动画
-                            void container.offsetWidth;
-                            container.classList.add('visible');
-                        }}
-
-                        // 在页面加载完成后初始化所有折叠块
-                        document.addEventListener('DOMContentLoaded', () => {{
-                            document.querySelectorAll('details').forEach(details => {{
-                                details.addEventListener('toggle', event => {{
-                                    if (details.open) {{
-                                        const content = details.querySelector('div');
-                                        if (content) {{
-                                            content.style.maxHeight = content.scrollHeight + 'px';
-                                        }}
-                                    }}
-                                }});
-                            }});
-                        }});
-                    </script>
-                </head>
-                <body>
-                </body>
-                </html>";
-
-            _webView.NavigateToString(htmlHeader);
+            try
+            {
+                var mainWindow = Application.Current.MainWindow;
+                if (mainWindow?.DataContext is MainViewModel mainViewModel)
+                {
+                    mainViewModel.NavigateCommand.Execute("QRCode");
+                }
+                _logger.Debug("导航到二维码页面");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("导航到二维码页面失败", ex);
+            }
         }
 
-        private async void LoadReadmeContent()
+        private void LoadReadmeContent()
         {
-            if (_webView == null) return;
-
             try
             {
                 string markdown;
@@ -273,7 +64,7 @@ namespace WpfApp.ViewModels
                     {
                         using var reader = new StreamReader(stream, Encoding.UTF8);
                         markdown = reader.ReadToEnd();
-                        _logger.Debug($"成功读取嵌入资源中的README文件，内容长度: {markdown.Length}");
+                        _logger.Debug($"成功读取README文件，内容长度: {markdown.Length}");
                     }
                     else
                     {
@@ -282,42 +73,132 @@ namespace WpfApp.ViewModels
                     }
                 }
 
-                // 配置Markdown转换器，添加GitHub风格扩展
+                // 转换Markdown为HTML
                 var pipeline = new MarkdownPipelineBuilder()
                     .UseAdvancedExtensions()
                     .UseEmojiAndSmiley()
-                    .UseTaskLists()
-                    .UseAutoLinks()
-                    .UseGridTables()
-                    .UsePipeTables()
-                    .UseListExtras()
-                    .UseFootnotes()
-                    .UseFooters()
-                    .UseCitations()
-                    .UseCustomContainers()
-                    .UseDefinitionLists()
-                    .UseFigures()
-                    .UseBootstrap()
-                    .UseMediaLinks()
-                    .UseDiagrams()
-                    .UseAutoIdentifiers()
-                    .UseGenericAttributes()
                     .Build();
                 
-                // 一次性转换整个文档
                 string html = Markdown.ToHtml(markdown, pipeline);
 
-                // 注入内容
-                await _webView.ExecuteScriptAsync($"appendContent(`{html.Replace("`", "\\`")}`)");
+                // 添加CSS样式和编码声明
+                html = $@"
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset='utf-8'>
+                        <meta name='viewport' content='width=device-width, initial-scale=1'>
+                        <style>
+                            :root {{
+                                color-scheme: light dark;
+                            }}
+                            body {{
+                                font-family: 'Microsoft YaHei UI', system-ui, sans-serif;
+                                line-height: 1.6;
+                                color: #333;
+                                max-width: 100%;
+                                margin: 0;
+                                padding: 0 10px;
+                                -webkit-font-smoothing: antialiased;
+                            }}
+                            h1, h2, h3, h4, h5, h6 {{
+                                margin-top: 24px;
+                                margin-bottom: 16px;
+                                font-weight: 600;
+                                line-height: 1.25;
+                            }}
+                            h1 {{ font-size: 2em; margin-top: 0; }}
+                            h2 {{ font-size: 1.5em; }}
+                            p {{ margin-bottom: 16px; }}
+                            ul, ol {{ padding-left: 2em; }}
+                            li {{ margin: 0.25em 0; }}
+                            code {{
+                                background-color: #f6f8fa;
+                                padding: 0.2em 0.4em;
+                                border-radius: 3px;
+                                font-family: 'Cascadia Code', Consolas, monospace;
+                            }}
+                            pre code {{
+                                display: block;
+                                padding: 16px;
+                                overflow-x: auto;
+                            }}
+                            @media (prefers-color-scheme: dark) {{
+                                body {{ 
+                                    color: #e4e4e4;
+                                    background: transparent;
+                                }}
+                                code {{
+                                    background-color: #2d2d2d;
+                                }}
+                            }}
+                        </style>
+                    </head>
+                    <body>
+                        {html}
+                    </body>
+                    </html>";
+
+                HtmlContent = html;
             }
             catch (Exception ex)
             {
                 _logger.Error("加载README.md内容失败", ex);
-                await _webView.ExecuteScriptAsync(@"
-                    appendContent(`
+                HtmlContent = $@"
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset='utf-8'>
+                        <style>
+                            body {{ font-family: 'Microsoft YaHei UI', sans-serif; padding: 20px; }}
+                        </style>
+                    </head>
+                    <body>
                         <h1>加载失败</h1>
-                        <p>错误信息: " + ex.Message.Replace("`", "\\`") + @"</p>
-                    `)");
+                        <p>错误信息: {ex.Message}</p>
+                    </body>
+                    </html>";
+            }
+        }
+
+        private string GetProjectRootPath()
+        {
+            try
+            {
+                // 使用 AppContext.BaseDirectory 替代 Assembly.Location
+                string? currentDir = AppContext.BaseDirectory;
+                while (!string.IsNullOrEmpty(currentDir))
+                {
+                    _logger.Debug($"正在检查目录: {currentDir}");
+                    
+                    // 检查是否存在 WpfApp.csproj 或 README.md
+                    if (File.Exists(Path.Combine(currentDir, "WpfApp.csproj")) || 
+                        File.Exists(Path.Combine(currentDir, "README.md")))
+                    {
+                        _logger.Debug($"找到项目根目录: {currentDir}");
+                        return currentDir;
+                    }
+                    
+                    // 向上一级目录查找
+                    currentDir = Path.GetDirectoryName(currentDir);
+                }
+
+                // 如果找不到，尝试使用开发环境下的目录
+                string devPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"..\..\..\"));
+                if (File.Exists(Path.Combine(devPath, "README.md")))
+                {
+                    _logger.Debug($"使用开发环境目录: {devPath}");
+                    return devPath;
+                }
+
+                // 如果都找不到，返回当前目录
+                _logger.Warning("未找到项目根目录，使用当前目录");
+                return AppContext.BaseDirectory;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("获取项目根目录失败", ex);
+                return AppContext.BaseDirectory;
             }
         }
 
@@ -335,14 +216,24 @@ namespace WpfApp.ViewModels
 
         private void LoadErrorContent(string message)
         {
-            if (_webView != null)
-            {
-                _webView.ExecuteScriptAsync($@"
-                    appendContent(`
+            HtmlContent = $@"
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset='utf-8'>
+                    <style>
+                        body {{ 
+                            font-family: 'Microsoft YaHei UI', sans-serif; 
+                            padding: 20px;
+                            color: #e4e4e4;
+                        }}
+                    </style>
+                </head>
+                <body>
                     <h1>加载失败</h1>
-                        <p>{message.Replace("`", "\\`")}</p>
-                    `)");
-            }
+                    <p>{message}</p>
+                </body>
+                </html>";
         }
 
         private void OpenGitHub()
@@ -361,23 +252,6 @@ namespace WpfApp.ViewModels
             {
                 _logger.Error("打开GitHub仓库链接失败", ex);
                 // 可以考虑添加一个错误提示
-            }
-        }
-
-        private void ShowQRCode()
-        {
-            try
-            {
-                var mainWindow = Application.Current.MainWindow;
-                if (mainWindow?.DataContext is MainViewModel mainViewModel)
-                {
-                    mainViewModel.NavigateCommand.Execute("QRCode");
-                }
-                _logger.Debug("导航到二维码页面");
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("导航到二维码页面失败", ex);
             }
         }
     }
