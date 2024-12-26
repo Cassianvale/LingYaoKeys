@@ -20,6 +20,19 @@
                 FalseValue="#757575"/> <!-- 启用时绿的，禁用时灰色 -->
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
             <converters:ViewModelToHotkeyStatusConverter x:Key="ViewModelToHotkeyStatusConverter"/>
+            
+            <!-- 颜色资源 -->
+            <SolidColorBrush x:Key="PrimaryBrush" Color="#2196F3"/>
+            <SolidColorBrush x:Key="ErrorBrush" Color="#F44336"/>
+            <SolidColorBrush x:Key="TextForegroundBrush" Color="#333333"/>
+            
+            <!-- 阴影效果 -->
+            <DropShadowEffect x:Key="DefaultShadowEffect"
+                            BlurRadius="10"
+                            Direction="270"
+                            ShadowDepth="2"
+                            Opacity="0.2"
+                            Color="#000000"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
