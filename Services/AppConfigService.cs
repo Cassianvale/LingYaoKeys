@@ -163,7 +163,7 @@ namespace WpfApp.Services
                     LogLevel = "Debug",
                     FileSettings = new LogFileSettings
                     {
-                        Directory = "Logs",
+                        Directory = "logs",
                         MaxFileSize = 10,
                         MaxFileCount = 10,
                         RollingInterval = "Day",
@@ -175,6 +175,9 @@ namespace WpfApp.Services
                         Performance = true,
                         Driver = true,
                         Config = true
+                    },
+                    ExcludedTags = new List<string> {
+                        "ControlStyles",
                     }
                 },
                 startKey = (DDKeyCode)109,

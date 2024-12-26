@@ -89,5 +89,6 @@ namespace WpfApp.Models
         public string LogLevel { get; set; } = "Debug";
         public LogFileSettings FileSettings { get; set; } = new();
         public LogCategories Categories { get; set; } = new();
+        public List<string> ExcludedTags { get; set; } = new() { "ControlStyles" };
     }
 } 

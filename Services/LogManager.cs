@@ -6,6 +6,7 @@ using System.Threading;
 using System.Linq;
 using WpfApp.Models;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 
 
 namespace WpfApp.Services
@@ -36,7 +37,8 @@ namespace WpfApp.Services
                     Enabled = false,
                     LogLevel = "Debug",
                     FileSettings = new LogFileSettings(),
-                    Categories = new LogCategories()
+                    Categories = new LogCategories(),
+                    ExcludedTags = new List<string> { "ControlStyles" }
                 }
             };
             
@@ -137,6 +139,12 @@ namespace WpfApp.Services
         {
             try
             {
+                // 首先检查是否在排除列表中
+                if (_config.Logging.ExcludedTags.Contains(category))
+                {
+                    return false;
+                }
+
                 // 检查日志级别
                 var configLevel = Enum.Parse<LogLevel>(_config.Logging.LogLevel);
                 if (level < configLevel) return false;
@@ -153,7 +161,7 @@ namespace WpfApp.Services
             }
             catch
             {
-                return true; // 配置解析失败时允许所有日志
+                return !_config.Logging.ExcludedTags.Contains(category); // 配置解析失败时仍然检查排除标签
             }
         }
 
