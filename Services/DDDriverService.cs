@@ -43,6 +43,7 @@ namespace WpfApp.Services
         private readonly object _stateLock = new object();
         private readonly Stopwatch _sequenceStopwatch = new Stopwatch();
         private readonly SerilogManager _logger = SerilogManager.Instance;
+        internal readonly InputMethodService _inputMethodService;
         public event EventHandler<bool>? InitializationStatusChanged;
         public event EventHandler<bool>? EnableStatusChanged;
         public event EventHandler<int>? KeyIntervalChanged;
@@ -70,6 +71,7 @@ namespace WpfApp.Services
             _isInitialized = false;
             _isEnabled = false;
             _taskManager = new TaskManager(MAX_CONCURRENT_TASKS);
+            _inputMethodService = new InputMethodService();
             
             // 初始化时从配置加载，如果没有配置则使用默认值
             _keyPressInterval = AppConfigService.Config.KeyPressInterval ?? DEFAULT_KEY_PRESS_INTERVAL;
@@ -162,6 +164,8 @@ namespace WpfApp.Services
                             {
                                 _logger.Error("按键序列停止异常", t.Exception);
                             }
+                            // 恢复输入法状态
+                            _inputMethodService.RestorePreviousLayout();
                         });
                     }
                 }
@@ -442,6 +446,9 @@ namespace WpfApp.Services
             
             try
             {
+                // 切换到英文输入法
+                _inputMethodService.SwitchToEnglish();
+                
                 // 使用自定义延迟或配置的间隔
                 int delayMs = customDelay ?? _keyInterval;
                 int pressIntervalMs = customPressInterval ?? _keyPressInterval;
@@ -477,6 +484,9 @@ namespace WpfApp.Services
                 _isEnabled = false;
                 _isHoldMode = false;
                 _keyList.Clear();
+                
+                // 恢复输入法状态
+                _inputMethodService.RestorePreviousLayout();
                 
                 _isInitialized = false;
                 _dd = new CDD();
