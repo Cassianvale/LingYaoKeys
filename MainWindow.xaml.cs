@@ -19,10 +19,9 @@ namespace WpfApp
     /// </summary>
     public partial class MainWindow : System.Windows.Window
     {
-        private readonly LogManager _logger = LogManager.Instance;
+        private readonly SerilogManager _logger = SerilogManager.Instance;
         private readonly MainViewModel _viewModel;
         private bool _isClosing;
-        private bool _isShuttingDown;
         private bool _hasShownMinimizeNotification;
         private Forms.NotifyIcon _trayIcon;
         internal ContextMenu _trayContextMenu;
@@ -30,7 +29,7 @@ namespace WpfApp
         // 窗口调整大小相关
         private bool _isResizing;
         private ResizeDirection _resizeDirection;
-        private Point _startPoint;
+        private System.Windows.Point _startPoint;
         private double _startWidth;
         private double _startHeight;
         private double _startLeft;
@@ -120,13 +119,13 @@ namespace WpfApp
                 // 注册窗口状态改变事件
                 StateChanged += MainWindow_StateChanged;
                 
-                _logger.LogDebug("MainWindow", $"窗口初始化完成 - 尺寸: {Width}x{Height}");
+                _logger.Debug($"窗口初始化完成 - 尺寸: {Width}x{Height}");
             }
             catch (Exception ex)
             {
-                _logger.LogError("MainWindow", "窗口初始化失败", ex);
-                MessageBox.Show($"窗口初始化失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                Application.Current.Shutdown();
+                _logger.Error("窗口初始化失败", ex);
+                System.Windows.MessageBox.Show($"窗口初始化失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.Application.Current.Shutdown();
             }
         }
 
@@ -137,7 +136,7 @@ namespace WpfApp
                 // 创建WPF样式的上下文菜单
                 _trayContextMenu = new ContextMenu
                 {
-                    Style = Application.Current.FindResource("TrayContextMenuStyle") as Style,
+                    Style = System.Windows.Application.Current.FindResource("TrayContextMenuStyle") as Style,
                     Placement = PlacementMode.Custom,
                     CustomPopupPlacementCallback = new CustomPopupPlacementCallback(MenuCustomPlacementCallback),
                     StaysOpen = true  // 改为true，由我们自己控制关闭
@@ -149,7 +148,7 @@ namespace WpfApp
                     SetMouseHook();  // 设置鼠标钩子
                     if (_trayContextMenu.Items.Count > 0 && _trayContextMenu.Items[0] is MenuItem firstItem)
                     {
-                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                        System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                         {
                             firstItem.Focus();
                         }), System.Windows.Threading.DispatcherPriority.Input);
@@ -165,8 +164,8 @@ namespace WpfApp
                 var showMenuItem = new MenuItem
                 {
                     Header = "显示主窗口",
-                    Style = Application.Current.FindResource("TrayMenuItemStyle") as Style,
-                    Icon = new Image
+                    Style = System.Windows.Application.Current.FindResource("TrayMenuItemStyle") as Style,
+                    Icon = new System.Windows.Controls.Image
                     {
                         Source = new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/Resource/icon/app.ico")),
                         Width = 16,
@@ -175,7 +174,7 @@ namespace WpfApp
                 };
                 showMenuItem.Click += (s, e) => 
                 {
-                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                    System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                     {
                         _trayContextMenu.IsOpen = false;
                         ShowMainWindow();
@@ -185,7 +184,7 @@ namespace WpfApp
                 var exitMenuItem = new MenuItem
                 {
                     Header = "退出程序",
-                    Style = Application.Current.FindResource("TrayMenuItemStyle") as Style,
+                    Style = System.Windows.Application.Current.FindResource("TrayMenuItemStyle") as Style,
                     Icon = new TextBlock
                     {
                         Text = "\uE8BB",
@@ -195,16 +194,15 @@ namespace WpfApp
                         Foreground = System.Windows.Media.Brushes.DarkRed
                     }
                 };
-                exitMenuItem.Click += (s, e) => Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                exitMenuItem.Click += (s, e) => System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                 {
                     _trayContextMenu.IsOpen = false;
-                    _isShuttingDown = true;
                     Close();
                 }), System.Windows.Threading.DispatcherPriority.Normal);
 
                 var separator = new Separator
                 {
-                    Style = Application.Current.FindResource("TrayMenuSeparatorStyle") as Style
+                    Style = System.Windows.Application.Current.FindResource("TrayMenuSeparatorStyle") as Style
                 };
 
                 _trayContextMenu.Items.Add(showMenuItem);
@@ -227,18 +225,18 @@ namespace WpfApp
                 {
                     if (e.Button == Forms.MouseButtons.Left)
                     {
-                        Application.Current.Dispatcher.BeginInvoke(new Action(ShowMainWindow), 
+                        System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(ShowMainWindow), 
                             System.Windows.Threading.DispatcherPriority.Normal);
                     }
                     else if (e.Button == Forms.MouseButtons.Right)
                     {
-                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                        System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                         {
                             // 确保菜单在显示前是关闭状态
                             _trayContextMenu.IsOpen = false;
 
                             // 延迟一帧后显示菜单
-                            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                            System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                             {
                                 _trayContextMenu.IsOpen = true;
                             }), System.Windows.Threading.DispatcherPriority.Loaded);
@@ -251,12 +249,12 @@ namespace WpfApp
             }
             catch (Exception ex)
             {
-                _logger.LogError("MainWindow", "初始化托盘图标失败", ex);
+                _logger.Error("初始化托盘图标失败", ex);
             }
         }
 
         private CustomPopupPlacement[] MenuCustomPlacementCallback(
-            Size popupSize, Size targetSize, Point offset)
+            System.Windows.Size popupSize, System.Windows.Size targetSize, System.Windows.Point offset)
         {
             // 获取鼠标位置（托盘图标位置）
             GetCursorPos(out POINT pt);
@@ -283,28 +281,28 @@ namespace WpfApp
                 y = pt.Y;
             }
 
-            return new[] { new CustomPopupPlacement(new Point(x, y), PopupPrimaryAxis.Horizontal) };
+            return [new CustomPopupPlacement(new System.Windows.Point(x, y), PopupPrimaryAxis.Horizontal)];
         }
 
         private IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
             if (nCode >= 0 && (wParam == (IntPtr)WM_LBUTTONDOWN || wParam == (IntPtr)WM_RBUTTONDOWN))
             {
-                var hookStruct = (Win32.MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(Win32.MSLLHOOKSTRUCT));
-                
+                var hookStruct = Marshal.PtrToStructure<Win32.MSLLHOOKSTRUCT>(lParam);
+
                 // 检查点击是否在菜单区域外
                 if (_trayContextMenu.IsOpen)
                 {
-                    var menuPosition = _trayContextMenu.PointToScreen(new Point(0, 0));
+                    var menuPosition = _trayContextMenu.PointToScreen(new System.Windows.Point(0, 0));
                     var menuRect = new Rect(
                         menuPosition.X, 
                         menuPosition.Y, 
                         _trayContextMenu.ActualWidth, 
                         _trayContextMenu.ActualHeight);
 
-                    if (!menuRect.Contains(new Point(hookStruct.pt.x, hookStruct.pt.y)))
+                    if (!menuRect.Contains(new System.Windows.Point(hookStruct.pt.x, hookStruct.pt.y)))
                     {
-                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                        System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                         {
                             _trayContextMenu.IsOpen = false;
                         }), System.Windows.Threading.DispatcherPriority.Input);
@@ -342,8 +340,7 @@ namespace WpfApp
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
-            _logger.LogInitialization("App", 
-                $"窗口源初始化 - 实际尺寸: {Width}x{Height}");
+            _logger.Debug($"窗口源初始化 - 实际尺寸: {Width}x{Height}");
         }
 
         private void MainWindow_StateChanged(object sender, EventArgs e)
@@ -368,7 +365,7 @@ namespace WpfApp
                         );
                     }
                 }
-                _logger.LogDebug("MainWindow", "窗口已最小化到托盘");
+                _logger.Debug("窗口已最小化到托盘");
             }
             else
             {
@@ -403,7 +400,7 @@ namespace WpfApp
 
         private void ShowMainWindow()
         {
-            _logger.LogDebug("MainWindow", "正在从托盘还原窗口...");
+            _logger.Debug("正在从托盘还原窗口...");
             RestoreFromMinimized();
         }
 
@@ -422,7 +419,7 @@ namespace WpfApp
                 
                 // 取消置顶状态
                 Topmost = false;
-                if (FindName("TopMostButton") is Button topMostButton)
+                if (FindName("TopMostButton") is System.Windows.Controls.Button topMostButton)
                 {
                     topMostButton.Content = "\uE840";  // 使用未置顶图标
                 }
@@ -431,41 +428,58 @@ namespace WpfApp
                 Activate();
                 Focus();
                 
-                _logger.LogDebug("MainWindow", "窗口已成功还原并激活");
+                _logger.Debug("窗口已成功还原并激活");
             }
             catch (Exception ex)
             {
-                _logger.LogError("MainWindow", "还原窗口时发生错误", ex);
+                _logger.Error("还原窗口时发生错误", ex);
             }
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            _isShuttingDown = true;
-            _logger.LogDebug("MainWindow", "正在关闭应用程序");
+            if (_isClosing) return;
+            _isClosing = true;
+            
+            _logger.Debug("正在关闭应用程序");
 
-            // 设置关闭模式为显式关闭，这样浮窗才会真正关闭
-            Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-
-            // 清理资源
             try 
             {
-                _logger.LogDebug("MainWindow", "开始清理窗口资源...");
+                _logger.Debug("开始清理窗口资源...");
+                
+                // 先停止所有操作
+                if (_viewModel is IDisposable disposableViewModel)
+                {
+                    disposableViewModel.Dispose();
+                }
+
+                // 确保移除托盘图标
                 if (_trayIcon != null)
                 {
+                    _trayIcon.Visible = false;  // 先隐藏托盘图标
                     _trayIcon.Dispose();
                     _trayIcon = null;
                 }
-                _viewModel.Cleanup();
-                _logger.LogDebug("MainWindow", "窗口资源清理完成");
+
+                // 移除事件处理
+                if (_trayContextMenu != null)
+                {
+                    _trayContextMenu.Items.Clear();
+                    _trayContextMenu = null;
+                }
+                
+                _logger.Debug("窗口资源清理完成");
             }
             catch (Exception ex)
             {
-                _logger.LogError("MainWindow", "窗口关闭异常", ex);
+                _logger.Error("窗口关闭异常", ex);
             }
-
-            // 确保应用程序退出
-            Application.Current.Shutdown();
+            finally
+            {
+                // 设置关闭模式并关闭应用程序
+                System.Windows.Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                System.Windows.Application.Current.Shutdown();
+            }
         }
 
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -538,6 +552,10 @@ namespace WpfApp
         protected override void OnClosed(EventArgs e)
         {
             RemoveMouseHook();  // 确保钩子被移除
+            
+            // 清理页面缓存
+            Services.PageCacheService.ClearCache();
+            
             if (_isClosing) return;
             _isClosing = true;
             base.OnClosed(e);
@@ -573,7 +591,7 @@ namespace WpfApp
             }
         }
 
-        protected override void OnMouseMove(MouseEventArgs e)
+        protected override void OnMouseMove(System.Windows.Input.MouseEventArgs e)
         {
             if (!_isResizing)
             {
@@ -589,7 +607,7 @@ namespace WpfApp
             }
             _lastResizeTime = now;
 
-            Point currentPoint = PointToScreen(e.GetPosition(this));
+            System.Windows.Point currentPoint = PointToScreen(e.GetPosition(this));
             double deltaX = (currentPoint.X - _startPoint.X) * RESIZE_ACCELERATION;
             double deltaY = (currentPoint.Y - _startPoint.Y) * RESIZE_ACCELERATION;
 
@@ -635,7 +653,7 @@ namespace WpfApp
             }
             catch (Exception ex)
             {
-                _logger.LogError("MainWindow", "调整窗口大小时发生错误", ex);
+                _logger.Error("调整窗口大小时发生错误", ex);
             }
 
             e.Handled = true;
@@ -762,5 +780,21 @@ namespace WpfApp
         }
 
         #endregion
+
+        public void NavigateToPage<T>() where T : Page, new()
+        {
+            try
+            {
+                var page = Services.PageCacheService.GetPage<T>();
+                if (FindName("MainFrame") is Frame mainFrame)
+                {
+                    mainFrame.Navigate(page);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"导航到页面 {typeof(T).Name} 失败", ex);
+            }
+        }
     }
 }

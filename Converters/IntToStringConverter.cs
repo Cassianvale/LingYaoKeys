@@ -12,16 +12,16 @@ namespace WpfApp.Converters
             {
                 return intValue.ToString();
             }
-            return "10";
+            return "0";
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is string strValue && int.TryParse(strValue, out int result))
+            if (value is string stringValue && int.TryParse(stringValue, out int result))
             {
                 return result;
             }
-            return 10;
+            return 0;
         }
     }
 }

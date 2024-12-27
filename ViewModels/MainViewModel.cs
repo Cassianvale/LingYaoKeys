@@ -13,21 +13,24 @@ using System.Windows.Threading;
 using System;
 using System.Collections.Generic;
 using System.Windows.Media.Animation;
+using System.Threading.Tasks;
 
 namespace WpfApp.ViewModels
 {
     public class MainViewModel : ViewModelBase
     {
+        private AppConfig? _config;
+        private bool _isDisposed;
+        private readonly object _disposeLock = new object();
         private Page? _currentPage;
         private readonly DDDriverService _ddDriver;
         private readonly Window _mainWindow;
         private readonly KeyMappingViewModel _keyMappingViewModel;
         private readonly FeedbackViewModel _feedbackViewModel;
         private readonly HotkeyService _hotkeyService;
-        private readonly LogManager _logger = LogManager.Instance;
+        private readonly SerilogManager _logger = SerilogManager.Instance;
         private string _statusMessage = "就绪";
-        private Brush _statusMessageColor = Brushes.Black;
-        private AppConfig? _config;
+        private System.Windows.Media.Brush _statusMessageColor = System.Windows.Media.Brushes.Black;
         private readonly DispatcherTimer _statusMessageTimer;
         private const int STATUS_MESSAGE_TIMEOUT = 3000; // 3秒后消失
         private readonly AboutViewModel _aboutViewModel;
@@ -36,6 +39,20 @@ namespace WpfApp.ViewModels
         private readonly Dictionary<string, Storyboard> _fadeOutCache = new();
         private readonly Storyboard? _fadeInStoryboard;
         private readonly Storyboard? _fadeOutStoryboard;
+
+        // 状态消息颜色
+        private static readonly System.Windows.Media.Brush STATUS_COLOR_NORMAL = System.Windows.Media.Brushes.Black;
+        private static readonly System.Windows.Media.Brush STATUS_COLOR_SUCCESS = System.Windows.Media.Brushes.Green;
+        private static readonly System.Windows.Media.Brush STATUS_COLOR_WARNING = System.Windows.Media.Brushes.Orange;
+        private static readonly System.Windows.Media.Brush STATUS_COLOR_ERROR = System.Windows.Media.Brushes.Red;
+        private static readonly System.Windows.Media.Brush STATUS_COLOR_INFO = System.Windows.Media.Brushes.Blue;
+
+        // 状态栏快捷方法
+        public void ShowSuccessMessage(string message) => UpdateStatusMessage(message, STATUS_COLOR_SUCCESS);
+        public void ShowWarningMessage(string message) => UpdateStatusMessage(message, STATUS_COLOR_WARNING);
+        public void ShowErrorMessage(string message) => UpdateStatusMessage(message, STATUS_COLOR_ERROR);
+        public void ShowInfoMessage(string message) => UpdateStatusMessage(message, STATUS_COLOR_INFO);
+
 
         public AppConfig Config
         {
@@ -74,7 +91,7 @@ namespace WpfApp.ViewModels
             set => SetProperty(ref _statusMessage, value);
         }
 
-        public Brush StatusMessageColor
+        public System.Windows.Media.Brush StatusMessageColor
         {
             get => _statusMessageColor;
             set => SetProperty(ref _statusMessageColor, value);
@@ -101,7 +118,7 @@ namespace WpfApp.ViewModels
             {
                 _statusMessageTimer.Stop();
                 StatusMessage = "就绪";
-                StatusMessageColor = Brushes.Black;
+                StatusMessageColor = System.Windows.Media.Brushes.Black;
             };
 
             // 设置DataContext
@@ -130,7 +147,7 @@ namespace WpfApp.ViewModels
             // 如果当前页面是 KeyMappingView 并且正在执行按键操作，先停止它
             if (CurrentPage?.DataContext is KeyMappingViewModel keyMappingVM && keyMappingVM.IsExecuting)
             {
-                _logger.LogDebug("Navigation", "检测到按键正在执行，正在停止...");
+                _logger.Debug("检测到按键正在执行，正在停止...");
                 keyMappingVM.StopKeyMapping();
             }
 
@@ -164,7 +181,7 @@ namespace WpfApp.ViewModels
                     GetOrCreateFadeInAnimation(parameter).Begin(newPage);
                 }
 
-                _logger.LogDebug("Navigation", $"页面切换到: {parameter}");
+                _logger.Debug($"页面切换到: {parameter}");
             }
         }
 
@@ -219,16 +236,16 @@ namespace WpfApp.ViewModels
 
         public void Cleanup()
         {
-            _logger.LogDebug("MainViewModel", "开始清理资源...");
-            _logger.LogDebug("MainViewModel", "开始保存应用程序配置...");
+            _logger.Debug("开始清理资源...");
+            _logger.Debug("开始保存应用程序配置...");
 
             _keyMappingViewModel.SaveConfig();  // 保存配置
-            _logger.LogDebug("MainViewModel", "配置保存完成");
-            _logger.LogDebug("MainViewModel", "--------------------------------");
+            _logger.Debug("配置保存完成");
+            _logger.Debug("--------------------------------");
 
             _hotkeyService?.Dispose();
             _statusMessageTimer.Stop(); // 停止定时器
-            _logger.LogDebug("MainViewModel", "资源清理完成");
+            _logger.Debug("资源清理完成");
 
             // 清理动画缓存
             _fadeInCache.Clear();
@@ -239,13 +256,13 @@ namespace WpfApp.ViewModels
         // 订阅DDDriverService的事件，用于更新状态栏消息
         private void OnDriverStatusMessageChanged(object? sender, StatusMessageEventArgs e)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
                 // 停止之前的定时器
                 _statusMessageTimer.Stop();
 
                 StatusMessage = e.Message;
-                StatusMessageColor = e.IsError ? Brushes.Red : Brushes.Black;
+                StatusMessageColor = e.IsError ? System.Windows.Media.Brushes.Red : System.Windows.Media.Brushes.Black;
                 
                 // 启动定时器
                 _statusMessageTimer.Start();
@@ -253,39 +270,38 @@ namespace WpfApp.ViewModels
                 // 如果是错误消息，记录到日志
                 if (e.IsError)
                 {
-                    _logger.LogError("MainViewModel", $"驱动状态错误: {e.Message}");
+                    _logger.Error($"驱动状态错误: {e.Message}");
                 }
                 else
                 {
-                    _logger.LogDebug("MainViewModel", $"驱动状态更新: {e.Message}");
+                    _logger.Debug($"驱动状态更新: {e.Message}");
                 }
             });
         }
 
         public void UpdateStatusMessage(string message, bool isError = false)
         {
-            if (Application.Current?.Dispatcher == null) return;
+            UpdateStatusMessage(message, isError ? STATUS_COLOR_ERROR : STATUS_COLOR_NORMAL);
+        }
 
-            Application.Current.Dispatcher.Invoke(() =>
+        public void UpdateStatusMessage(string message, System.Windows.Media.Brush color)
+        {
+            if (System.Windows.Application.Current?.Dispatcher == null) return;
+
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
                 try
                 {
-                    // 停止之前的定时器
                     _statusMessageTimer?.Stop();
-
-                    // 更新消息
                     StatusMessage = message;
-                    StatusMessageColor = isError ? Brushes.Red : Brushes.Black;
-
-                    // 启动定时器
+                    StatusMessageColor = color;
                     _statusMessageTimer?.Start();
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError("MainViewModel", "更新状态消息失败", ex);
+                    _logger.Error("更新状态消息失败", ex);
                 }
             });
         }
-
     }
 } 

@@ -10,7 +10,7 @@ namespace WpfApp.Services
 {
     public class ConfigService
     {
-        private readonly LogManager _logger = LogManager.Instance;
+        private readonly SerilogManager _logger = SerilogManager.Instance;
         private readonly string _configPath = "AppConfig.json";
         private Dictionary<string, object> _settings;
         private readonly JsonSerializerSettings _jsonOptions = new JsonSerializerSettings
@@ -37,7 +37,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                LogManager.Instance.LogError("ConfigService", "加载设置失败", ex);
+                _logger.Error("加载设置失败", ex);
             }
             return new Dictionary<string, object>();
         }
@@ -49,7 +49,7 @@ namespace WpfApp.Services
             {
                 try
                 {
-                    _logger.LogDebug("ConfigService", $"获取设置: {key}, 值: {value}");
+                    _logger.Debug($"获取设置: {key}, 值: {value}");
                     return (T)Convert.ChangeType(value, typeof(T));
                 }
                 catch
@@ -70,7 +70,7 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                LogManager.Instance.LogError("ConfigService", "保存设置失败", ex);
+                _logger.Error("保存设置失败", ex);
             }
         }
     }

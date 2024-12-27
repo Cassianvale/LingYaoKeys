@@ -1,16 +1,16 @@
 ﻿using System;
 using System.IO;
-using System.Windows;
 using System.Threading.Tasks;
 using WpfApp.Services;
-using WpfApp.ViewModels;
 using System.Reflection;
+using System.Windows.Forms;
+using System.Windows;
 
 namespace WpfApp
 {
-    public partial class App : Application
+    public partial class App : System.Windows.Application
     {
-        private readonly LogManager _logger = LogManager.Instance;
+        private readonly SerilogManager _logger = SerilogManager.Instance;
         public static DDDriverService DDDriver { get; private set; } = new DDDriverService();
         public static ConfigService ConfigService { get; private set; } = new ConfigService();
         public static AudioService AudioService { get; private set; } = new AudioService();
@@ -24,40 +24,55 @@ namespace WpfApp
         {
             base.OnStartup(e);
             
+            // 预初始化WebView2环境
+            _ = Services.WebView2Service.Instance.GetEnvironmentAsync();
+            
             try
             {
-                // 使用用户主目录作为配置目录
-                string configPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    ".lingyao"
-                );
-                
-                // 确保目录存在
-                Directory.CreateDirectory(configPath);
-                
-                // 初始化配置服务
-                AppConfigService.Initialize(configPath);
-                
-                // 设置日志目录为用户主目录下的.lingyao
-                string logPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    ".lingyao"
-                );
-                Directory.CreateDirectory(logPath);
-                _logger.SetBaseDirectory(logPath);
-                
-                // 初始化日志管理器的配置订阅
-                _logger.InitializeConfigSubscription();
+                // 确保用户数据目录存在
+                Directory.CreateDirectory(_userDataPath);
 
-                _logger.LogDebug("App", $"日志系统初始化完成, 配置: " +
-                    $"Level={AppConfigService.Config.Logging.LogLevel}, " +
-                    $"MaxSize={AppConfigService.Config.Logging.FileSettings.MaxFileSize/1024/1024}MB");
-                
-                _logger.LogInitialization("App", "应用程序启动...");
-                
+                // 1. 首先初始化配置服务
+                AppConfigService.Initialize(_userDataPath);
+
+                // 2. 然后初始化日志系统
+                _logger.SetBaseDirectory(_userDataPath);
+                _logger.Initialize(AppConfigService.Config.Logging);
+
+                // 3. 设置配置变更监听
+                AppConfigService.ConfigChanged += (sender, args) =>
+                {
+                    if (args.Section == "Logging")
+                    {
+                        _logger.UpdateLoggerConfig(args.Config.Logging);
+                    }
+                };
+
+                // 注册全局异常处理
+                AppDomain.CurrentDomain.UnhandledException += (s, args) =>
+                {
+                    var ex = args.ExceptionObject as Exception;
+                    _logger.Error("未处理的异常，程序发生致命错误", ex);
+                };
+
+                Current.DispatcherUnhandledException += (s, args) =>
+                {
+                    _logger.Error("UI线程异常，界面线程发生异常", args.Exception);
+                    args.Handled = true;
+                };
+
+                TaskScheduler.UnobservedTaskException += (s, args) =>
+                {
+                    _logger.Error("任务异常, 异步任务发生异常", args.Exception);
+                    args.SetObserved();
+                };
+
+                _logger.Debug($"日志系统初始化完成, 配置: Level={AppConfigService.Config.Logging.LogLevel}, MaxSize={AppConfigService.Config.Logging.FileSettings.MaxFileSize}MB");
+                _logger.Debug("应用程序启动...");
+
                 // 初始化驱动服务
                 DDDriver = new DDDriverService();
-                
+
                 // 从嵌入式资源提取驱动文件
                 string dllFileName = Environment.Is64BitProcess ? "ddx64.dll" : "ddx32.dll";
                 string tempPath = Path.Combine(Path.GetTempPath(), "LingYaoKeys");
@@ -72,9 +87,9 @@ namespace WpfApp
                     {
                         if (stream == null)
                         {
-                            _logger.LogError("App", $"找不到嵌入的驱动资源：{resourceName}");
-                            MessageBox.Show($"找不到驱动资源：{resourceName}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                            Shutdown();
+                            _logger.Error($"找不到嵌入的驱动资源：{resourceName}");
+                            System.Windows.MessageBox.Show($"找不到驱动资源：{resourceName}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            Current.Shutdown();
                             return;
                         }
 
@@ -85,38 +100,39 @@ namespace WpfApp
                     }
                 }
 
-                _logger.LogInitialization("App", $"使用驱动: {dllPath}");
+                _logger.Debug($"使用驱动: {dllPath}");
 
                 // 加载驱动
-                _logger.LogInitialization("App", "开始加载驱动...");
+                _logger.Debug("开始加载驱动...");
                 if (!DDDriver.LoadDllFile(dllPath))
                 {
-                    _logger.LogError("App", "驱动加载失败");
-                    Shutdown();
+                    _logger.Error("驱动加载失败，无法加载DD驱动文件");
+                    Current.Shutdown();
                     return;
                 }
 
-                // 在创建主窗口之前初始化 AudioService
+                // 初始化音频服务
                 AudioService = new AudioService();
-                
+                _logger.Debug("音频服务初始化完成");
+
                 // 创建并显示主窗口
-                _logger.LogInitialization("App", "创建主窗口...");
+                _logger.Debug("创建主窗口...");
                 var mainWindow = new MainWindow();
                 mainWindow.Show();
-                _logger.LogInitialization("App", "主窗口已显示");
+                _logger.Debug("主窗口已显示");
 
                 // 创建 HotkeyService 并设置到 DDDriver
                 var hotkeyService = new HotkeyService(mainWindow, DDDriver);
-                
+                _logger.Debug("热键服务初始化完成");
 
                 // 注册应用程序退出事件
                 Exit += OnApplicationExit;
             }
             catch (Exception ex)
             {
-                _logger.LogError("App", "应用程序启动异常", ex);
-                MessageBox.Show($"程序启动异常：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                Shutdown();
+                _logger.Error("启动失败, 应用程序启动过程中发生异常", ex);
+                System.Windows.MessageBox.Show($"程序启动异常：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                Current.Shutdown();
             }
         }
 
@@ -127,14 +143,38 @@ namespace WpfApp
 
             try
             {
-                _logger.LogInitialization("App", "开始释放应用程序资源...");
-                DDDriver.Dispose();
-                AudioService.Dispose();
-                _logger.LogInitialization("App", "应用程序资源已释放");
+                _logger.Debug("开始释放应用程序资源...");
+                
+                // 确保所有服务都被释放
+                if (!DDDriver.IsDisposed)
+                {
+                    DDDriver?.Dispose();
+                    DDDriver = null;
+                }
+                
+                if (!AudioService.IsDisposed)
+                {
+                    AudioService?.Dispose();
+                    AudioService = null;
+                }
+
+                // 清理配置服务
+                ConfigService = null;
+                
+                // 最后释放日志服务
+                _logger.Debug("应用程序资源已释放");
+                _logger.Debug("=================================================");
+                _logger.Dispose();
             }
             catch (Exception ex)
             {
-                _logger.LogError("App", "应用程序退出异常", ex);
+                // 在这里我们只能尝试直接写入到调试输出，因为日志系统可能已经关闭
+                System.Diagnostics.Debug.WriteLine($"应用程序退出异常: {ex.Message}");
+            }
+            finally
+            {
+                // 确保进程退出
+                Environment.Exit(0);
             }
         }
     }

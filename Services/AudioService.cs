@@ -9,7 +9,7 @@ namespace WpfApp.Services
 {
     public class AudioService
     {
-        private readonly LogManager _logger = LogManager.Instance;
+        private readonly SerilogManager _logger = SerilogManager.Instance;
         private readonly string _startSoundPath;
         private readonly string _stopSoundPath;
         private WaveOutEvent _outputDevice;
@@ -17,6 +17,10 @@ namespace WpfApp.Services
         private readonly object _lockObject = new object();
         private CancellationTokenSource _currentCts;
         private bool _isPlayingStopSound;
+        private bool _isDisposed;
+        private readonly object _disposeLock = new object();
+        
+        public bool IsDisposed => _isDisposed;
 
         public AudioService()
         {
@@ -34,7 +38,7 @@ namespace WpfApp.Services
             EnsureAudioFileExists("start.mp3", _startSoundPath);
             EnsureAudioFileExists("stop.mp3", _stopSoundPath);
             
-            _logger.LogDebug("AudioService", $"音频文件位于：{userDataPath}，可直接替换文件以自定义音效");
+            _logger.Debug($"加载Audio音频资源: {userDataPath}");
         }
 
         private void EnsureAudioFileExists(string fileName, string targetPath)
@@ -42,18 +46,17 @@ namespace WpfApp.Services
             if (!File.Exists(targetPath))
             {
                 string resourceName = $"WpfApp.Resource.sound.{fileName}";
-                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                Stream? stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
+                if (stream is null)
                 {
-                    if (stream == null)
-                    {
-                        _logger.LogError("AudioService", $"找不到音频资源：{resourceName}");
-                        return;
-                    }
+                    _logger.Error($"找不到Audio音频资源：{resourceName}");
+                    return;
+                }
 
-                    using (FileStream fileStream = File.Create(targetPath))
-                    {
-                        stream.CopyTo(fileStream);
-                    }
+                using (stream)
+                {
+                    using FileStream fileStream = File.Create(targetPath);
+                    stream.CopyTo(fileStream);
                 }
             }
         }
@@ -80,7 +83,7 @@ namespace WpfApp.Services
         {
             if (!File.Exists(path))
             {
-                _logger.LogError("AudioService", $"音频文件不存在: {path}");
+                _logger.Error($"音频文件不存在: {path}");
                 return;
             }
 
@@ -143,12 +146,12 @@ namespace WpfApp.Services
                 }
                 catch (OperationCanceledException)
                 {
-                    _logger.LogDebug("AudioService", "音频播放被取消");
+                    _logger.Debug("音频播放被取消");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError("AudioService", $"播放声音失败: {path}", ex);
+                _logger.Error($"播放声音失败: {path}", ex);
                 lock (_lockObject)
                 {
                     _isPlayingStopSound = false;
@@ -159,29 +162,62 @@ namespace WpfApp.Services
 
         private void DisposeCurrentSound()
         {
-            if (_outputDevice != null)
+            try
             {
-                _outputDevice.Stop();
-                _outputDevice.Dispose();
-                _outputDevice = null;
-            }
+                if (_outputDevice != null)
+                {
+                    _outputDevice.Stop();
+                    _outputDevice.Dispose();
+                    _outputDevice = null;
+                }
 
-            if (_mediaReader != null)
+                if (_mediaReader != null)
+                {
+                    _mediaReader.Dispose();
+                    _mediaReader = null;
+                }
+            }
+            catch (Exception ex)
             {
-                _mediaReader.Dispose();
-                _mediaReader = null;
+                _logger.Error("释放当前音频资源时发生异常", ex);
             }
         }
 
         public void Dispose()
         {
-            _currentCts?.Cancel();
-            _currentCts?.Dispose();
-            lock (_lockObject)
+            if (_isDisposed) return;
+
+            lock (_disposeLock)
             {
-                _isPlayingStopSound = false;
-                DisposeCurrentSound();
+                if (_isDisposed) return;
+                _isDisposed = true;
+
+                try
+                {
+                    // 取消当前播放任务
+                    if (_currentCts != null)
+                    {
+                        _currentCts.Cancel();
+                        _currentCts.Dispose();
+                        _currentCts = null;
+                    }
+
+                    // 停止并释放当前音频
+                    lock (_lockObject)
+                    {
+                        _isPlayingStopSound = false;
+                        DisposeCurrentSound();
+                    }
+
+                    _logger.Debug("音频服务资源已释放");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error("释放音频服务资源时发生异常", ex);
+                }
             }
+            
+            GC.SuppressFinalize(this);
         }
     }
 } 

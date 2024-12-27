@@ -7,16 +7,15 @@ namespace WpfApp.Converters
 {
     public class BoolToColorConverter : IValueConverter
     {
-        public Brush TrueValue { get; set; } = new SolidColorBrush(Color.FromRgb(76, 175, 80));  // #4CAF50
-        public Brush FalseValue { get; set; } = new SolidColorBrush(Color.FromRgb(117, 117, 117));  // #757575
-
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is bool boolValue)
+            if (value is bool isEnabled)
             {
-                return boolValue ? TrueValue : FalseValue;
+                return isEnabled ? 
+                    new SolidColorBrush(System.Windows.Media.Color.FromRgb(76, 175, 80)) :  // 启用时的绿色
+                    new SolidColorBrush(System.Windows.Media.Color.FromRgb(244, 67, 54));   // 禁用时的红色
             }
-            return FalseValue;
+            return new SolidColorBrush(Colors.Gray);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

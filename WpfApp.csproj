@@ -7,6 +7,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x86;x64</Platforms>
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -14,10 +15,10 @@
     <ApplicationIcon>Resource\icon\app.ico</ApplicationIcon>
     
     <!-- 项目信息配置 -->
-    <Version>1.2.2</Version>
+    <Version>1.2.3</Version>
     <Product>LingYaoKeys</Product>
     <Authors>慕长秋</Authors>
-    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <Copyright>Copyright © 2024 Cassianvale</Copyright>
     <Description>灵曜按键 (LingYao Keys)</Description>
     
@@ -124,8 +125,7 @@
   </Target>
 
   <ItemGroup>
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.Windows.Forms" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -149,5 +149,14 @@
   <PropertyGroup>
     <WebView2LoaderPreference>Static</WebView2LoaderPreference>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Serilog" Version="3.1.1" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="5.0.1" />
+    <PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+    <PackageReference Include="Serilog.Enrichers.Thread" Version="3.1.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="8.0.0" />
+  </ItemGroup>
 
 </Project>

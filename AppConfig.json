@@ -3,18 +3,29 @@
     "Enabled": false,
     "LogLevel": "Debug",
     "FileSettings": {
-      "Directory": "Logs",
       "MaxFileSize": 10,
       "MaxFileCount": 10,
       "RollingInterval": "Day",
       "RetainDays": 7
     },
-    "Categories": {
-      "KeyOperation": true,
-      "Performance": true,
-      "Driver": true,
-      "Config": true
-    }
+    "ExcludedTags": [],
+    "ExcludedSources": [
+      "*.xaml*",
+      "ControlStyles.xaml",
+      "App.xaml",
+      "MainWindow.xaml"
+    ],
+    "ExcludedMethods": [],
+    "ExcludedPatterns": [
+      "窗口初始化完成*",
+      "已获取*实例",
+      "鼠标点击元素: *",
+      "*获取句柄*",
+      "*_DataContextChanged*",
+      "*触发: *",
+      "控件加载完成: *",
+      "页面切换到: *"
+    ]
   },
   "startKey": 109,
   "startMods": 0,

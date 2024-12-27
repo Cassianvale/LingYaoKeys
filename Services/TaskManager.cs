@@ -6,13 +6,14 @@ using System.Threading.Tasks;
 using WpfApp.Services;
 using WpfApp.Services.Collections;
 
+
 public class TaskManager
 {
     private readonly ConcurrentDictionary<string, Task> _activeTasks = new();
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _tokenSources = new();
     private readonly SemaphoreSlim _throttler;
     private readonly int _maxConcurrentTasks;
-    private static readonly LogManager _logger = LogManager.Instance;
+    private static readonly SerilogManager _logger = SerilogManager.Instance;
     private readonly ConcurrentPriorityQueue<string, Task> _priorityTasks = new();
     
     public TaskManager(int maxConcurrentTasks = 4)

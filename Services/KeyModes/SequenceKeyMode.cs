@@ -7,14 +7,12 @@ namespace WpfApp.Services.KeyModes
 {
     public class SequenceKeyMode : KeyModeBase
     {
-        private int _currentKeyIndex;
         private readonly System.Diagnostics.Stopwatch _performanceTimer;
         private long _lastKeyPressTime;
 
         public SequenceKeyMode(DDDriverService driverService) : base(driverService)
         {
             _performanceTimer = new System.Diagnostics.Stopwatch();
-            _currentKeyIndex = 0;
         }
 
         public override async Task StartAsync()
@@ -39,7 +37,7 @@ namespace WpfApp.Services.KeyModes
                         // 这样可以确保按键有足够的按下时间
                         if (!_driverService.SimulateKeyPress(key, null, KeyPressInterval))
                         {
-                            _logger.LogError("SequenceKeyMode", $"按键执行失败: {key}");
+                            _logger.Error($"按键执行失败: {key}");
                             continue;
                         }
 
@@ -56,7 +54,7 @@ namespace WpfApp.Services.KeyModes
             }
             catch (Exception ex)
             {
-                _logger.LogError("SequenceKeyMode", "按键序列执行异常", ex);
+                _logger.Error("按键序列执行异常", ex);
             }
             finally
             {

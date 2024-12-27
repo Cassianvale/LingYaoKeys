@@ -7,10 +7,10 @@ namespace WpfApp.Behaviors
     public class DragAdorner : Adorner
     {
         private readonly UIElement _draggedElement;
-        private Point _offset;
-        private Point _currentPosition;
+        private System.Windows.Point _offset;
+        private System.Windows.Point _currentPosition;
 
-        public DragAdorner(UIElement adornedElement, UIElement draggedElement, Point offset) 
+        public DragAdorner(UIElement adornedElement, UIElement draggedElement, System.Windows.Point offset) 
             : base(adornedElement)
         {
             _draggedElement = draggedElement;
@@ -18,7 +18,7 @@ namespace WpfApp.Behaviors
             IsHitTestVisible = false;
         }
 
-        public void UpdatePosition(Point currentPosition)
+        public void UpdatePosition(System.Windows.Point currentPosition)
         {
             _currentPosition = currentPosition;
             InvalidateVisual();
@@ -37,8 +37,8 @@ namespace WpfApp.Behaviors
                 visualBrush,
                 null,
                 new Rect(
-                    new Point(_currentPosition.X - _offset.X, _currentPosition.Y - _offset.Y),
-                    new Size(_draggedElement.RenderSize.Width, _draggedElement.RenderSize.Height)
+                    new System.Windows.Point(_currentPosition.X - _offset.X, _currentPosition.Y - _offset.Y),
+                    new System.Windows.Size(_draggedElement.RenderSize.Width, _draggedElement.RenderSize.Height)
                 )
             );
             drawingContext.Pop();
