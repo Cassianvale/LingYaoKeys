@@ -486,7 +486,7 @@ namespace WpfApp.Services
                 _pendingStartMods = modifiers;
 
                 // 3. 提前确定模式并更新配置
-                bool isSameKeyMode = _pendingStopKey.HasValue && _pendingStopKey.Value == ddKeyCode;
+                bool isSameKeyMode = _ddDriverService.IsSequenceMode && _pendingStopKey.HasValue && _pendingStopKey.Value == ddKeyCode;
                 _currentMode = isSameKeyMode ? HotkeyMode.Same : HotkeyMode.Different;
 
                 // 4. 更新配置文件
@@ -519,6 +519,12 @@ namespace WpfApp.Services
                 });
 
                 _logger.Debug($"模式已确定: {_currentMode}，配置已更新");
+
+                // 如果切换到Different模式，需要注册停止键
+                if (_currentMode == HotkeyMode.Different && _pendingStopKey.HasValue)
+                {
+                    RegisterStopHotkey(_pendingStopKey.Value, _pendingStopMods);
+                }
 
                 // 5. 如果是鼠标按键，不需要实际注册热键
                 if (IsMouseButton(ddKeyCode))
@@ -898,18 +904,25 @@ namespace WpfApp.Services
         // 处理按模式的热键消息
         private void HandleHoldModeHotkey(int id)
         {
-            switch (id)
+            try
             {
-                case START_HOTKEY_ID:
-                    if (!_isKeyHeld)
-                    {
-                        HandleHoldModeKeyPress();
-                    }
-                    else
-                    {
-                        HandleHoldModeKeyRelease();
-                    }
-                    break;
+                switch (id)
+                {
+                    case START_HOTKEY_ID:
+                        if (!_isKeyHeld)
+                        {
+                            _isKeyHeld = true;
+                            StartHotkeyPressed?.Invoke();
+                            _ddDriverService.SetHoldMode(true);
+                        }
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("处理按压模式热键异常", ex);
+                _isKeyHeld = false;
+                _ddDriverService.SetHoldMode(false);
             }
         }
 
@@ -1432,6 +1445,9 @@ namespace WpfApp.Services
                         // 3.4 保存当前顺序模式的启动键配置
                         _holdModeKey = _sequenceModeStartKey;
                         _holdModeMods = _sequenceModeStartMods;
+                        
+                        // 按压模式强制使用Different模式
+                        _currentMode = HotkeyMode.Different;
                     }
                     else
                     {
@@ -1719,115 +1735,22 @@ namespace WpfApp.Services
 
         private void HandleHoldModeKeyRelease()
         {
-            CancellationTokenSource? cts = null;
-            bool needsCleanup = false;
-
             try
             {
-                lock (_holdModeLock)
+                if (_isKeyHeld)
                 {
-                    if (!_isHoldModeRunning && !_isSequenceRunning && !_isStarted)
-                    {
-                        _logger.Debug("序列未运行，忽略按键释放");
-                        return;
-                    }
-
-                    cts = Interlocked.Exchange(ref _sequenceCts, null);
-                    needsCleanup = true;
-
-                    _isHoldModeRunning = false;
-                    _isSequenceRunning = false;
-                    _isStarted = false;
-                }
-
-                if (cts != null)
-                {
-                    try
-                    {
-                        cts.Cancel();
-                        _logger.Debug("序列任务已取消");
-
-                        Task.WaitAll(new[] { Task.Delay(50) }, 100);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Error("取消序列任务时发生异常", ex);
-                    }
-                    finally
-                    {
-                        try
-                        {
-                            cts.Dispose();
-                        }
-                        catch { /* 忽略释放时的异常 */ }
-                    }
-                }
-
-                if (needsCleanup)
-                {
-                    try
-                    {
-                        _ddDriverService.SetHoldMode(false);
-                        _ddDriverService.IsEnabled = false;
-                        needsCleanup = false;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Error("重置驱动服务状态时发生异常", ex);
-                    }
-
-                    try
-                    {
-                        StopHotkeyPressed?.Invoke();
-                        SequenceModeStopped?.Invoke();
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Error("触发停止事件时发生异常", ex);
-                    }
+                    _isKeyHeld = false;
+                    StopHotkeyPressed?.Invoke();
+                    _ddDriverService.SetHoldMode(false);
+                    _logger.Debug("按压模式按键已释放");
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error("处理按压模式按键释放异常", ex);
-                
-                // 发生异常时的最终清理，只在之前没有成功清理时执行
-                if (needsCleanup)
-                {
-                    try
-                    {
-                        // 再次尝试重置所有状态
-                        lock (_holdModeLock)
-                        {
-                            _isHoldModeRunning = false;
-                            _isSequenceRunning = false;
-                            _isStarted = false;
-                        }
-
-                        _ddDriverService.SetHoldMode(false);
-                        _ddDriverService.IsEnabled = false;
-
-                        // 如果之前没有成功取消任务，再次尝试
-                        if (cts == null)
-                        {
-                            cts = Interlocked.Exchange(ref _sequenceCts, null);
-                        }
-                        
-                        if (cts != null)
-                        {
-                            try
-                            {
-                                cts.Cancel();
-                                cts.Dispose();
-                            }
-                            catch { /* 忽略清理时的异常 */ }
-                        }
-                    }
-                    catch (Exception cleanupEx)
-                    {
-                        _logger.Error("最终清理时发生异常", cleanupEx);
-                    }
-                }
+                _logger.Error("处理按键释放异常", ex);
+                // 确保状态被重置
+                _isKeyHeld = false;
+                _ddDriverService.SetHoldMode(false);
             }
         }
 

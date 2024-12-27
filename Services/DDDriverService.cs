@@ -616,21 +616,27 @@ namespace WpfApp.Services
                     return;
                 }
 
-                _isHoldMode = isHold;
+                // 确保状态一致性
+                if (isHold && !_isHoldMode)
+                {
+                    _isHoldMode = true;
+                    _isEnabled = true;
+                }
+                else if (!isHold && _isHoldMode)
+                {
+                    _isHoldMode = false;
+                    _isEnabled = false;
+                }
                 
                 if (_currentKeyMode is HoldKeyMode holdMode)
                 {
                     if (isHold)
                     {
-                        // 确保在启动按压模式前设置状态
-                        _isEnabled = true;
                         holdMode.HandleKeyPress();
                     }
                     else
                     {
                         holdMode.HandleKeyRelease();
-                        // 在按键释放后重置状态
-                        _isEnabled = false;
                     }
                 }
                 else if (isHold)
@@ -639,7 +645,6 @@ namespace WpfApp.Services
                     _currentKeyMode = new HoldKeyMode(this);
                     _currentKeyMode.SetKeyList(_keyList);
                     _currentKeyMode.SetKeyInterval(_keyInterval);
-                    _isEnabled = true;
                     (_currentKeyMode as HoldKeyMode)?.HandleKeyPress();
                 }
                 

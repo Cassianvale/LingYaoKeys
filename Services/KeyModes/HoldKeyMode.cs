@@ -149,15 +149,18 @@ namespace WpfApp.Services.KeyModes
         // 处理按键释放
         public void HandleKeyRelease()
         {
-            if (_isKeyHeld)
+            lock (_stateLock)
             {
-                _isKeyHeld = false;
-                _logger.Debug("检测到按键释放，准备停止循环");
-                
-                // 触发取消
-                if (_cts != null && !_cts.IsCancellationRequested)
+                if (_isKeyHeld)
                 {
-                    _cts.Cancel();
+                    _isKeyHeld = false;
+                    _logger.Debug("检测到按键释放，准备停止循环");
+                    
+                    // 触发取消
+                    if (_cts != null && !_cts.IsCancellationRequested)
+                    {
+                        _cts.Cancel();
+                    }
                 }
             }
         }
@@ -167,10 +170,20 @@ namespace WpfApp.Services.KeyModes
         {
             if (!_isExecuting)
             {
-                _isKeyHeld = true;
-                _logger.Debug("检测到按键按下，准备开始循环");
-                // 启动按键循环
-                Task.Run(async () => await StartAsync());
+                lock (_stateLock)
+                {
+                    if (!_isExecuting)
+                    {
+                        _isKeyHeld = true;
+                        _logger.Debug("检测到按键按下，准备开始循环");
+                        // 启动按键循环
+                        Task.Run(async () => await StartAsync());
+                    }
+                    else
+                    {
+                        _logger.Debug("已有按键序列在执行中，忽略此次按键按下");
+                    }
+                }
             }
         }
 
