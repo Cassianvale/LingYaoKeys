@@ -7,14 +7,12 @@ namespace WpfApp.Services.KeyModes
 {
     public class SequenceKeyMode : KeyModeBase
     {
-        private int _currentKeyIndex;
         private readonly System.Diagnostics.Stopwatch _performanceTimer;
         private long _lastKeyPressTime;
 
         public SequenceKeyMode(DDDriverService driverService) : base(driverService)
         {
             _performanceTimer = new System.Diagnostics.Stopwatch();
-            _currentKeyIndex = 0;
         }
 
         public override async Task StartAsync()

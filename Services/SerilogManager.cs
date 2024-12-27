@@ -189,7 +189,7 @@ namespace WpfApp.Services
             _logger.Write(logEvent);
         }
 
-        public bool BindMessageTemplate(string messageTemplate, object[] propertyValues, out MessageTemplate parsedTemplate, out IEnumerable<LogEventProperty> boundProperties)
+        public bool BindMessageTemplate(string? messageTemplate, object?[]? propertyValues, out MessageTemplate? parsedTemplate, out IEnumerable<LogEventProperty>? boundProperties)
         {
             if (_logger is ILogger concreteLogger)
             {
@@ -201,7 +201,7 @@ namespace WpfApp.Services
             return false;
         }
 
-        public bool BindProperty(string propertyName, object value, bool destructureObjects, out LogEventProperty property)
+        public bool BindProperty(string? propertyName, object? value, bool destructureObjects, out LogEventProperty? property)
         {
             if (_logger is ILogger concreteLogger)
             {

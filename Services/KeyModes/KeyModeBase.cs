@@ -32,7 +32,7 @@ namespace WpfApp.Services.KeyModes
                 return;
             }
             _keyList = new List<DDKeyCode>(keyList);
-            _logger.Debug($"按键列表已更新: {string.Join(", ", _keyList)}");
+            // _logger.Debug($"按键列表已更新: {string.Join(", ", _keyList)}");
         }
 
         public virtual void SetKeyInterval(int interval)

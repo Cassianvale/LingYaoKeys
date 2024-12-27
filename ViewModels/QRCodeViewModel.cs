@@ -16,7 +16,7 @@ namespace WpfApp.ViewModels
         {
             try
             {
-                var mainWindow = Application.Current.MainWindow;
+                var mainWindow = System.Windows.Application.Current.MainWindow;
                 if (mainWindow?.DataContext is MainViewModel mainViewModel)
                 {
                     mainViewModel.NavigateCommand.Execute("About");

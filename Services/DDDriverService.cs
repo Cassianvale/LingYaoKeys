@@ -32,7 +32,7 @@ using WpfApp.Services;
 /// </summary>
 namespace WpfApp.Services
 {
-    public class DDDriverService
+    public class DDDriverService : IDisposable
     {
         private CDD _dd;
         private bool _isInitialized;
@@ -57,6 +57,11 @@ namespace WpfApp.Services
         private int _keyPressInterval;   // 按键按下时长
         public const int DEFAULT_KEY_PRESS_INTERVAL = 5; // 默认按键按下时长(毫秒)
         private const int MIN_KEY_PRESS_INTERVAL = 0;  // 按键按下时长为0
+
+        private bool _isDisposed;
+        private readonly object _disposeLock = new object();
+
+        public bool IsDisposed => _isDisposed;
 
         // DD驱动服务构造函数
         public DDDriverService()
@@ -101,7 +106,7 @@ namespace WpfApp.Services
                     if (ret != 1)
                     {
                         _logger.Error("驱动初始化失败");
-                        MessageBox.Show("驱动初始化失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        System.Windows.MessageBox.Show("驱动初始化失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                         SendStatusMessage("驱动初始化失败", true);
                         return false;
                     }
@@ -457,31 +462,70 @@ namespace WpfApp.Services
         }
 
         // 释放资源
-        public async void Dispose()
+        public async Task DisposeAsync()
         {
+            if (_isDisposed) return;
+
+            lock (_disposeLock)
+            {
+                if (_isDisposed) return;
+                _isDisposed = true;
+            }
+
             try
             {
-                _logger.Debug("开始释放驱动资源");
-                
+                _logger.Debug("开始释放驱动服务资源");
+
+                // 1. 停止所有运行中的操作
                 IsEnabled = false;
-                
-                // 停止所有任务
-                await _taskManager.StopAllTasks(TimeSpan.FromSeconds(2));
-                
-                // 清理资源
-                _isEnabled = false;
                 _isHoldMode = false;
+
+                // 2. 等待所有任务完成
+                await _taskManager.StopAllTasks(TimeSpan.FromSeconds(2));
+
+                // 3. 清理按键列表
                 _keyList.Clear();
-                
+
+                // 4. 清理事件订阅
+                InitializationStatusChanged = null;
+                EnableStatusChanged = null;
+                KeyIntervalChanged = null;
+                StatusMessageChanged = null;
+                KeyPressIntervalChanged = null;
+                ModeSwitched = null;
+
+                // 5. 释放当前模式
+                if (_currentKeyMode != null)
+                {
+                    _currentKeyMode.Dispose();
+                    _currentKeyMode = null;
+                }
+
+                // 6. 重置驱动状态
                 _isInitialized = false;
                 _dd = new CDD();
 
-                _logger.Debug("驱动资源释放完成");
+                _logger.Debug("驱动服务资源释放完成");
+                _logger.Debug("=================================================");
             }
             catch (Exception ex)
             {
-                _logger.Error("释放资源时发生异常", ex);
+                _logger.Error("释放驱动服务资源时发生异常", ex);
+                throw;
             }
+        }
+
+        public void Dispose()
+        {
+            try
+            {
+                DisposeAsync().Wait();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Dispose过程中发生异常", ex);
+            }
+            GC.SuppressFinalize(this);
         }
 
         // 顺序模式&按压模式逻辑
@@ -557,8 +601,6 @@ namespace WpfApp.Services
         {
             try
             {
-                _logger.Debug($"设置按键列表 - 按键数量: {keyList?.Count ?? 0}");
-                
                 if (keyList == null || keyList.Count == 0)
                 {
                     _logger.Warning("收到空的按键列表，停止当前运行的序列");
@@ -579,7 +621,7 @@ namespace WpfApp.Services
                 }
                 
                 _logger.Debug(
-                    $"按键列表已更新 - 按键数量: {_keyList.Count}, 当前模式: {(_currentKeyMode?.GetType().Name ?? "无")}");
+                    $"按键列表已更新 - 按键为: {string.Join(", ", _keyList)}, 按键数量: {_keyList.Count}, 当前模式: {(_currentKeyMode?.GetType().Name ?? "无")}");
             }
             catch (Exception ex)
             {

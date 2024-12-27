@@ -1,9 +1,4 @@
 using System;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Effects;
 using System.Collections.ObjectModel;
 using Microsoft.Xaml.Behaviors;
 using WpfApp.Models;
@@ -11,12 +6,17 @@ using WpfApp.ViewModels;
 using System.Windows.Media.Animation;
 using System.Windows.Documents;
 using WpfApp.Behaviors;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Effects;
+using System.Windows;
 
 namespace WpfApp.Behaviors
 {
-    public class ListBoxDragDropBehavior : Behavior<ListBox>
+    public class ListBoxDragDropBehavior : Behavior<System.Windows.Controls.ListBox>
     {
-        private Point _startPoint;
+        private System.Windows.Point _startPoint;
         private bool _isDragging;
         private ListBoxItem? _draggedItem;
         private int _sourceIndex;
@@ -58,7 +58,7 @@ namespace WpfApp.Behaviors
 
         private void ListBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (sender is ListBox listBox)
+            if (sender is System.Windows.Controls.ListBox listBox)
             {
                 _startPoint = e.GetPosition(null);
                 _isDragging = false;
@@ -72,16 +72,16 @@ namespace WpfApp.Behaviors
             }
         }
 
-        private void ListBox_PreviewMouseMove(object sender, MouseEventArgs e)
+        private void ListBox_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed && !_isDragging && _draggedItem != null)
             {
-                Point position = e.GetPosition(null);
+                System.Windows.Point position = e.GetPosition(null);
                 
                 if (Math.Abs(position.X - _startPoint.X) > SystemParameters.MinimumHorizontalDragDistance ||
                     Math.Abs(position.Y - _startPoint.Y) > SystemParameters.MinimumVerticalDragDistance)
                 {
-                    StartDrag(sender as ListBox, _draggedItem, e);
+                    StartDrag(sender as System.Windows.Controls.ListBox, _draggedItem, e);
                 }
             }
         }
@@ -92,7 +92,7 @@ namespace WpfApp.Behaviors
             _draggedItem = null;
         }
 
-        private void StartDrag(ListBox? listBox, ListBoxItem draggedItem, MouseEventArgs e)
+        private void StartDrag(System.Windows.Controls.ListBox? listBox, ListBoxItem draggedItem, System.Windows.Input.MouseEventArgs e)
         {
             if (listBox == null) return;
 
@@ -103,8 +103,8 @@ namespace WpfApp.Behaviors
             {
                 Width = draggedItem.ActualWidth,
                 Height = draggedItem.ActualHeight,
-                Background = new SolidColorBrush(Colors.White),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(33, 150, 243)),
+                Background = new SolidColorBrush(System.Windows.Media.Colors.White),
+                BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(33, 150, 243)),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(4),
                 Effect = new DropShadowEffect
@@ -122,7 +122,7 @@ namespace WpfApp.Behaviors
             };
 
             // 计算鼠标相对于拖拽项的偏移
-            Point mousePos = e.GetPosition(draggedItem);
+            System.Windows.Point mousePos = e.GetPosition(draggedItem);
             _adornerLayer = AdornerLayer.GetAdornerLayer(listBox);
             
             if (_adornerLayer != null)
@@ -135,14 +135,14 @@ namespace WpfApp.Behaviors
             draggedItem.Opacity = 0.3;
 
             // 创建拖拽数据
-            var dataObject = new DataObject();
+            var dataObject = new System.Windows.DataObject();
             dataObject.SetData("KeyItem", draggedItem.DataContext);
             dataObject.SetData("DragSource", draggedItem);
 
             try
             {
                 // 开始拖拽操作
-                DragDrop.DoDragDrop(draggedItem, dataObject, DragDropEffects.Move);
+                DragDrop.DoDragDrop(draggedItem, dataObject, System.Windows.DragDropEffects.Move);
             }
             finally
             {
@@ -156,9 +156,9 @@ namespace WpfApp.Behaviors
             }
         }
 
-        private void ListBox_Drop(object sender, DragEventArgs e)
+        private void ListBox_Drop(object sender, System.Windows.DragEventArgs e)
         {
-            if (sender is ListBox listBox && _draggedItem != null && e.Data.GetDataPresent("KeyItem"))
+            if (sender is System.Windows.Controls.ListBox listBox && _draggedItem != null && e.Data.GetDataPresent("KeyItem"))
             {
                 var targetItem = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
                 if (targetItem != null)
@@ -205,19 +205,19 @@ namespace WpfApp.Behaviors
             }
         }
 
-        private void ListBox_DragEnter(object sender, DragEventArgs e)
+        private void ListBox_DragEnter(object sender, System.Windows.DragEventArgs e)
         {
             if (!e.Data.GetDataPresent("KeyItem"))
             {
-                e.Effects = DragDropEffects.None;
+                e.Effects = System.Windows.DragDropEffects.None;
                 return;
             }
 
-            e.Effects = DragDropEffects.Move;
+            e.Effects = System.Windows.DragDropEffects.Move;
             e.Handled = true;
         }
 
-        private void ListBox_DragOver(object sender, DragEventArgs e)
+        private void ListBox_DragOver(object sender, System.Windows.DragEventArgs e)
         {
             if (!e.Data.GetDataPresent("KeyItem"))
                 return;
@@ -232,7 +232,7 @@ namespace WpfApp.Behaviors
             if (targetItem != null && targetItem != _draggedItem)
             {
                 // 清除其他项的拖拽标记
-                if (sender is ListBox listBox)
+                if (sender is System.Windows.Controls.ListBox listBox)
                 {
                     foreach (var item in listBox.Items)
                     {
@@ -251,9 +251,9 @@ namespace WpfApp.Behaviors
             e.Handled = true;
         }
 
-        private void ListBox_DragLeave(object sender, DragEventArgs e)
+        private void ListBox_DragLeave(object sender, System.Windows.DragEventArgs e)
         {
-            if (sender is ListBox listBox)
+            if (sender is System.Windows.Controls.ListBox listBox)
             {
                 // 清除所有项的拖拽标记
                 foreach (var item in listBox.Items)

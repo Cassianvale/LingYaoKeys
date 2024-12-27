@@ -12,10 +12,10 @@ namespace WpfApp.Views
         public FeedbackView()
         {
             InitializeComponent();
-            _viewModel = DataContext as ViewModels.FeedbackViewModel;
+            _viewModel = (ViewModels.FeedbackViewModel)DataContext;
         }
 
-        private void FeedbackTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        private void FeedbackTextBox_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
             if (e.Key == Key.Enter && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
             {
@@ -26,7 +26,7 @@ namespace WpfApp.Views
             {
                 e.Handled = true;
                 
-                if (sender is TextBox textBox)
+                if (sender is System.Windows.Controls.TextBox textBox)
                 {
                     int caretIndex = textBox.CaretIndex;
                     textBox.Text = textBox.Text.Insert(caretIndex, Environment.NewLine);

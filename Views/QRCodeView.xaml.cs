@@ -5,6 +5,9 @@ using System.Windows;
 
 namespace WpfApp.Views
 {
+    /// <summary>
+    /// QRCodeView.xaml 的交互逻辑
+    /// </summary>
     public partial class QRCodeView : Page, IDisposable
     {
         private readonly ViewModels.QRCodeViewModel _viewModel;
@@ -50,7 +53,7 @@ namespace WpfApp.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show("加载二维码图片失败，请检查资源文件是否完整", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show($"加载二维码图片失败，请检查资源文件是否完整，错误信息:{ex}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

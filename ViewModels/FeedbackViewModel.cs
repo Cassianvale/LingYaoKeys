@@ -22,9 +22,7 @@ namespace WpfApp.ViewModels
         // GitHub仓库信息
         private const string GITHUB_REPO_OWNER = "Cassianvale"; // GitHub用户名
         private const string GITHUB_REPO_NAME = "LingYaoKeys"; // 仓库名
-
-        // QQ群号
-        private const string QQ_GROUP_NUMBER = "707354859"; // QQ群号
+        private const string PERSONAL_QQ_NUMBER = "1430066373";
 
         // 反馈类型列表
         public List<string> FeedbackTypes { get; } = new List<string>
@@ -180,8 +178,7 @@ namespace WpfApp.ViewModels
         // 添加GitHub提交命令
         public ICommand SubmitToGitHubCommand { get; }
 
-        // 添加QQ群命令
-        public ICommand JoinQQGroupCommand { get; }
+        public ICommand ContactQQCommand { get; }
 
         public FeedbackViewModel(MainViewModel mainViewModel)
         {
@@ -189,7 +186,7 @@ namespace WpfApp.ViewModels
             SubmitCommand = new RelayCommand(SubmitFeedbackAsync, () => CanSubmit);
             ClearCommand = new RelayCommand(ClearFeedback);
             SubmitToGitHubCommand = new RelayCommand(OpenGitHubIssue, () => !string.IsNullOrWhiteSpace(FeedbackContent));
-            JoinQQGroupCommand = new RelayCommand(OpenQQGroup);
+            ContactQQCommand = new RelayCommand(OpenQQChat);
             
             // 初始化为默认模板（Bug反馈）
             FeedbackContent = FEEDBACK_TEMPLATES[0];
@@ -252,24 +249,33 @@ namespace WpfApp.ViewModels
             return "新建反馈";
         }
 
-        private void OpenQQGroup()
+        private void OpenQQChat()
         {
             try
             {
-                // 使用QQ的群链接格式
-                string qqUrl = $"https://qm.qq.com/cgi-bin/qm/qr?k=xxxxx"; // 替换为实际的QQ群链接
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = qqUrl,
-                    UseShellExecute = true
-                });
+                // 复制QQ号到剪贴板
+                System.Windows.Clipboard.SetText(PERSONAL_QQ_NUMBER);
+                _mainViewModel.UpdateStatusMessage($"已复制作者QQ号到剪贴板，请打开QQ手动添加后反馈问题！");
 
-                _mainViewModel.UpdateStatusMessage("已打开QQ群链接");
+                // 尝试打开QQ主界面
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "QQ.exe",
+                        UseShellExecute = true
+                    });
+                }
+                catch
+                {
+                    // 如果无法打开QQ，忽略错误，因为已经复制了QQ号
+                    _logger.Debug("尝试打开QQ客户端失败，但已复制作者QQ号到剪贴板，请手动添加后反馈问题！");
+                }
             }
             catch (Exception ex)
             {
-                _logger.Error("打开QQ群链接失败", ex);
-                _mainViewModel.UpdateStatusMessage("打开QQ群链接失败，请手动加群：" + QQ_GROUP_NUMBER, true);
+                _logger.Error("复制QQ号到剪贴板失败", ex);
+                _mainViewModel.UpdateStatusMessage($"复制失败，请手动添加作者QQ：{PERSONAL_QQ_NUMBER}", true);
             }
         }
 

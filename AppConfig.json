@@ -8,20 +8,11 @@
       "RollingInterval": "Day",
       "RetainDays": 7
     },
-    "ExcludedTags": [
-      "Debug",
-      "Trace",
-      "Info",
-      "Sequence",
-      "Driver",
-      "Init",
-      "UI",
-      "Config",
-      "Performance"
-    ],
+    "ExcludedTags": [],
     "ExcludedSources": [
-      "*.xaml",
+      "*.xaml*",
       "ControlStyles.xaml",
+      "App.xaml",
       "MainWindow.xaml"
     ],
     "ExcludedMethods": [],

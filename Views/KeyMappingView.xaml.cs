@@ -1,9 +1,9 @@
 using System;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Navigation;
 using System.Windows.Input;
 using System.Text;
-using System.Windows;
 using WpfApp.ViewModels;
 using WpfApp.Services;
 using System.Windows.Media;
@@ -14,7 +14,7 @@ using WpfApp.Behaviors;
 // 提供按键映射视图
 namespace WpfApp.Views
 {
-    public partial class KeyMappingView : Page
+    public partial class KeyMappingView : System.Windows.Controls.Page
     {   
         private readonly SerilogManager _logger = SerilogManager.Instance;
         private const string KEY_ERROR = "无法识别按键，请检查输入法是否关闭";
@@ -42,9 +42,9 @@ namespace WpfApp.Views
             }
         }
 
-        private void KeyInputBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        private void KeyInputBox_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
-            if (sender is not TextBox textBox) return;
+            if (sender is not System.Windows.Controls.TextBox textBox) return;
             
             e.Handled = true;
             
@@ -76,12 +76,12 @@ namespace WpfApp.Views
                 }
 
                 ViewModel?.SetCurrentKey(ddKeyCode);
-                _logger.Debug("KeyInput", $"按键已转换: {key} -> {ddKeyCode}");
+                _logger.Debug($"按键已转换: {key} -> {ddKeyCode}");
             }
             else
             {
                 ShowError(KEY_ERROR);
-                _logger.Warning("KeyInput", $"无法转换按键: {key}");
+                _logger.Warning($"无法转换按键: {key}");
             }
         }
 
@@ -190,7 +190,7 @@ namespace WpfApp.Views
         // 处理按键输入框获得焦点
         private void KeyInputBox_GotFocus(object sender, RoutedEventArgs e)
         {
-            if (sender is TextBox textBox)
+            if (sender is System.Windows.Controls.TextBox textBox)
             {
                 if (_hotkeyService != null)
                 {
@@ -202,7 +202,7 @@ namespace WpfApp.Views
         // 处理按键输入框失去焦点
         private void KeyInputBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            if (sender is TextBox textBox)
+            if (sender is System.Windows.Controls.TextBox textBox)
             {
                 if (_hotkeyService != null)
                 {
@@ -221,7 +221,7 @@ namespace WpfApp.Views
         // 显示错误信息到状态栏
         private void ShowError(string message)
         {
-            if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+            if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
             {
                 mainViewModel.UpdateStatusMessage(message, true);
             }
@@ -230,7 +230,7 @@ namespace WpfApp.Views
         // 处理热键输入框获得焦点
         private void HotkeyInputBox_GotFocus(object sender, RoutedEventArgs e)
         {
-            if (sender is TextBox textBox)
+            if (sender is System.Windows.Controls.TextBox textBox)
             {
                 if (_hotkeyService != null)
                 {
@@ -243,7 +243,7 @@ namespace WpfApp.Views
         // 处理热键输入框失去焦点
         private void HotkeyInputBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            if (sender is TextBox textBox)
+            if (sender is System.Windows.Controls.TextBox textBox)
             {
                 if (_hotkeyService != null)
                 {
@@ -256,7 +256,7 @@ namespace WpfApp.Views
         // 处理鼠标按键
         private void HotkeyInputBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (sender is TextBox textBox)
+            if (sender is System.Windows.Controls.TextBox textBox)
             {
                 DDKeyCode keyCode = e.ChangedButton switch
                 {
@@ -275,7 +275,7 @@ namespace WpfApp.Views
         }
 
         // 统一的热键处理方法
-        private void HandleHotkeyInput(TextBox textBox, DDKeyCode keyCode, ModifierKeys modifiers, bool isStartHotkey)
+        private void HandleHotkeyInput(System.Windows.Controls.TextBox textBox, DDKeyCode keyCode, ModifierKeys modifiers, bool isStartHotkey)
         {
             if (textBox == null)
             {
@@ -315,16 +315,16 @@ namespace WpfApp.Views
         }
 
         // 处理开始热键
-        private void StartHotkeyInput_KeyDown(object sender, KeyEventArgs e)
+        private void StartHotkeyInput_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
-            _logger.Debug("StartHotkeyInput_KeyDown 已触发");
+            _logger.Debug("开始热键 Keyboard 按下 已触发");
             _logger.Debug($"Key: {e.Key}, SystemKey: {e.SystemKey}, KeyStates: {e.KeyStates}");
             StartHotkeyInput_PreviewKeyDown(sender, e);
         }
 
         private void StartHotkeyInput_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            _logger.Debug("StartHotkeyInput_MouseDown 已触发");
+            _logger.Debug("开始热键 Mouse 按下 已触发");
             _logger.Debug($"ChangedButton: {e.ChangedButton}");
             StartHotkeyInput_PreviewMouseDown(sender, e);
         }
@@ -332,13 +332,13 @@ namespace WpfApp.Views
         // 处理开始热键的鼠标释放
         private void StartHotkeyInput_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
-            _logger.Debug("StartHotkeyInput_PreviewMouseUp 已触发");
+            _logger.Debug("开始热键 Mouse 释放 已触发");
             _logger.Debug($"ChangedButton: {e.ChangedButton}");
         }
 
-        private void StartHotkeyInput_PreviewKeyDown(object sender, KeyEventArgs e)
+        private void StartHotkeyInput_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
-            if (sender is not TextBox textBox) return;
+            if (sender is not System.Windows.Controls.TextBox textBox) return;
 
             try 
             {
@@ -377,9 +377,9 @@ namespace WpfApp.Views
         }
 
         // 处理停止热键
-        private void StopHotkeyInput_PreviewKeyDown(object sender, KeyEventArgs e)
+        private void StopHotkeyInput_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
-            if (sender is not TextBox textBox) return;
+            if (sender is not System.Windows.Controls.TextBox textBox) return;
             
             try
             {
@@ -420,14 +420,14 @@ namespace WpfApp.Views
             }
             catch (Exception ex)
             {
-                _logger.Error("StopHotkeyInput_PreviewKeyDown 处理异常", ex);
+                _logger.Error("停止热键 Keyboard 按下 处理异常", ex);
             }
         }
 
         // 处理开始热键的鼠标点击
         private void StartHotkeyInput_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (sender is TextBox textBox)
+            if (sender is System.Windows.Controls.TextBox textBox)
             {
                 DDKeyCode? keyCode = e.ChangedButton switch
                 {
@@ -439,7 +439,7 @@ namespace WpfApp.Views
 
                 if (keyCode.HasValue)
                 {
-                    _logger.Debug($"检测到鼠标按键: {keyCode.Value}");
+                    _logger.Debug($"检测到 Mouse 按键点击: {keyCode.Value}");
                     HandleHotkeyInput(textBox, keyCode.Value, Keyboard.Modifiers, true);
                     e.Handled = true; // 阻止事件继续传播
                 }
@@ -449,7 +449,7 @@ namespace WpfApp.Views
         // 处理停止热键的鼠标点击
         private void StopHotkeyInput_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (sender is TextBox textBox)
+            if (sender is System.Windows.Controls.TextBox textBox)
             {
                 DDKeyCode? keyCode = e.ChangedButton switch
                 {
@@ -461,7 +461,7 @@ namespace WpfApp.Views
 
                 if (keyCode.HasValue)
                 {
-                    _logger.Debug($"检测到鼠标按键: {keyCode.Value}");
+                    _logger.Debug($"检测到 Mouse 按键点击: {keyCode.Value}");
                     HandleHotkeyInput(textBox, keyCode.Value, Keyboard.Modifiers, false);
                     e.Handled = true; // 阻止事件继续传播
                 }
@@ -476,7 +476,7 @@ namespace WpfApp.Views
 
         private void NumberInput_LostFocus(object sender, RoutedEventArgs e)
         {
-            if (sender is TextBox textBox)
+            if (sender is System.Windows.Controls.TextBox textBox)
             {
                 // 处理焦点状态
                 if (_hotkeyService != null)
@@ -499,7 +499,7 @@ namespace WpfApp.Views
                                 viewModel.KeyInterval = 1; // 设置为最小值
                                 textBox.Text = viewModel.KeyInterval.ToString(); // 显示实际设置的值
                                 
-                                if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+                                if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
                                 {
                                     mainViewModel.UpdateStatusMessage("按键间隔必须大于0毫秒", true);
                                 }
@@ -517,7 +517,7 @@ namespace WpfApp.Views
                                 if (oldValue != viewModel.KeyInterval)
                                 {
                                     textBox.Text = viewModel.KeyInterval.ToString();
-                                    if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+                                    if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
                                     {
                                         mainViewModel.UpdateStatusMessage($"键间隔已自动调整为: {viewModel.KeyInterval}ms", true);
                                     }
@@ -532,7 +532,7 @@ namespace WpfApp.Views
                         if (DataContext is KeyMappingViewModel viewModel)
                         {
                             textBox.Text = viewModel.KeyInterval.ToString(); // 恢复为当前值
-                            if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+                            if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
                             {
                                 mainViewModel.UpdateStatusMessage("请输入有效的数字", true);
                             }
@@ -619,13 +619,13 @@ namespace WpfApp.Views
 
         private void KeysList_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (sender is ListBox listBox)
+            if (sender is System.Windows.Controls.ListBox listBox)
             {
                 // 检查点击是否在ListBox的空白区域
                 HitTestResult hitTest = VisualTreeHelper.HitTest(listBox, e.GetPosition(listBox));
                 if (hitTest == null || 
                     (hitTest.VisualHit != null && 
-                     FindParent<ListBoxItem>(hitTest.VisualHit as DependencyObject) == null))
+                     FindParent<System.Windows.Controls.ListBoxItem>(hitTest.VisualHit as DependencyObject) == null))
                 {
                     // 点击在ListBox的空白区域，清除选中项和高亮
                     ClearListBoxSelection(listBox);
@@ -652,11 +652,11 @@ namespace WpfApp.Views
             // 检查点击是否在ListBox区域内
             if (e.OriginalSource is DependencyObject depObj)
             {
-                var listBox = FindParent<ListBox>(depObj);
+                var listBox = FindParent<System.Windows.Controls.ListBox>(depObj);
                 if (listBox == null) // 点击在ListBox外部
                 {
                     // 查找页面中的ListBox
-                    var pageListBox = FindChild<ListBox>((sender as Page)!);
+                    var pageListBox = FindChild<System.Windows.Controls.ListBox>((sender as Page)!);
                     if (pageListBox != null)
                     {
                         ClearListBoxSelection(pageListBox);
@@ -666,14 +666,14 @@ namespace WpfApp.Views
         }
 
         // 添加一个通用的清除方法
-        private void ClearListBoxSelection(ListBox listBox)
+        private void ClearListBoxSelection(System.Windows.Controls.ListBox listBox)
         {
             listBox.SelectedItem = null;
 
             // 清除所有项的拖拽高亮显示
             foreach (var item in listBox.Items)
             {
-                if (listBox.ItemContainerGenerator.ContainerFromItem(item) is ListBoxItem listBoxItem)
+                if (listBox.ItemContainerGenerator.ContainerFromItem(item) is System.Windows.Controls.ListBoxItem listBoxItem)
                 {
                     DragDropProperties.SetIsDragTarget(listBoxItem, false);
                 }
@@ -696,9 +696,5 @@ namespace WpfApp.Views
             return null;
         }
 
-        private void ComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-
-        }
     }
 } 

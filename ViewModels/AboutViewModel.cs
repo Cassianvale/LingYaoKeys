@@ -368,16 +368,16 @@ namespace WpfApp.ViewModels
         {
             try
             {
-                var mainWindow = Application.Current.MainWindow;
+                var mainWindow = System.Windows.Application.Current.MainWindow;
                 if (mainWindow?.DataContext is MainViewModel mainViewModel)
                 {
                     mainViewModel.NavigateCommand.Execute("QRCode");
                 }
-                _logger.Debug("导航到二维码页面");
+                _logger.Debug("显示二维码页面");
             }
             catch (Exception ex)
             {
-                _logger.Error("导航到二维码页面失败", ex);
+                _logger.Error("显示二维码页面失败", ex);
             }
         }
     }

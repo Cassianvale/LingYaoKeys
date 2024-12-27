@@ -87,10 +87,10 @@ namespace WpfApp.ViewModels
         }
 
         // 添加按键命令
-        public ICommand AddKeyCommand { get; private set; }
+        public ICommand AddKeyCommand { get; private set; } = null!;
 
         // 删除选中的按键命令
-        public ICommand DeleteSelectedKeysCommand { get; private set; }
+        public ICommand DeleteSelectedKeysCommand { get; private set; } = null!;
 
         // 按键模式选项
         public List<string> KeyModes { get; } = new List<string> 
@@ -224,7 +224,7 @@ namespace WpfApp.ViewModels
             // 订阅驱动服务的状态变化
             _ddDriver.EnableStatusChanged += (s, enabled) =>
             {
-                Application.Current.Dispatcher.Invoke(() =>
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
                 {
                     IsHotkeyEnabled = enabled;
                 });
@@ -317,7 +317,7 @@ namespace WpfApp.ViewModels
                 IsSoundEnabled = appConfig.soundEnabled ?? true;
                 IsGameMode = appConfig.IsGameMode ?? true;
 
-                _logger.Debug($"配置加载完成 - 模式: {(IsSequenceMode ? "顺序" : "按压")}, 游戏模式: {IsGameMode}");
+                _logger.Debug($"配置加载完成 - 模式: {(IsSequenceMode ? "顺序模式" : "按压模式")}, 游戏模式: {IsGameMode}");
             }
             catch (Exception ex)
             {
@@ -376,7 +376,11 @@ namespace WpfApp.ViewModels
         {
             _currentKey = keyCode;
             CurrentKeyText = keyCode.ToDisplayName();
+            // 通知命令状态更新
+            System.Windows.Input.CommandManager.InvalidateRequerySuggested();
             _logger.Debug("SetCurrentKey", $"设置当前按键: {keyCode} | {CurrentKeyText}");
+            
+
         }
 
         // 设置开始热键
@@ -502,6 +506,8 @@ namespace WpfApp.ViewModels
 
             if (IsKeyInList(_currentKey.Value))
             {
+                _currentKey = null;
+                CurrentKeyText = string.Empty;
                 _logger.Warning("该按键已在列表中，请选择其他按键");
                 _mainViewModel.UpdateStatusMessage("该按键已在列表中，请选择其他按键", true);
                 return;
@@ -524,6 +530,10 @@ namespace WpfApp.ViewModels
             
             _mainViewModel.UpdateStatusMessage($" {_currentKey.Value} 按键添加成功");
             _logger.Debug($" {_currentKey.Value} 按键添加成功");
+            
+            // 清空当前按键状态
+            _currentKey = null;
+            CurrentKeyText = string.Empty;
         }
 
         // 删除选中的按键
@@ -642,7 +652,7 @@ namespace WpfApp.ViewModels
             catch (Exception ex)
             {
                 _logger.Error("保存配置失败", ex);
-                MessageBox.Show($"保存配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show($"保存配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -791,7 +801,7 @@ namespace WpfApp.ViewModels
         {
             try
             {
-                _logger.Debug("🍒 ==》 停止热键按下 《== 🍒");
+                _logger.Debug("🍋 ==》 停止热键按下 《== 🍋");
                 _ddDriver.IsEnabled = false;
                 _ddDriver.SetHoldMode(false);
                 IsHotkeyEnabled = false;

@@ -7,7 +7,7 @@ using System.Reflection;
 
 namespace WpfApp.Services
 {
-    public class AudioService
+    public class AudioService : IDisposable
     {
         private readonly SerilogManager _logger = SerilogManager.Instance;
         private readonly string _startSoundPath;
@@ -17,6 +17,10 @@ namespace WpfApp.Services
         private readonly object _lockObject = new object();
         private CancellationTokenSource _currentCts;
         private bool _isPlayingStopSound;
+        private bool _isDisposed;
+        private readonly object _disposeLock = new object();
+        
+        public bool IsDisposed => _isDisposed;
 
         public AudioService()
         {
@@ -34,7 +38,7 @@ namespace WpfApp.Services
             EnsureAudioFileExists("start.mp3", _startSoundPath);
             EnsureAudioFileExists("stop.mp3", _stopSoundPath);
             
-            _logger.Debug($"音频文件位于：{userDataPath}，可直接替换文件以自定义音效");
+            _logger.Debug($"加载Audio音频资源: {userDataPath}");
         }
 
         private void EnsureAudioFileExists(string fileName, string targetPath)
@@ -42,18 +46,17 @@ namespace WpfApp.Services
             if (!File.Exists(targetPath))
             {
                 string resourceName = $"WpfApp.Resource.sound.{fileName}";
-                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                Stream? stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
+                if (stream is null)
                 {
-                    if (stream == null)
-                    {
-                        _logger.Error($"找不到音频资源：{resourceName}");
-                        return;
-                    }
+                    _logger.Error($"找不到Audio音频资源：{resourceName}");
+                    return;
+                }
 
-                    using (FileStream fileStream = File.Create(targetPath))
-                    {
-                        stream.CopyTo(fileStream);
-                    }
+                using (stream)
+                {
+                    using FileStream fileStream = File.Create(targetPath);
+                    stream.CopyTo(fileStream);
                 }
             }
         }
@@ -175,12 +178,20 @@ namespace WpfApp.Services
 
         public void Dispose()
         {
-            _currentCts?.Cancel();
-            _currentCts?.Dispose();
-            lock (_lockObject)
+            if (_isDisposed) return;
+
+            lock (_disposeLock)
             {
-                _isPlayingStopSound = false;
-                DisposeCurrentSound();
+                if (_isDisposed) return;
+                _isDisposed = true;
+                
+                _currentCts?.Cancel();
+                _currentCts?.Dispose();
+                lock (_lockObject)
+                {
+                    _isPlayingStopSound = false;
+                    DisposeCurrentSound();
+                }
             }
         }
     }

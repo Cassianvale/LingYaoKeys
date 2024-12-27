@@ -14,7 +14,7 @@ using WpfApp.ViewModels;
 // 提供快捷键服务
 namespace WpfApp.Services
 {
-    public class HotkeyService
+    public class HotkeyService : IDisposable
     {
         // Win32 API 函数
         [DllImport("user32.dll")]
@@ -277,7 +277,7 @@ namespace WpfApp.Services
             // 7. 检查是否以管理员身份运行
             if (!IsRunAsAdministrator())
             {
-                MessageBox.Show("请以管理员身份运行程序以使用热键功能", "权限不足", MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Windows.MessageBox.Show("请以管理员身份运行程序以使用热键功能", "权限不足", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -412,47 +412,86 @@ namespace WpfApp.Services
         }
 
         // 释放资源
-        public void Dispose()
+        public async Task DisposeAsync()
         {
             if (_isDisposed) return;
 
             lock (_disposeLock)
             {
                 if (_isDisposed) return;
-
-                try
-                {
-                    _logger.Debug("开始清理资源...");
-                    
-                    if (_mouseHookHandle != IntPtr.Zero)
-                    {
-                        UnhookWindowsHookEx(_mouseHookHandle);
-                        _mouseHookHandle = IntPtr.Zero;
-                    }
-
-                    if (_keyboardHookHandle != IntPtr.Zero)
-                    {
-                        UnhookWindowsHookEx(_keyboardHookHandle);
-                        _keyboardHookHandle = IntPtr.Zero;
-                    }
-                    
-                    StopSequence();
-                    UnregisterHotKey();
-                    
-                    if (_source != null)
-                    {
-                        _source.RemoveHook(WndProc);
-                        _source = null;
-                    }
-
-                    _isDisposed = true;
-                    _logger.Debug("资源清理完成");
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error("清理资源时发生异常", ex);
-                }
+                _isDisposed = true;
             }
+
+            try
+            {
+                _logger.Debug("开始释放热键服务资源");
+
+                // 1. 停止所有运行中的序列
+                StopSequence();
+
+                // 2. 取消注册所有热键
+                if (_startHotkeyRegistered)
+                {
+                    UnregisterHotKey(_windowHandle, START_HOTKEY_ID);
+                    _startHotkeyRegistered = false;
+                }
+                if (_stopHotkeyRegistered)
+                {
+                    UnregisterHotKey(_windowHandle, STOP_HOTKEY_ID);
+                    _stopHotkeyRegistered = false;
+                }
+
+                // 3. 移除钩子
+                if (_mouseHookHandle != IntPtr.Zero)
+                {
+                    UnhookWindowsHookEx(_mouseHookHandle);
+                    _mouseHookHandle = IntPtr.Zero;
+                }
+                if (_keyboardHookHandle != IntPtr.Zero)
+                {
+                    UnhookWindowsHookEx(_keyboardHookHandle);
+                    _keyboardHookHandle = IntPtr.Zero;
+                }
+
+                // 4. 移除窗口钩子
+                if (_source != null)
+                {
+                    _source.RemoveHook(WndProc);
+                    _source = null;
+                }
+
+                // 5. 清理事件订阅
+                StartHotkeyPressed = null;
+                StartHotkeyReleased = null;
+                StopHotkeyPressed = null;
+                SequenceModeStarted = null;
+                SequenceModeStopped = null;
+                KeyTriggered = null;
+
+                // 6. 重置状态
+                _isStarted = false;
+                _isSequenceRunning = false;
+                _isHoldModeRunning = false;
+                _windowHandle = IntPtr.Zero;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("释放热键服务资源时发生异常", ex);
+                throw;
+            }
+        }
+
+        public void Dispose()
+        {
+            try
+            {
+                DisposeAsync().Wait();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Dispose过程中发生异常", ex);
+            }
+            GC.SuppressFinalize(this);
         }
 
         // 修改注册开始热键的方法
@@ -705,7 +744,7 @@ namespace WpfApp.Services
 
                 if (!_isSequenceRunning && !_isStarted) 
                 {
-                    _logger.Debug("Debug序列未运行，无需停止");
+                    _logger.Debug("序列未运行，无需停止");
                     return;
                 }
 
@@ -721,11 +760,11 @@ namespace WpfApp.Services
                     {
                         _ddDriverService.SetHoldMode(false);
                     }
-                    _logger.Debug("Debug驱动服务已停止");
+                    _logger.Debug("驱动服务已停止");
                 }
                 catch (Exception driverEx)
                 {
-                    _logger.Error("Debug停止动服务时发生异常", driverEx);
+                    _logger.Error("停止动服务时发生异常", driverEx);
                 }
 
                 // 取消序列任务
@@ -735,11 +774,11 @@ namespace WpfApp.Services
                     try
                     {
                         cts.Cancel();
-                        _logger.Debug("Debug序列任务已取消");
+                        _logger.Debug("序列任务已取消");
                     }
                     catch (Exception ctsEx)
                     {
-                        _logger.Error("Debug取消序列任务时发生异常", ctsEx);
+                        _logger.Error("取消序列任务时发生异常", ctsEx);
                     }
                     finally
                     {
@@ -751,12 +790,12 @@ namespace WpfApp.Services
                 try
                 {
                     SequenceModeStopped?.Invoke();
-                    _logger.Debug("Debug序列已全停止");
-                    _logger.Debug("Debug=================================================");
+                    _logger.Debug("🍒 ==》 序列已全停止 《== 🍒 ");
+                    _logger.Debug("=================================================");
                 }
                 catch (Exception eventEx)
                 {
-                    _logger.Error("Debug触发停止事件时发生异常", eventEx);
+                    _logger.Error("触发停止事件时发生异常", eventEx);
                 }
             }
             catch (Exception ex)
@@ -781,7 +820,7 @@ namespace WpfApp.Services
         {
             try
             {
-                _logger.Debug($"设置按键序列 - 按键数量: {keyList?.Count ?? 0}, 间隔: {interval}ms");
+                // _logger.Debug($"设置按键序列 - 按键数量: {keyList?.Count ?? 0}, 间隔: {interval}ms");
                 
                 if (keyList == null || keyList.Count == 0)
                 {
@@ -1855,7 +1894,7 @@ namespace WpfApp.Services
                             {
                                 case WM_KEYUP:
                                 case WM_SYSKEYUP:
-                                    _logger.Debug($"检测到启动键释放 - VK: 0x{hookStruct.vkCode:X}");
+                                    _logger.Debug($"检测到真实物理 Keyboard 被释放 - VK: {hookStruct.vkCode}");
                                     HandleHoldModeKeyRelease();
                                     break;
                             }

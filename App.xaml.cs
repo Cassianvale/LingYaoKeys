@@ -1,13 +1,14 @@
 ﻿using System;
 using System.IO;
-using System.Windows;
 using System.Threading.Tasks;
 using WpfApp.Services;
 using System.Reflection;
+using System.Windows.Forms;
+using System.Windows;
 
 namespace WpfApp
 {
-    public partial class App : Application
+    public partial class App : System.Windows.Application
     {
         private readonly SerilogManager _logger = SerilogManager.Instance;
         public static DDDriverService DDDriver { get; private set; } = new DDDriverService();
@@ -87,8 +88,8 @@ namespace WpfApp
                         if (stream == null)
                         {
                             _logger.Error($"找不到嵌入的驱动资源：{resourceName}");
-                            MessageBox.Show($"找不到驱动资源：{resourceName}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                            Shutdown();
+                            System.Windows.MessageBox.Show($"找不到驱动资源：{resourceName}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            Current.Shutdown();
                             return;
                         }
 
@@ -106,8 +107,7 @@ namespace WpfApp
                 if (!DDDriver.LoadDllFile(dllPath))
                 {
                     _logger.Error("驱动加载失败，无法加载DD驱动文件");
-                    MessageBox.Show("驱动加载失败，请检查是否以管理员身份运行程序", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    Shutdown();
+                    Current.Shutdown();
                     return;
                 }
 
@@ -131,8 +131,8 @@ namespace WpfApp
             catch (Exception ex)
             {
                 _logger.Error("启动失败, 应用程序启动过程中发生异常", ex);
-                MessageBox.Show($"程序启动异常：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                Shutdown();
+                System.Windows.MessageBox.Show($"程序启动异常：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                Current.Shutdown();
             }
         }
 
@@ -145,9 +145,16 @@ namespace WpfApp
             {
                 _logger.Debug("开始释放应用程序资源...");
                 
-                // 释放各种服务
-                DDDriver?.Dispose();
-                AudioService?.Dispose();
+                // 由于DDDriver和AudioService已经在MainViewModel中释放
+                // 这里只处理未释放的资源
+                if (!DDDriver.IsDisposed)
+                {
+                    DDDriver?.Dispose();
+                }
+                if (!AudioService.IsDisposed)
+                {
+                    AudioService?.Dispose();
+                }
                 
                 // 最后释放日志服务
                 _logger.Debug("应用程序资源已释放");

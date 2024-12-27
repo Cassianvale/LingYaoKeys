@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using WpfApp.Services;
 
 // 焦点管理器
@@ -17,7 +18,117 @@ namespace WpfApp.Styles
     public partial class ControlStyles
     {
         private static readonly SerilogManager _logger = SerilogManager.Instance;
-        
+        private static IntPtr _mouseHookHandle;
+        private static Win32.HookProc? _mouseProc;
+
+        // Win32 API 定义
+        private static class Win32
+        {
+            public const int WH_MOUSE_LL = 14;
+            public const int WM_LBUTTONDOWN = 0x0201;
+            public delegate IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+            [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+            public static extern IntPtr SetWindowsHookEx(int idHook, HookProc lpfn, IntPtr hMod, uint dwThreadId);
+
+            [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+            [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+            public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+            [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+            public static extern IntPtr GetModuleHandle(string lpModuleName);
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct POINT
+            {
+                public int x;
+                public int y;
+            }
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct MSLLHOOKSTRUCT
+            {
+                public POINT pt;
+                public uint mouseData;
+                public uint flags;
+                public uint time;
+                public IntPtr dwExtraInfo;
+            }
+        }
+
+        private static void SetupGlobalMouseHook()
+        {
+            if (_mouseHookHandle == IntPtr.Zero)
+            {
+                _mouseProc = MouseHookCallback;
+                using (var curProcess = System.Diagnostics.Process.GetCurrentProcess())
+                using (var curModule = curProcess.MainModule)
+                {
+                    _mouseHookHandle = Win32.SetWindowsHookEx(
+                        Win32.WH_MOUSE_LL,
+                        _mouseProc,
+                        Win32.GetModuleHandle(curModule?.ModuleName ?? string.Empty),
+                        0);
+                }
+
+                if (_mouseHookHandle == IntPtr.Zero)
+                {
+                    _logger.Error("设置全局鼠标钩子失败");
+                }
+                else
+                {
+                    _logger.Debug("全局鼠标钩子设置成功");
+                }
+
+                // 确保应用程序退出时移除钩子
+                System.Windows.Application.Current.Exit += (s, e) => RemoveGlobalMouseHook();
+            }
+        }
+
+        private static void RemoveGlobalMouseHook()
+        {
+            if (_mouseHookHandle != IntPtr.Zero)
+            {
+                Win32.UnhookWindowsHookEx(_mouseHookHandle);
+                _mouseHookHandle = IntPtr.Zero;
+                _mouseProc = null;
+                _logger.Debug("全局鼠标钩子已移除");
+            }
+        }
+
+        private static IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (nCode >= 0 && wParam == (IntPtr)Win32.WM_LBUTTONDOWN)
+            {
+                var hookStruct = Marshal.PtrToStructure<Win32.MSLLHOOKSTRUCT>(lParam);
+                var screenPoint = new System.Windows.Point(hookStruct.pt.x, hookStruct.pt.y);
+
+                System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    foreach (System.Windows.Window window in System.Windows.Application.Current.Windows)
+                    {
+                        if (window.IsActive)
+                        {
+                            // 检查点击是否在窗口外
+                            var windowRect = new Rect(
+                                window.Left, window.Top,
+                                window.Width, window.Height);
+
+                            if (!windowRect.Contains(screenPoint))
+                            {
+                                _logger.Debug("检测到窗口外点击，清除焦点");
+                                ForceClearAllFocus(window);
+                            }
+                        }
+                    }
+                }));
+            }
+            return Win32.CallNextHookEx(_mouseHookHandle, nCode, wParam, lParam);
+        }
+
         public static readonly DependencyProperty AutoFocusManagementProperty =
             DependencyProperty.RegisterAttached(
                 "AutoFocusManagement",
@@ -56,7 +167,6 @@ namespace WpfApp.Styles
             }
         }
 
-        // 定义一个静态的附加属性用于标记窗口是否已初始化
         private static readonly DependencyProperty FocusManagementInitializedProperty =
             DependencyProperty.RegisterAttached(
                 "_focusManagementInitialized",
@@ -78,6 +188,9 @@ namespace WpfApp.Styles
         {
             try
             {
+                // 设置全局鼠标钩子
+                SetupGlobalMouseHook();
+
                 Window? parentWindow = Window.GetWindow(element);
                 if (parentWindow == null)
                 {
@@ -98,7 +211,7 @@ namespace WpfApp.Styles
                         _logger.Debug($"窗口失去焦点: {parentWindow.Title}");
                         
                         // 然后异步处理焦点清理
-                        Application.Current.Dispatcher.InvokeAsync(() =>
+                        System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                         {
                             ForceClearAllFocus(parentWindow);
                         }, System.Windows.Threading.DispatcherPriority.Input);
@@ -111,7 +224,7 @@ namespace WpfApp.Styles
                         _logger.Debug($"窗口获得焦点: {parentWindow.Title}");
                         
                         // 然后异步处理焦点检查
-                        Application.Current.Dispatcher.InvokeAsync(() =>
+                        System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                         {
                             var focusedElement = FocusManager.GetFocusedElement(parentWindow) as FrameworkElement;
                             if (focusedElement != null)
@@ -140,12 +253,12 @@ namespace WpfApp.Styles
                 }
 
                 // 控件特定的处理
-                if (element is TextBox textBox)
+                if (element is System.Windows.Controls.TextBox textBox)
                 {
                     _logger.Debug($"设置TextBox焦点行为: {GetControlIdentifier(textBox)}");
                     SetupTextBoxBehavior(textBox);
                 }
-                else if (element is ComboBox comboBox)
+                else if (element is System.Windows.Controls.ComboBox comboBox)
                 {
                     _logger.Debug($"设置ComboBox焦点行为: {GetControlIdentifier(comboBox)}");
                     SetupComboBoxBehavior(comboBox);
@@ -159,17 +272,21 @@ namespace WpfApp.Styles
             }
         }
 
-        private static void SetupTextBoxBehavior(TextBox textBox)
+        private static void SetupTextBoxBehavior(System.Windows.Controls.TextBox textBox)
         {
             // 1. 鼠标点击事件
             textBox.PreviewMouseDown += (sender, args) =>
             {
-                if (sender is TextBox tb && !tb.IsKeyboardFocused)
+                if (sender is System.Windows.Controls.TextBox tb)
                 {
-                    args.Handled = true;
-                    Application.Current.Dispatcher.InvokeAsync(() =>
+                    // 不立即阻止事件传播
+                    System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                     {
-                        tb.Focus();
+                        if (!tb.IsKeyboardFocused)
+                        {
+                            tb.Focus();
+                            tb.CaretIndex = tb.Text.Length;
+                        }
                     }, System.Windows.Threading.DispatcherPriority.Input);
                 }
             };
@@ -179,12 +296,12 @@ namespace WpfApp.Styles
             {
                 if (args.Key == Key.Enter || args.Key == Key.Escape)
                 {
-                    if (sender is TextBox tb)
+                    if (sender is System.Windows.Controls.TextBox tb)
                     {
                         args.Handled = true;
-                        Application.Current.Dispatcher.InvokeAsync(() =>
+                        System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                         {
-                            tb.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+                            tb.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateSource();
                             ForceClearFocus(tb);
                         }, System.Windows.Threading.DispatcherPriority.Input);
                     }
@@ -194,7 +311,7 @@ namespace WpfApp.Styles
             // 修改获得焦点时的处理，移除自动全选
             textBox.GotFocus += (sender, args) =>
             {
-                if (sender is TextBox tb)
+                if (sender is System.Windows.Controls.TextBox tb)
                 {
                     _logger.Debug($"TextBox获得焦点: {GetControlIdentifier(tb)}");
                 }
@@ -203,15 +320,15 @@ namespace WpfApp.Styles
             // 保持失去焦点时的处理不变
             textBox.LostFocus += (sender, args) =>
             {
-                if (sender is TextBox tb)
+                if (sender is System.Windows.Controls.TextBox tb)
                 {
                     _logger.Debug($"TextBox失去焦点: {GetControlIdentifier(tb)}");
-                    tb.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+                    tb.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateSource();
                 }
             };
         }
 
-        private static void SetupComboBoxBehavior(ComboBox comboBox)
+        private static void SetupComboBoxBehavior(System.Windows.Controls.ComboBox comboBox)
         {
             // 添加状态追踪
             bool isSelectionChanging = false;
@@ -219,16 +336,16 @@ namespace WpfApp.Styles
 
             // 监听 IsDropDownOpen 属性变化
             var dpd = DependencyPropertyDescriptor.FromProperty(
-                ComboBox.IsDropDownOpenProperty, typeof(ComboBox));
+                System.Windows.Controls.ComboBox.IsDropDownOpenProperty, typeof(System.Windows.Controls.ComboBox));
             
             dpd.AddValueChanged(comboBox, (sender, args) =>
             {
-                if (sender is ComboBox cb)
+                if (sender is System.Windows.Controls.ComboBox cb)
                 {
                     isAnimating = true;
                     
                     // 等待动画完成，增加延迟时间确保动画完整播放
-                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                    System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                     {
                         isAnimating = false;
                     }), System.Windows.Threading.DispatcherPriority.Background);
@@ -238,7 +355,7 @@ namespace WpfApp.Styles
             // 添加鼠标点击事件处理
             comboBox.PreviewMouseDown += (sender, args) =>
             {
-                if (sender is ComboBox cb && !isAnimating)
+                if (sender is System.Windows.Controls.ComboBox cb && !isAnimating)
                 {
                     // 检查点击源是否为ComboBox本身或其ToggleButton
                     var source = args.OriginalSource as DependencyObject;
@@ -248,91 +365,71 @@ namespace WpfApp.Styles
                     {
                         if (cb.IsDropDownOpen)
                         {
-                            isAnimating = true;
                             args.Handled = true;
-
-                            // 使用动画关闭下拉框
-                            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                            System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                             {
-                                try
-                                {
-                                    // 触发关闭动画
-                                    cb.IsDropDownOpen = false;
-                                }
-                                finally
-                                {
-                                    // 动画完成后重置状态
-                                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
-                                    {
-                                        isAnimating = false;
-                                    }), System.Windows.Threading.DispatcherPriority.Background);
-                                }
-                            }), System.Windows.Threading.DispatcherPriority.Loaded);
+                                cb.IsDropDownOpen = false;
+                                ForceClearFocus(cb);
+                            }, System.Windows.Threading.DispatcherPriority.Input);
+                        }
+                        else if (!cb.IsKeyboardFocused)
+                        {
+                            args.Handled = true;
+                            System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                            {
+                                cb.Focus();
+                                cb.IsDropDownOpen = true;
+                            }, System.Windows.Threading.DispatcherPriority.Input);
                         }
                     }
                 }
             };
 
+            // 添加选择变化事件处理
             comboBox.SelectionChanged += (sender, args) =>
             {
-                if (sender is ComboBox cb && !isAnimating)
+                if (sender is System.Windows.Controls.ComboBox cb && !isSelectionChanging)
                 {
                     isSelectionChanging = true;
-                    isAnimating = true;
-
-                    // 确保选择更新完成后再关闭下拉框
-                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                    System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                     {
                         try
                         {
-                            // 更新绑定
-                            cb.GetBindingExpression(ComboBox.SelectedItemProperty)?.UpdateSource();
-                            cb.GetBindingExpression(ComboBox.SelectedValueProperty)?.UpdateSource();
-                            cb.GetBindingExpression(ComboBox.TextProperty)?.UpdateSource();
-                            
-                            // 触发关闭动画
-                            cb.IsDropDownOpen = false;
+                            if (cb.IsDropDownOpen)
+                            {
+                                cb.IsDropDownOpen = false;
+                            }
+                            ForceClearFocus(cb);
                         }
                         finally
                         {
-                            // 动画完成后重置状态
-                            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
-                            {
-                                isSelectionChanging = false;
-                                isAnimating = false;
-                            }), System.Windows.Threading.DispatcherPriority.Background);
+                            isSelectionChanging = false;
                         }
-                    }), System.Windows.Threading.DispatcherPriority.Loaded);
+                    }, System.Windows.Threading.DispatcherPriority.Input);
                 }
             };
 
-            comboBox.DropDownClosed += (sender, args) =>
+            // 添加焦点事件处理
+            comboBox.GotFocus += (sender, args) =>
             {
-                if (sender is ComboBox cb)
+                if (sender is System.Windows.Controls.ComboBox cb)
                 {
-                    // 只在非选择改变的情况下更新绑定
-                    if (!isSelectionChanging)
-                    {
-                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            // 更新绑定
-                            cb.GetBindingExpression(ComboBox.SelectedItemProperty)?.UpdateSource();
-                            cb.GetBindingExpression(ComboBox.SelectedValueProperty)?.UpdateSource();
-                            cb.GetBindingExpression(ComboBox.TextProperty)?.UpdateSource();
-                        }), System.Windows.Threading.DispatcherPriority.Background);
-                    }
+                    _logger.Debug($"ComboBox获得焦点: {GetControlIdentifier(cb)}");
                 }
             };
 
-            // 添加失去焦点事件处理
             comboBox.LostFocus += (sender, args) =>
             {
-                if (sender is ComboBox cb)
+                if (sender is System.Windows.Controls.ComboBox cb)
                 {
-                    // 确保更新绑定
-                    cb.GetBindingExpression(ComboBox.SelectedItemProperty)?.UpdateSource();
-                    cb.GetBindingExpression(ComboBox.SelectedValueProperty)?.UpdateSource();
-                    cb.GetBindingExpression(ComboBox.TextProperty)?.UpdateSource();
+                    _logger.Debug($"ComboBox失去焦点: {GetControlIdentifier(cb)}");
+                    if (cb.IsDropDownOpen)
+                    {
+                        System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                        {
+                            cb.IsDropDownOpen = false;
+                        }, System.Windows.Threading.DispatcherPriority.Input);
+                    }
                 }
             };
 
@@ -341,44 +438,9 @@ namespace WpfApp.Styles
             {
                 dpd.RemoveValueChanged(comboBox, (s, e) => { });
             };
-
-            // 添加下拉框打开关闭日志
-            comboBox.DropDownOpened += (sender, args) =>
-            {
-                if (sender is ComboBox cb)
-                {
-                    _logger.Debug($"ComboBox下拉框打开: {GetControlIdentifier(cb)}");
-                }
-            };
-
-            comboBox.DropDownClosed += (sender, args) =>
-            {
-                if (sender is ComboBox cb)
-                {
-                    _logger.Debug($"ComboBox下拉框关闭: {GetControlIdentifier(cb)}");
-                }
-            };
-
-            // 添加焦点变化日志
-            comboBox.GotFocus += (sender, args) =>
-            {
-                if (sender is ComboBox cb)
-                {
-                    _logger.Debug($"ComboBox获得焦点: {GetControlIdentifier(cb)}");
-                }
-            };
-
-            comboBox.LostFocus += (sender, args) =>
-            {
-                if (sender is ComboBox cb)
-                {
-                    _logger.Debug($"ComboBox失去焦点: {GetControlIdentifier(cb)}");
-                }
-            };
         }
 
-        // 添加新的辅助方法
-        private static bool IsComboBoxMainPartClick(DependencyObject? source, ComboBox comboBox)
+        private static bool IsComboBoxMainPartClick(DependencyObject? source, System.Windows.Controls.ComboBox comboBox)
         {
             if (source == null) return false;
 
@@ -386,7 +448,7 @@ namespace WpfApp.Styles
             while (source != null)
             {
                 // 如果遇到ComboBoxItem，说明点击在下拉列表上
-                if (source is ComboBoxItem)
+                if (source is System.Windows.Controls.ComboBoxItem)
                     return false;
 
                 // 如果到达ComboBox本身，说明是点击在主要部分
@@ -417,31 +479,31 @@ namespace WpfApp.Styles
                 // 特殊处理 ComboBox 相关的点击
                 if (IsComboBoxOrItsChildren(clicked))
                 {
-                    return; // 让 ComboBox 自己处理其内部的点击事件
-                }
-
-                // 如果点击了新的输入控件，直接转移焦点
-                if (clickedControl != null && IsInputControl(clicked))
-                {
-                    Application.Current.Dispatcher.InvokeAsync(() =>
-                    {
-                        // 先更新当前焦点元素的绑定
-                        UpdateFocusedElementBinding(focusedElement);
-                        // 设置新的焦点
-                        clickedControl.Focus();
-                    }, System.Windows.Threading.DispatcherPriority.Input);
                     return;
                 }
 
-                // 如果点击的是其他控件，且不是当前焦点元素的子元素
+                // 如果点击了新的输入控件
+                if (clickedControl != null && IsInputControl(clicked))
+                {
+                    if (clickedControl != focusedElement)
+                    {
+                        System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                        {
+                            UpdateFocusedElementBinding(focusedElement);
+                            clickedControl.Focus();
+                        }, System.Windows.Threading.DispatcherPriority.Input);
+                    }
+                    return;
+                }
+
+                // 如果点击的是其他控件
                 if (!IsDescendantOf(clicked, focusedElement))
                 {
-                    Application.Current.Dispatcher.InvokeAsync(() =>
+                    System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                     {
                         UpdateFocusedElementBinding(focusedElement);
                         ForceClearFocus(focusedElement);
                         
-                        // 如果点击的是可获得焦点的控件，则设置焦点
                         if (clickedControl?.Focusable == true)
                         {
                             clickedControl.Focus();
@@ -455,7 +517,6 @@ namespace WpfApp.Styles
             }
         }
 
-        // 添加新的辅助方法
         private static bool IsComboBoxOrItsChildren(DependencyObject? element)
         {
             if (element == null) return false;
@@ -464,7 +525,8 @@ namespace WpfApp.Styles
             var current = element;
             while (current != null)
             {
-                if (current is ComboBox || current is ComboBoxItem)
+                if (current is System.Windows.Controls.ComboBox || 
+                    current is System.Windows.Controls.ComboBoxItem)
                     return true;
 
                 // 获取可视化树的父元素
@@ -484,42 +546,47 @@ namespace WpfApp.Styles
 
         private static void UpdateFocusedElementBinding(UIElement focusedElement)
         {
-            if (focusedElement is TextBox textBox)
+            try
             {
-                textBox.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+                if (focusedElement is System.Windows.Controls.TextBox textBox)
+                {
+                    textBox.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateSource();
+                }
+                else if (focusedElement is System.Windows.Controls.ComboBox comboBox)
+                {
+                    comboBox.GetBindingExpression(System.Windows.Controls.ComboBox.SelectedItemProperty)?.UpdateSource();
+                    comboBox.GetBindingExpression(System.Windows.Controls.ComboBox.SelectedValueProperty)?.UpdateSource();
+                    comboBox.GetBindingExpression(System.Windows.Controls.ComboBox.TextProperty)?.UpdateSource();
+                }
             }
-            else if (focusedElement is ComboBox comboBox)
+            catch (Exception ex)
             {
-                comboBox.GetBindingExpression(ComboBox.SelectedItemProperty)?.UpdateSource();
-                comboBox.GetBindingExpression(ComboBox.SelectedValueProperty)?.UpdateSource();
-                comboBox.GetBindingExpression(ComboBox.TextProperty)?.UpdateSource();
+                _logger.Error("更新焦点元素绑定时发生异常", ex);
             }
         }
 
         private static bool IsInputControl(DependencyObject element)
         {
-            return element is TextBox || element is ComboBox ||
-                   IsDescendantOf(element, element is TextBox ? element : null) ||
-                   IsDescendantOf(element, element is ComboBox ? element : null);
+            return element is System.Windows.Controls.TextBox || 
+                   element is System.Windows.Controls.ComboBox ||
+                   IsDescendantOf(element, element is System.Windows.Controls.TextBox ? element : null) ||
+                   IsDescendantOf(element, element is System.Windows.Controls.ComboBox ? element : null);
         }
 
         private static void ForceClearAllFocus(Window window)
         {
             try
             {
-                var focusedElement = FocusManager.GetFocusedElement(window) as FrameworkElement;
+                var focusedElement = FocusManager.GetFocusedElement(window) as UIElement;
                 if (focusedElement != null)
                 {
-                    _logger.Debug($"清除窗口所有焦点, 当前焦点元素: {GetControlIdentifier(focusedElement)}");
+                    UpdateFocusedElementBinding(focusedElement);
                     ForceClearFocus(focusedElement);
                 }
-                
-                Keyboard.ClearFocus();
-                window.Focus();
             }
             catch (Exception ex)
             {
-                _logger.Error("强制清除所有焦点时发生异常", ex);
+                _logger.Error("清除所有焦点时发生异常", ex);
             }
         }
 
@@ -527,30 +594,27 @@ namespace WpfApp.Styles
         {
             try
             {
-                // 更新绑定
-                if (element is TextBox textBox)
+                if (element is System.Windows.Controls.TextBox textBox)
                 {
-                    textBox.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+                    textBox.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateSource();
                 }
-                else if (element is ComboBox comboBox)
+                else if (element is System.Windows.Controls.ComboBox comboBox)
                 {
-                    comboBox.GetBindingExpression(ComboBox.SelectedItemProperty)?.UpdateSource();
-                }
-
-                // 清除焦点
-                var focusScope = FocusManager.GetFocusScope(element);
-                if (focusScope != null)
-                {
-                    FocusManager.SetFocusedElement(focusScope, null);
+                    if (comboBox.IsDropDownOpen)
+                    {
+                        comboBox.IsDropDownOpen = false;
+                    }
                 }
 
-                // 确保键盘焦点被清除
-                if (Keyboard.FocusedElement == element)
+                // 移除键盘焦点
+                if (element.IsKeyboardFocused)
                 {
-                    Keyboard.ClearFocus();
+                    System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        Keyboard.ClearFocus();
+                        FocusManager.SetFocusedElement(FocusManager.GetFocusScope(element), null);
+                    }, System.Windows.Threading.DispatcherPriority.Input);
                 }
-
-                _logger.Debug($"强制清除焦点: {element.GetType().Name}");
             }
             catch (Exception ex)
             {
@@ -562,15 +626,17 @@ namespace WpfApp.Styles
         {
             try
             {
-                var focusedElement = FocusManager.GetFocusedElement(window) as FrameworkElement;
+                var focusedElement = FocusManager.GetFocusedElement(window) as UIElement;
                 if (focusedElement != null)
                 {
-                    _logger.Debug($"检查焦点元素: {GetControlIdentifier(focusedElement)}");
-                    
-                    if (focusedElement is TextBox || focusedElement is ComboBox)
+                    if (focusedElement is System.Windows.Controls.TextBox || 
+                        focusedElement is System.Windows.Controls.ComboBox)
                     {
-                        _logger.Debug($"清除输入控件焦点: {GetControlIdentifier(focusedElement)}");
-                        ForceClearFocus(focusedElement);
+                        System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                        {
+                            UpdateFocusedElementBinding(focusedElement);
+                            ForceClearFocus(focusedElement);
+                        }, System.Windows.Threading.DispatcherPriority.Input);
                     }
                 }
             }
@@ -584,31 +650,25 @@ namespace WpfApp.Styles
         {
             try
             {
-                var current = child;
-                while (current != null)
+                while (child != null)
                 {
-                    if (current == parent)
-                    {
+                    if (child == parent)
                         return true;
-                    }
-                    current = VisualTreeHelper.GetParent(current) ?? 
-                             LogicalTreeHelper.GetParent(current);
+                    
+                    child = VisualTreeHelper.GetParent(child);
                 }
                 return false;
             }
             catch (Exception ex)
             {
-                _logger.Error("检查控件层级关系时发生异常", ex);
+                _logger.Error("检查元素父子关系时发生异常", ex);
                 return false;
             }
         }
 
-        // 添加新的辅助方法用于获取控件标识
         private static string GetControlIdentifier(FrameworkElement element)
         {
-            var name = !string.IsNullOrEmpty(element.Name) ? element.Name : "Unnamed";
-            var type = element.GetType().Name;
-            return $"{type}[{name}]";
+            return $"{element.GetType().Name}{(string.IsNullOrEmpty(element.Name) ? "" : $"[{element.Name}]")}";
         }
     }
 
@@ -616,8 +676,8 @@ namespace WpfApp.Styles
     {
         public static bool HasProperty(this DependencyObject obj, string propertyName)
         {
-            return DependencyPropertyDescriptor
-                .FromName(propertyName, obj.GetType(), obj.GetType()) != null;
+            return DependencyPropertyDescriptor.FromName(
+                propertyName, obj.GetType(), obj.GetType()) != null;
         }
     }
 }

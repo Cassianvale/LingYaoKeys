@@ -13,7 +13,9 @@ namespace WpfApp.Services.KeyModes
         private readonly SemaphoreSlim _executionLock = new SemaphoreSlim(1, 1);
         private readonly object _stateLock = new object();
         private bool _isExecuting; 
-
+        // 添加状态消息更新事件
+        public event Action<string, bool>? OnStatusMessageUpdated;
+        
         public HoldKeyMode(DDDriverService driverService) : base(driverService)
         {
         }
@@ -184,8 +186,6 @@ namespace WpfApp.Services.KeyModes
                     _cts.Cancel();
                 }
 
-                LogModeEnd();
-                
                 // 确保所有按键都被释放
                 foreach (var key in _keyList)
                 {
@@ -219,7 +219,6 @@ namespace WpfApp.Services.KeyModes
             base.Dispose(disposing);
         }
 
-        // 添加状态消息更新事件
-        public event Action<string, bool>? OnStatusMessageUpdated;
+
     }
 }

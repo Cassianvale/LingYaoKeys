@@ -11,12 +11,12 @@ namespace WpfApp.Behaviors
                 typeof(DragDropProperties),
                 new PropertyMetadata(false));
 
-        public static void SetIsDragTarget(UIElement element, bool value)
+        public static void SetIsDragTarget(DependencyObject element, bool value)
         {
             element.SetValue(IsDragTargetProperty, value);
         }
 
-        public static bool GetIsDragTarget(UIElement element)
+        public static bool GetIsDragTarget(DependencyObject element)
         {
             return (bool)element.GetValue(IsDragTargetProperty);
         }
