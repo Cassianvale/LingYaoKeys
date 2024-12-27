@@ -7,7 +7,7 @@ using System.Reflection;
 
 namespace WpfApp.Services
 {
-    public class AudioService : IDisposable
+    public class AudioService
     {
         private readonly SerilogManager _logger = SerilogManager.Instance;
         private readonly string _startSoundPath;
@@ -162,17 +162,24 @@ namespace WpfApp.Services
 
         private void DisposeCurrentSound()
         {
-            if (_outputDevice != null)
+            try
             {
-                _outputDevice.Stop();
-                _outputDevice.Dispose();
-                _outputDevice = null;
-            }
+                if (_outputDevice != null)
+                {
+                    _outputDevice.Stop();
+                    _outputDevice.Dispose();
+                    _outputDevice = null;
+                }
 
-            if (_mediaReader != null)
+                if (_mediaReader != null)
+                {
+                    _mediaReader.Dispose();
+                    _mediaReader = null;
+                }
+            }
+            catch (Exception ex)
             {
-                _mediaReader.Dispose();
-                _mediaReader = null;
+                _logger.Error("释放当前音频资源时发生异常", ex);
             }
         }
 
@@ -184,15 +191,33 @@ namespace WpfApp.Services
             {
                 if (_isDisposed) return;
                 _isDisposed = true;
-                
-                _currentCts?.Cancel();
-                _currentCts?.Dispose();
-                lock (_lockObject)
+
+                try
                 {
-                    _isPlayingStopSound = false;
-                    DisposeCurrentSound();
+                    // 取消当前播放任务
+                    if (_currentCts != null)
+                    {
+                        _currentCts.Cancel();
+                        _currentCts.Dispose();
+                        _currentCts = null;
+                    }
+
+                    // 停止并释放当前音频
+                    lock (_lockObject)
+                    {
+                        _isPlayingStopSound = false;
+                        DisposeCurrentSound();
+                    }
+
+                    _logger.Debug("音频服务资源已释放");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error("释放音频服务资源时发生异常", ex);
                 }
             }
+            
+            GC.SuppressFinalize(this);
         }
     }
 } 

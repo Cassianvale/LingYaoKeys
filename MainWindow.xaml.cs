@@ -443,23 +443,29 @@ namespace WpfApp
             
             _logger.Debug("正在关闭应用程序");
 
-            // 设置关闭模式为显式关闭，这样浮窗才会真正关闭
-            System.Windows.Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-
-            // 清理资源
             try 
             {
                 _logger.Debug("开始清理窗口资源...");
-                if (_trayIcon != null)
-                {
-                    _trayIcon.Dispose();
-                    _trayIcon = null;
-                }
                 
-                // 使用新的Dispose方法替代Cleanup
+                // 先停止所有操作
                 if (_viewModel is IDisposable disposableViewModel)
                 {
                     disposableViewModel.Dispose();
+                }
+
+                // 确保移除托盘图标
+                if (_trayIcon != null)
+                {
+                    _trayIcon.Visible = false;  // 先隐藏托盘图标
+                    _trayIcon.Dispose();
+                    _trayIcon = null;
+                }
+
+                // 移除事件处理
+                if (_trayContextMenu != null)
+                {
+                    _trayContextMenu.Items.Clear();
+                    _trayContextMenu = null;
                 }
                 
                 _logger.Debug("窗口资源清理完成");
@@ -468,9 +474,12 @@ namespace WpfApp
             {
                 _logger.Error("窗口关闭异常", ex);
             }
-
-            // 确保应用程序退出
-            System.Windows.Application.Current.Shutdown();
+            finally
+            {
+                // 设置关闭模式并关闭应用程序
+                System.Windows.Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                System.Windows.Application.Current.Shutdown();
+            }
         }
 
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

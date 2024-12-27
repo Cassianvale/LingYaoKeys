@@ -32,7 +32,7 @@ using WpfApp.Services;
 /// </summary>
 namespace WpfApp.Services
 {
-    public class DDDriverService : IDisposable
+    public class DDDriverService
     {
         private CDD _dd;
         private bool _isInitialized;
@@ -462,70 +462,31 @@ namespace WpfApp.Services
         }
 
         // 释放资源
-        public async Task DisposeAsync()
+        public async void Dispose()
         {
-            if (_isDisposed) return;
-
-            lock (_disposeLock)
-            {
-                if (_isDisposed) return;
-                _isDisposed = true;
-            }
-
             try
             {
-                _logger.Debug("开始释放驱动服务资源");
-
-                // 1. 停止所有运行中的操作
+                _logger.Debug("开始释放驱动资源");
+                
                 IsEnabled = false;
-                _isHoldMode = false;
-
-                // 2. 等待所有任务完成
+                
+                // 停止所有任务
                 await _taskManager.StopAllTasks(TimeSpan.FromSeconds(2));
-
-                // 3. 清理按键列表
+                
+                // 清理资源
+                _isEnabled = false;
+                _isHoldMode = false;
                 _keyList.Clear();
-
-                // 4. 清理事件订阅
-                InitializationStatusChanged = null;
-                EnableStatusChanged = null;
-                KeyIntervalChanged = null;
-                StatusMessageChanged = null;
-                KeyPressIntervalChanged = null;
-                ModeSwitched = null;
-
-                // 5. 释放当前模式
-                if (_currentKeyMode != null)
-                {
-                    _currentKeyMode.Dispose();
-                    _currentKeyMode = null;
-                }
-
-                // 6. 重置驱动状态
+                
                 _isInitialized = false;
                 _dd = new CDD();
 
-                _logger.Debug("驱动服务资源释放完成");
-                _logger.Debug("=================================================");
+                _logger.Debug("驱动资源释放完成");
             }
             catch (Exception ex)
             {
-                _logger.Error("释放驱动服务资源时发生异常", ex);
-                throw;
+                _logger.Error("释放资源时发生异常", ex);
             }
-        }
-
-        public void Dispose()
-        {
-            try
-            {
-                DisposeAsync().Wait();
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("Dispose过程中发生异常", ex);
-            }
-            GC.SuppressFinalize(this);
         }
 
         // 顺序模式&按压模式逻辑

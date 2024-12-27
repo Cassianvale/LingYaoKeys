@@ -145,19 +145,25 @@ namespace WpfApp
             {
                 _logger.Debug("开始释放应用程序资源...");
                 
-                // 由于DDDriver和AudioService已经在MainViewModel中释放
-                // 这里只处理未释放的资源
+                // 确保所有服务都被释放
                 if (!DDDriver.IsDisposed)
                 {
                     DDDriver?.Dispose();
+                    DDDriver = null;
                 }
+                
                 if (!AudioService.IsDisposed)
                 {
                     AudioService?.Dispose();
+                    AudioService = null;
                 }
+
+                // 清理配置服务
+                ConfigService = null;
                 
                 // 最后释放日志服务
                 _logger.Debug("应用程序资源已释放");
+                _logger.Debug("=================================================");
                 _logger.Dispose();
             }
             catch (Exception ex)
@@ -167,7 +173,8 @@ namespace WpfApp
             }
             finally
             {
-                base.OnExit(e);
+                // 确保进程退出
+                Environment.Exit(0);
             }
         }
     }

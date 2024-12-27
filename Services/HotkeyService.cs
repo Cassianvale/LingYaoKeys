@@ -14,7 +14,7 @@ using WpfApp.ViewModels;
 // 提供快捷键服务
 namespace WpfApp.Services
 {
-    public class HotkeyService : IDisposable
+    public class HotkeyService
     {
         // Win32 API 函数
         [DllImport("user32.dll")]
@@ -395,8 +395,8 @@ namespace WpfApp.Services
                             
                             if (vkCode == _startVirtualKey)
                             {
-                                _logger.Debug("检测到启动键释放");
                                 HandleHoldModeKeyRelease();
+                                _logger.Debug("检测到启动键释放");
                                 handled = true;
                             }
                         }
@@ -411,87 +411,47 @@ namespace WpfApp.Services
             return IntPtr.Zero;
         }
 
-        // 释放资源
-        public async Task DisposeAsync()
+        public void Dispose()
         {
             if (_isDisposed) return;
 
             lock (_disposeLock)
             {
                 if (_isDisposed) return;
-                _isDisposed = true;
-            }
 
-            try
-            {
-                _logger.Debug("开始释放热键服务资源");
-
-                // 1. 停止所有运行中的序列
-                StopSequence();
-
-                // 2. 取消注册所有热键
-                if (_startHotkeyRegistered)
+                try
                 {
-                    UnregisterHotKey(_windowHandle, START_HOTKEY_ID);
-                    _startHotkeyRegistered = false;
+                    _logger.Debug("开始清理资源...");
+                    
+                    if (_mouseHookHandle != IntPtr.Zero)
+                    {
+                        UnhookWindowsHookEx(_mouseHookHandle);
+                        _mouseHookHandle = IntPtr.Zero;
+                    }
+
+                    if (_keyboardHookHandle != IntPtr.Zero)
+                    {
+                        UnhookWindowsHookEx(_keyboardHookHandle);
+                        _keyboardHookHandle = IntPtr.Zero;
+                    }
+                    
+                    StopSequence();
+                    UnregisterHotKey();
+                    
+                    if (_source != null)
+                    {
+                        _source.RemoveHook(WndProc);
+                        _source = null;
+                    }
+
+                    _isDisposed = true;
+                    _logger.Debug("资源清理完成");
                 }
-                if (_stopHotkeyRegistered)
+                catch (Exception ex)
                 {
-                    UnregisterHotKey(_windowHandle, STOP_HOTKEY_ID);
-                    _stopHotkeyRegistered = false;
+                    _logger.Error("清理资源时发生异常", ex);
                 }
-
-                // 3. 移除钩子
-                if (_mouseHookHandle != IntPtr.Zero)
-                {
-                    UnhookWindowsHookEx(_mouseHookHandle);
-                    _mouseHookHandle = IntPtr.Zero;
-                }
-                if (_keyboardHookHandle != IntPtr.Zero)
-                {
-                    UnhookWindowsHookEx(_keyboardHookHandle);
-                    _keyboardHookHandle = IntPtr.Zero;
-                }
-
-                // 4. 移除窗口钩子
-                if (_source != null)
-                {
-                    _source.RemoveHook(WndProc);
-                    _source = null;
-                }
-
-                // 5. 清理事件订阅
-                StartHotkeyPressed = null;
-                StartHotkeyReleased = null;
-                StopHotkeyPressed = null;
-                SequenceModeStarted = null;
-                SequenceModeStopped = null;
-                KeyTriggered = null;
-
-                // 6. 重置状态
-                _isStarted = false;
-                _isSequenceRunning = false;
-                _isHoldModeRunning = false;
-                _windowHandle = IntPtr.Zero;
             }
-            catch (Exception ex)
-            {
-                _logger.Error("释放热键服务资源时发生异常", ex);
-                throw;
-            }
-        }
-
-        public void Dispose()
-        {
-            try
-            {
-                DisposeAsync().Wait();
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("Dispose过程中发生异常", ex);
-            }
-            GC.SuppressFinalize(this);
         }
 
         // 修改注册开始热键的方法
@@ -1336,8 +1296,8 @@ namespace WpfApp.Services
                             DDKeyCode xButtonUpCode = xButtonUp == 1 ? DDKeyCode.XBUTTON1 : DDKeyCode.XBUTTON2;
                             if (!_ddDriverService.IsSequenceMode && _pendingStartKey == xButtonUpCode)
                             {
-                                _logger.Debug($"全局鼠标钩子捕获到侧键释放");
                                 HandleHoldModeKeyRelease();
+                                _logger.Debug("全局鼠标钩子捕获到侧键释放");
                             }
                             break;
 
@@ -1366,8 +1326,8 @@ namespace WpfApp.Services
                         case WM_MBUTTONUP:
                             if (!_ddDriverService.IsSequenceMode && _pendingStartKey == DDKeyCode.MBUTTON)
                             {
-                                _logger.Debug("全局鼠标钩子捕获到中键释放");
                                 HandleHoldModeKeyRelease();
+                                _logger.Debug("全局鼠标钩子捕获到中键释放");
                             }
                             break;
                     }
@@ -1764,8 +1724,6 @@ namespace WpfApp.Services
 
             try
             {
-                _logger.Debug("处理按压模式按键释放");
-
                 lock (_holdModeLock)
                 {
                     if (!_isHoldModeRunning && !_isSequenceRunning && !_isStarted)
@@ -1828,8 +1786,6 @@ namespace WpfApp.Services
                         _logger.Error("触发停止事件时发生异常", ex);
                     }
                 }
-
-                _logger.Debug("按压模式已停止");
             }
             catch (Exception ex)
             {
@@ -1894,8 +1850,8 @@ namespace WpfApp.Services
                             {
                                 case WM_KEYUP:
                                 case WM_SYSKEYUP:
-                                    _logger.Debug($"检测到真实物理 Keyboard 被释放 - VK: {hookStruct.vkCode}");
                                     HandleHoldModeKeyRelease();
+                                    _logger.Debug($"检测到真实物理 Keyboard 被释放 - VK: {hookStruct.vkCode}");
                                     break;
                             }
                         }

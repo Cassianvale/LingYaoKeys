@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 
 namespace WpfApp.ViewModels
 {
-    public class MainViewModel : ViewModelBase, IDisposable
+    public class MainViewModel : ViewModelBase
     {
         private AppConfig? _config;
         private bool _isDisposed;
@@ -234,62 +234,23 @@ namespace WpfApp.ViewModels
             return newFadeOut;
         }
 
-        public async Task DisposeAsync()
-        {
-            if (_isDisposed) return;
-
-            lock (_disposeLock)
-            {
-                if (_isDisposed) return;
-                _isDisposed = true;
-            }
-
-            try
-            {
-                _logger.Debug("开始清理资源...");
-                
-                // 停止定时器
-                _statusMessageTimer?.Stop();
-
-                // 保存配置
-                _keyMappingViewModel?.SaveConfig();
-                _logger.Debug("配置保存完成");
-
-                // 释放服务资源
-                if (_hotkeyService != null)
-                {
-                    await _hotkeyService.DisposeAsync();
-                    _logger.Debug("热键服务资源已释放");
-                }
-
-                // 清理动画缓存
-                _fadeInCache?.Clear();
-                _fadeOutCache?.Clear();
-                _pageCache?.Clear();
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("清理资源时发生异常", ex);
-            }
-        }
-
-        public void Dispose()
-        {
-            DisposeAsync().Wait();
-            GC.SuppressFinalize(this);
-        }
-
-        // 添加兼容层方法
         public void Cleanup()
         {
-            try
-            {
-                DisposeAsync().Wait();
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("清理资源过程中发生异常", ex);
-            }
+            _logger.Debug("开始清理资源...");
+            _logger.Debug("开始保存应用程序配置...");
+
+            _keyMappingViewModel.SaveConfig();  // 保存配置
+            _logger.Debug("配置保存完成");
+            _logger.Debug("--------------------------------");
+
+            _hotkeyService?.Dispose();
+            _statusMessageTimer.Stop(); // 停止定时器
+            _logger.Debug("资源清理完成");
+
+            // 清理动画缓存
+            _fadeInCache.Clear();
+            _fadeOutCache.Clear();
+            _pageCache.Clear();
         }
 
         // 订阅DDDriverService的事件，用于更新状态栏消息

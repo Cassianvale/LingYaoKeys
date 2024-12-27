@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 // 按键模式基类
 namespace WpfApp.Services.KeyModes
 {
-    public abstract class KeyModeBase : IDisposable
+    public abstract class KeyModeBase
     {
         protected readonly DDDriverService _driverService;
         protected readonly SerilogManager _logger;
