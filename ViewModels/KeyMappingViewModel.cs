@@ -242,7 +242,8 @@ namespace WpfApp.ViewModels
             {
                 if (_floatingWindow == null)
                 {
-                    _floatingWindow = new FloatingStatusWindow();
+                    var mainWindow = System.Windows.Application.Current.MainWindow as MainWindow;
+                    _floatingWindow = new FloatingStatusWindow(mainWindow);
                     _floatingViewModel = _floatingWindow.DataContext as FloatingStatusViewModel;
                     UpdateFloatingStatus();
                 }

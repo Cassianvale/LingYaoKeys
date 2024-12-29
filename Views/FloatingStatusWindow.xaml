@@ -14,6 +14,10 @@
         Background="Transparent"
         Topmost="True"
         ShowInTaskbar="False"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown"
+        MouseMove="Window_MouseMove"
+        MouseLeftButtonUp="Window_MouseLeftButtonUp"
+        MouseRightButtonDown="Window_MouseRightButtonDown"
         ResizeMode="NoResize">
     
     <Window.Resources>
@@ -25,8 +29,7 @@
     </Window.DataContext>
 
     <Border Background="{Binding StatusText, Converter={StaticResource StatusToColorConverter}}"
-            CornerRadius="4"
-            MouseLeftButtonDown="Border_MouseLeftButtonDown">
+            CornerRadius="4">
         <TextBlock Text="{Binding StatusText}"
                    Foreground="White"
                    FontWeight="Medium"

@@ -194,11 +194,58 @@
                            DockPanel.Dock="Left" 
                            VerticalAlignment="Center" 
                            Margin="0,0,0,0"
-                           Width="60"/>
+                           Width="50"/>
+                <Button x:Name="btnModeHelp"
+                        DockPanel.Dock="Left"
+                        Style="{StaticResource CircleHelpButtonStyle}"
+                        Width="18" Height="18"
+                        FontSize="11"
+                        Margin="0,0,10,0"
+                        Click="ModeHelp_Click"
+                        Content="?"
+                        FontWeight="SemiBold">
+                    <Button.ToolTip>
+                        <ToolTip>
+                            <TextBlock Text="点击查看按键模式说明"/>
+                        </ToolTip>
+                    </Button.ToolTip>
+                </Button>
+
+                <!-- 按键模式帮助提示浮窗 -->
+                <Popup x:Name="modeHelpPopup" 
+                       PlacementTarget="{Binding ElementName=btnModeHelp}"
+                       Placement="Right" 
+                       AllowsTransparency="True" 
+                       PopupAnimation="Fade"
+                       StaysOpen="False">
+                    <Border Style="{StaticResource HelpPopupStyle}"
+                            Width="280">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource HelpTextStyle}"
+                                       Text="按键模式决定了按键的触发方式："/>
+                            <TextBlock Style="{StaticResource HelpTextStyle}"
+                                       Margin="0,8,0,0">
+                                <Run Text="• 顺序模式" FontWeight="SemiBold"/>
+                                <LineBreak/>
+                                <Run Text="  按下启动键开始，按下停止键结束"/>
+                                <LineBreak/>
+                                <Run Text="  适合需要精确控制开始和结束的场景"/>
+                                <LineBreak/>
+                                <LineBreak/>
+                                <Run Text="• 按压模式" FontWeight="SemiBold"/>
+                                <LineBreak/>
+                                <Run Text="  按住启动键时持续执行，松开后停止"/>
+                                <LineBreak/>
+                                <Run Text="  适合需要快速切换状态的场景"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+                </Popup>
+
                 <ComboBox x:Name="cboKeyMode"
                           Style="{StaticResource ModernComboBox}"
                           ItemContainerStyle="{StaticResource ModernComboBoxItem}"
-                          Width="120"
+                          Width="100"
                           Height="32"
                           VerticalContentAlignment="Center"
                           HorizontalContentAlignment="Center"
@@ -218,28 +265,69 @@
                            DockPanel.Dock="Left" 
                            VerticalAlignment="Center"
                            Margin="0,0,0,0"
-                           Width="60"/>
+                           Width="50"/>
+                <Button x:Name="btnIntervalHelp"
+                        DockPanel.Dock="Left"
+                        Style="{StaticResource CircleHelpButtonStyle}"
+                        Width="18" Height="18"
+                        FontSize="11"
+                        Margin="0,0,10,0"
+                        Click="IntervalHelp_Click"
+                        Content="?"
+                        FontWeight="SemiBold">
+                    <Button.ToolTip>
+                        <ToolTip>
+                            <TextBlock Text="点击查看按键间隔说明"/>
+                        </ToolTip>
+                    </Button.ToolTip>
+                </Button>
+
+                <!-- 帮助提示浮窗 -->
+                <Popup x:Name="helpPopup" 
+                       PlacementTarget="{Binding ElementName=btnIntervalHelp}"
+                       Placement="Right" 
+                       AllowsTransparency="True" 
+                       PopupAnimation="Fade"
+                       StaysOpen="False">
+                    <Border Style="{StaticResource HelpPopupStyle}"
+                            Width="280">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource HelpTextStyle}"
+                                       Text="按键间隔是指连续按键之间的时间间隔，单位为毫秒(ms)，1秒=1000毫秒。"/>
+                            <TextBlock Style="{StaticResource HelpTextStyle}"
+                                       Margin="0,8,0,0">
+                                <Run Text="• 间隔越短，按键速度越快"/>
+                                <LineBreak/>
+                                <Run Text="• 间隔越长，按键速度越慢"/>
+                                <LineBreak/>
+                                <Run Text="• 建议值范围：5-10ms"/>
+                                <LineBreak/>
+                                <Run Text="• 最小值：1ms"/>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource HelpTextStyle}"
+                                       Margin="0,8,0,0"
+                                       Foreground="#F44336"
+                                       Text="注意：设置过短的间隔可能导致按键不稳定或游戏无法正确识别"/>
+                        </StackPanel>
+                    </Border>
+                </Popup>
                 <TextBox x:Name="txtKeyInterval"
                          Style="{StaticResource ModernTextBox}"
                          IsEnabled="{Binding IsNotExecuting}"
-                         Width="120"
-                         Height="32"
+                         Width="100"
                          VerticalContentAlignment="Center"
                          TextAlignment="Center"
                          IsReadOnly="False"
                          PreviewTextInput="NumberValidationTextBox"
                          GotFocus="NumberInput_GotFocus"
                          LostFocus="NumberInput_LostFocus"
-                         Text="{Binding KeyInterval, 
-                                Mode=TwoWay, 
-                                UpdateSourceTrigger=PropertyChanged,
-                                Converter={StaticResource IntToStringConverter}}"/>
+                         Text="{Binding KeyInterval, Converter={StaticResource IntToStringConverter}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DockPanel.Dock="Left"/>
             </DockPanel>
 
             <!-- 底部设置区域重新布局 -->
             <StackPanel Margin="0,0,0,0">
                 <!-- 声音提示和游戏模式并排 -->
-                <Grid Margin="0,0,0,10">
+                <Grid Margin="0,0,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
@@ -248,12 +336,20 @@
                     <CheckBox Grid.Column="0"
                               Style="{StaticResource ModernSwitch}"
                               Content="声音提示" 
+                              Height="32"
+                              VerticalContentAlignment="Center"
+                              HorizontalAlignment="Left"
+                              Margin="0,0,0,0"
                               Padding="0,0,0,0"
                               IsChecked="{Binding IsSoundEnabled, Mode=TwoWay}"/>
                               
                     <CheckBox Grid.Column="1"
                               Style="{StaticResource ModernSwitch}"
                               Content="游戏模式" 
+                              Height="32"
+                              VerticalContentAlignment="Center"
+                              HorizontalAlignment="Left"
+                              Margin="0,0,0,0"
                               Padding="0,0,0,0"
                               IsChecked="{Binding IsGameMode, Mode=TwoWay}"/>
                 </Grid>
@@ -261,7 +357,11 @@
                 <!-- 添加浮窗开关 -->
                 <CheckBox Style="{StaticResource ModernSwitch}"
                           Content="状态浮窗" 
-                          Margin="0,10,0,0"
+                          Height="32"
+                          VerticalContentAlignment="Center"
+                          HorizontalAlignment="Left"
+                          Margin="0,0,0,0"
+                          Padding="0,0,0,0"
                           IsChecked="{Binding IsFloatingWindowEnabled, Mode=TwoWay}"/>
             </StackPanel>
         </StackPanel>

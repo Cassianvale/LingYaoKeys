@@ -137,6 +137,19 @@ namespace WpfApp.Styles
 
                             if (!windowRect.Contains(screenPoint))
                             {
+                                // 将屏幕坐标转换为窗口坐标
+                                var windowPoint = window.PointFromScreen(screenPoint);
+                                var hitTestResult = VisualTreeHelper.HitTest(window, windowPoint);
+                                
+                                // 如果点击到了特殊UI元素，不处理窗口外点击
+                                if (hitTestResult != null && 
+                                    hitTestResult.VisualHit is DependencyObject element && 
+                                    IsComboBoxOrItsChildren(element))
+                                {
+                                    _logger.Debug("点击在特殊UI元素上，不清除焦点");
+                                    return;
+                                }
+
                                 _logger.Debug("检测到窗口外点击，清除焦点");
                                 ForceClearAllFocus(window);
                             }
@@ -529,9 +542,16 @@ namespace WpfApp.Styles
                     clickedControl = clicked as UIElement;
                 }
 
-                // 特殊处理 ComboBox 相关的点击
+                // 特殊处理 ComboBox 和其他特殊UI元素
                 if (IsComboBoxOrItsChildren(clicked))
                 {
+                    _logger.Debug($"点击在特殊UI元素上: {clicked.GetType().Name}");
+                    
+                    // 如果当前有焦点元素，且不是特殊UI元素，则更新其绑定
+                    if (focusedElement != null && !IsComboBoxOrItsChildren(focusedElement as DependencyObject))
+                    {
+                        UpdateFocusedElementBinding(focusedElement);
+                    }
                     return;
                 }
 
@@ -580,20 +600,35 @@ namespace WpfApp.Styles
                 var current = element;
                 while (current != null)
                 {
-                    // 检查是否是ComboBox相关元素
+                    // 检查是否是特殊UI元素
                     if (current is System.Windows.Controls.ComboBox || 
                         current is System.Windows.Controls.ComboBoxItem ||
-                        current.GetType().Name.Contains("ComboBox")) // 处理ComboBox的模板元素
+                        current.GetType().Name.Contains("ComboBox") || // 处理ComboBox的模板元素
+                        current is System.Windows.Controls.CheckBox || // 处理Switch控件
+                        current.GetType().Name.Contains("Switch") || // 处理Switch的模板元素
+                        current is System.Windows.Controls.Button || // 处理所有按钮
+                        current is System.Windows.Controls.Primitives.Popup || // 处理浮窗
+                        current is System.Windows.Controls.ToolTip) // 处理工具提示
                     {
-                        _logger.Debug($"检测到ComboBox相关元素: {current.GetType().Name}");
+                        _logger.Debug($"检测到特殊UI元素: {current.GetType().Name}");
                         return true;
                     }
 
-                    // 获取可视化树的父元素
-                    var visualParent = VisualTreeHelper.GetParent(current);
-                    if (visualParent != null)
+                    // 检查父级是否包含特殊UI元素
+                    var parent = VisualTreeHelper.GetParent(current);
+                    if (parent != null)
                     {
-                        current = visualParent;
+                        // 检查父级是否是特殊UI元素
+                        if (parent is System.Windows.Controls.Button ||
+                            parent is System.Windows.Controls.CheckBox ||
+                            parent is System.Windows.Controls.ComboBox ||
+                            parent.GetType().Name.Contains("Switch") ||
+                            parent.GetType().Name.Contains("Help"))
+                        {
+                            _logger.Debug($"检测到特殊UI元素的子元素: {current.GetType().Name} -> {parent.GetType().Name}");
+                            return true;
+                        }
+                        current = parent;
                     }
                     else
                     {
@@ -605,7 +640,7 @@ namespace WpfApp.Styles
             }
             catch (Exception ex)
             {
-                _logger.Error("检查ComboBox元素关系时发生异常", ex);
+                _logger.Error("检查UI元素关系时发生异常", ex);
                 return false;
             }
         }

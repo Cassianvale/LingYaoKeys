@@ -696,5 +696,17 @@ namespace WpfApp.Views
             return null;
         }
 
+        private void IntervalHelp_Click(object sender, RoutedEventArgs e)
+        {
+            // 切换帮助浮窗的显示状态
+            helpPopup.IsOpen = !helpPopup.IsOpen;
+        }
+
+        private void ModeHelp_Click(object sender, RoutedEventArgs e)
+        {
+            // 切换帮助浮窗的显示状态
+            modeHelpPopup.IsOpen = !modeHelpPopup.IsOpen;
+        }
+
     }
 } 

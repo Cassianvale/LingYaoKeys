@@ -288,4 +288,30 @@
         </Setter>
     </Style>
 
+    <!-- 帮助提示浮窗样式 -->
+    <Style x:Key="HelpPopupStyle" TargetType="Border">
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="BorderBrush" Value="#BDBDBD"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Padding" Value="12"/>
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect BlurRadius="10" 
+                                 Direction="270" 
+                                 ShadowDepth="3" 
+                                 Opacity="0.2" 
+                                 Color="#000000"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 帮助提示文本样式 -->
+    <Style x:Key="HelpTextStyle" TargetType="TextBlock">
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="Foreground" Value="#333333"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="LineHeight" Value="20"/>
+    </Style>
+
 </ResourceDictionary>
