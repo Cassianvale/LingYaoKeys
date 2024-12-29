@@ -1,0 +1,36 @@
+<Window x:Class="WpfApp.Views.FloatingStatusWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:WpfApp.ViewModels"
+        xmlns:converters="clr-namespace:WpfApp.Converters"
+        mc:Ignorable="d"
+        Title="状态" 
+        Height="40" 
+        Width="100"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize">
+    
+    <Window.Resources>
+        <converters:StatusToColorConverter x:Key="StatusToColorConverter"/>
+    </Window.Resources>
+    
+    <Window.DataContext>
+        <vm:FloatingStatusViewModel/>
+    </Window.DataContext>
+
+    <Border Background="{Binding StatusText, Converter={StaticResource StatusToColorConverter}}"
+            CornerRadius="4"
+            MouseLeftButtonDown="Border_MouseLeftButtonDown">
+        <TextBlock Text="{Binding StatusText}"
+                   Foreground="White"
+                   FontWeight="Medium"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"/>
+    </Border>
+</Window> 

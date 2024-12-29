@@ -45,5 +45,8 @@
   "interval": 5,
   "soundEnabled": true,
   "IsGameMode": true,
-  "KeyPressInterval": 5
+  "KeyPressInterval": 5,
+  "FloatingWindowLeft": 0.0,
+  "FloatingWindowTop": 0.0,
+  "IsFloatingWindowEnabled": true
 }

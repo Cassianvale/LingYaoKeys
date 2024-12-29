@@ -259,10 +259,10 @@
                 </Grid>
 
                 <!-- 添加浮窗开关 -->
-                <!-- <CheckBox Style="{StaticResource ModernSwitch}"
+                <CheckBox Style="{StaticResource ModernSwitch}"
                           Content="状态浮窗" 
-                          Padding="0,0,0,0"
-                          IsChecked="{Binding IsFloatingWindowEnabled, Mode=TwoWay}"/> -->
+                          Margin="0,10,0,0"
+                          IsChecked="{Binding IsFloatingWindowEnabled, Mode=TwoWay}"/>
             </StackPanel>
         </StackPanel>
     </Grid>

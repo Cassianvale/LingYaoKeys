@@ -8,6 +8,7 @@ using System.Text;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Windows;
+using WpfApp.Views;
 
 
 // 按键映射核心业务逻辑层
@@ -38,6 +39,9 @@ namespace WpfApp.ViewModels
         private bool _isGameMode = true; // 默认开启
         private bool _isInitializing = true; // 添加一个标志来标识是否在初始化
         private bool _isExecuting = false; // 添加执行状态标志
+        private bool _isFloatingWindowEnabled;
+        private FloatingStatusWindow _floatingWindow;
+        private FloatingStatusViewModel _floatingViewModel;
 
         // 按键列表
         public ObservableCollection<KeyItem> KeyList
@@ -196,9 +200,12 @@ namespace WpfApp.ViewModels
             get => _isExecuting;
             private set
             {
-                if (SetProperty(ref _isExecuting, value))
+                if (_isExecuting != value)
                 {
+                    _isExecuting = value;
+                    OnPropertyChanged(nameof(IsExecuting));
                     OnPropertyChanged(nameof(IsNotExecuting));
+                    UpdateFloatingStatus();
                 }
             }
         }
@@ -206,6 +213,54 @@ namespace WpfApp.ViewModels
         // 是否未在执行（用于绑定）
         public bool IsNotExecuting => !IsExecuting;
 
+        public bool IsFloatingWindowEnabled
+        {
+            get => _isFloatingWindowEnabled;
+            set
+            {
+                if (_isFloatingWindowEnabled != value)
+                {
+                    _isFloatingWindowEnabled = value;
+                    OnPropertyChanged();
+                    UpdateFloatingWindow();
+                    
+                    // 保存到配置
+                    if (!_isInitializing)
+                    {
+                        AppConfigService.UpdateConfig(config =>
+                        {
+                            config.IsFloatingWindowEnabled = value;
+                        });
+                    }
+                }
+            }
+        }
+
+        private void UpdateFloatingWindow()
+        {
+            if (IsFloatingWindowEnabled)
+            {
+                if (_floatingWindow == null)
+                {
+                    _floatingWindow = new FloatingStatusWindow();
+                    _floatingViewModel = _floatingWindow.DataContext as FloatingStatusViewModel;
+                    UpdateFloatingStatus();
+                }
+                _floatingWindow.Show();
+            }
+            else
+            {
+                _floatingWindow?.Hide();
+            }
+        }
+
+        private void UpdateFloatingStatus()
+        {
+            if (_floatingViewModel != null)
+            {
+                _floatingViewModel.StatusText = IsExecuting ? "运行中" : "已停止";
+            }
+        }
 
         public KeyMappingViewModel(DDDriverService ddDriver, ConfigService configService, 
             HotkeyService hotkeyService, MainViewModel mainViewModel, AudioService audioService)
@@ -316,6 +371,7 @@ namespace WpfApp.ViewModels
                 IsSequenceMode = appConfig.keyMode == 0;
                 IsSoundEnabled = appConfig.soundEnabled ?? true;
                 IsGameMode = appConfig.IsGameMode ?? true;
+                IsFloatingWindowEnabled = appConfig.IsFloatingWindowEnabled;
 
                 _logger.Debug($"配置加载完成 - 模式: {(IsSequenceMode ? "顺序模式" : "按压模式")}, 游戏模式: {IsGameMode}");
             }
@@ -330,8 +386,8 @@ namespace WpfApp.ViewModels
         {
             IsSequenceMode = true;
             IsSoundEnabled = true;
+            IsFloatingWindowEnabled = true;  // 默认开启浮窗
             _ddDriver.KeyPressInterval = IsGameMode ? DDDriverService.DEFAULT_KEY_PRESS_INTERVAL : 0;
-            _logger.Debug("SetDefaultConfiguration", $"使用默认配置，游戏模式: {IsGameMode}");
         }
 
         private void InitializeCommands()

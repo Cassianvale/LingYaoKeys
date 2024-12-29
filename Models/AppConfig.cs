@@ -27,7 +27,9 @@ namespace WpfApp.Models
         public bool? soundEnabled { get; set; }
         public bool? IsGameMode { get; set; }
         public int? KeyPressInterval { get; set; }
-
+        public double FloatingWindowLeft { get; set; }
+        public double FloatingWindowTop { get; set; }
+        public bool IsFloatingWindowEnabled { get; set; }
 
         [JsonIgnore]
         public string Author { get; set; } = "慕长秋";
