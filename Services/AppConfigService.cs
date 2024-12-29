@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using WpfApp.Models;
 using System.Reflection;
 using System.Windows.Input;
+using System.Windows;
 
 namespace WpfApp.Services
 {
@@ -64,36 +65,9 @@ namespace WpfApp.Services
                 
                 if (!File.Exists(_configPath))
                 {
-                    Console.WriteLine("配置文件不存在，尝试从嵌入资源创建...");
-                    try
-                    {
-                        var assembly = Assembly.GetExecutingAssembly();
-                        var resourceName = "WpfApp.AppConfig.json";
-                        
-                        var resources = assembly.GetManifestResourceNames();
-                        Console.WriteLine($"可用的嵌入资源: {string.Join(", ", resources)}");
-                        
-                        using var stream = assembly.GetManifestResourceStream(resourceName);
-                        if (stream != null)
-                        {
-                            using var reader = new StreamReader(stream);
-                            string defaultConfig = reader.ReadToEnd();
-                            _config = JsonConvert.DeserializeObject<AppConfig>(defaultConfig);
-                            
-                            SaveConfig();
-                            Console.WriteLine("已从默认模板创建配置文件");
-                        }
-                        else
-                        {
-                            Console.WriteLine($"找不到嵌入资源: {resourceName}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"加载默认配置模板失败: {ex.Message}");
-                        _config = CreateDefaultConfig();
-                        SaveConfig();
-                    }
+                    _config = CreateDefaultConfig();
+                    SaveConfig();
+                    Console.WriteLine("已创建新的默认配置文件");
                 }
                 else
                 {
@@ -114,33 +88,34 @@ namespace WpfApp.Services
         {
             try
             {
-                if (File.Exists(_configPath))
-                {
-                    string json = File.ReadAllText(_configPath);
-                    var jsonSettings = new JsonSerializerSettings
-                    {
-                        ObjectCreationHandling = ObjectCreationHandling.Replace,
-                        NullValueHandling = NullValueHandling.Include
-                    };
-                    _config = JsonConvert.DeserializeObject<AppConfig>(json, jsonSettings);
-                    
-                    // 如果配置为空或关键值为null，使用默认值初始化
-                    if (_config == null || HasNullValues(_config))
-                    {
-                        _config = CreateDefaultConfig();
-                        SaveConfig();
-                        Console.WriteLine("使用默认配置初始化");
-                    }
-                    
-                    Console.WriteLine($"从配置文件加载成功: {_configPath}");
-                    ValidateConfig();
-                }
-                else
+                // 如果配置文件不存在，创建新的配置
+                if (!File.Exists(_configPath))
                 {
                     _config = CreateDefaultConfig();
                     SaveConfig();
-                    Console.WriteLine("创建默认配置文件");
+                    Console.WriteLine("创建新的默认配置文件");
+                    return;
                 }
+
+                // 读取现有配置
+                string json = File.ReadAllText(_configPath);
+                var jsonSettings = new JsonSerializerSettings
+                {
+                    ObjectCreationHandling = ObjectCreationHandling.Replace,
+                    NullValueHandling = NullValueHandling.Include
+                };
+                _config = JsonConvert.DeserializeObject<AppConfig>(json, jsonSettings);
+                
+                // 如果配置为空或关键值为null，使用默认值初始化
+                if (_config == null || HasNullValues(_config))
+                {
+                    _config = CreateDefaultConfig();
+                    SaveConfig();
+                    Console.WriteLine("使用默认配置初始化");
+                }
+                
+                Console.WriteLine($"从配置文件加载成功: {_configPath}");
+                ValidateConfig();
             }
             catch (Exception ex)
             {
@@ -175,25 +150,39 @@ namespace WpfApp.Services
                     // 排除一些常见的调试和性能日志
                     ExcludedTags = new List<string>
                     {
-                        // 日志级别标签
-                        "Debug",      // 调试信息
-                        "Trace",      // 跟踪信息
-                        "Info",       // 普通信息
+                        // // 日志级别标签
+                        // "Debug",      // 调试信息
+                        // "Trace",      // 跟踪信息
+                        // "Info",       // 普通信息
                         
-                        // 功能模块标签
-                        "Sequence",   // 按键序列相关
-                        "Driver",     // 驱动相关
-                        "Init",       // 初始化相关
-                        "UI",         // UI相关
-                        "Config",     // 配置相关
-                        "Performance" // 性能相关
+                        // // 功能模块标签
+                        // "Sequence",   // 按键序列相关
+                        // "Driver",     // 驱动相关
+                        // "Init",       // 初始化相关
+                        // "UI",         // UI相关
+                        // "Config",     // 配置相关
+                        // "Performance" // 性能相关
                     },
                     // 排除一些不太重要的类的日志
-                    ExcludedSources = new List<string>{},
+                    ExcludedSources = new List<string>{
+                        "*.xaml*",
+                        "ControlStyles.xaml",
+                        "App.xaml",
+                        "MainWindow.xaml"
+                    },
                     // 排除一些常见的方法日志
                     ExcludedMethods = new List<string>{},
                     // 排除一些常见的消息模式
-                    ExcludedPatterns = new List<string>{}
+                    ExcludedPatterns = new List<string>{
+                        "窗口初始化完成*",
+                        "已获取*实例",
+                        "鼠标点击元素: *",
+                        "*获取句柄*",
+                        "*_DataContextChanged*",
+                        "*触发: *",
+                        "控件加载完成: *",
+                        "页面切换到: *"
+                    }
                 },
                 startKey = (DDKeyCode)109,
                 startMods = 0,
@@ -206,7 +195,9 @@ namespace WpfApp.Services
                 soundEnabled = true,
                 IsGameMode = true,
                 KeyPressInterval = 5,
-                // IsFloatingWindowEnabled = false
+                FloatingWindowLeft = SystemParameters.WorkArea.Right - 100 - 10,
+                FloatingWindowTop = SystemParameters.WorkArea.Bottom - 40 - 10,
+                IsFloatingWindowEnabled = true,
             };
         }
 

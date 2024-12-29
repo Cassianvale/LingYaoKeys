@@ -86,9 +86,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="AppConfig.json">
-      <LogicalName>WpfApp.AppConfig.json</LogicalName>
-    </EmbeddedResource>
     <EmbeddedResource Include="README.md">
       <LogicalName>WpfApp.README.md</LogicalName>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>

@@ -13,11 +13,13 @@ namespace WpfApp.Services.KeyModes
         private readonly SemaphoreSlim _executionLock = new SemaphoreSlim(1, 1);
         private readonly object _stateLock = new object();
         private bool _isExecuting; 
+        private readonly DDDriverService _driverService;
         // 添加状态消息更新事件
         public event Action<string, bool>? OnStatusMessageUpdated;
         
         public HoldKeyMode(DDDriverService driverService) : base(driverService)
         {
+            _driverService = driverService;
         }
 
         public override async Task StartAsync()
@@ -161,6 +163,9 @@ namespace WpfApp.Services.KeyModes
                     {
                         _cts.Cancel();
                     }
+
+                    // 恢复输入法状态
+                    (_driverService as DDDriverService)?._inputMethodService.RestorePreviousLayout();
                 }
             }
         }
