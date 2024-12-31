@@ -3,7 +3,6 @@ using System.IO;
 using System.Threading.Tasks;
 using WpfApp.Services;
 using System.Reflection;
-using System.Windows.Forms;
 using System.Windows;
 
 namespace WpfApp
@@ -19,6 +18,22 @@ namespace WpfApp
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             ".lingyao"
         );
+
+        public App()
+        {
+            // 设置高DPI模式
+            if (Environment.OSVersion.Version >= new Version(6, 3))
+            {
+                try
+                {
+                    System.Windows.Forms.Application.SetHighDpiMode(System.Windows.Forms.HighDpiMode.PerMonitorV2);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.Error("设置高DPI模式失败", ex);
+                }
+            }
+        }
 
         protected override void OnStartup(StartupEventArgs e)
         {
