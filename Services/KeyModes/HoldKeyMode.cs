@@ -35,6 +35,9 @@ namespace WpfApp.Services.KeyModes
                 _isExecuting = true;
             }
 
+            // 在开始序列前切换一次输入法
+            (_driverService as DDDriverService)?._inputMethodService.SwitchToEnglish();
+
             // 创建按键列表的副本
             var keyListCopy = new List<DDKeyCode>(_keyList);
             if (keyListCopy.Count == 0)

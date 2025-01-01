@@ -446,9 +446,6 @@ namespace WpfApp.Services
             
             try
             {
-                // 切换到英文输入法
-                _inputMethodService.SwitchToEnglish();
-                
                 // 使用自定义延迟或配置的间隔
                 int delayMs = customDelay ?? _keyInterval;
                 int pressIntervalMs = customPressInterval ?? _keyPressInterval;

@@ -1307,10 +1307,15 @@ namespace WpfApp.Services
                         case WM_XBUTTONUP:
                             int xButtonUp = (int)((hookStruct.mouseData >> 16) & 0xFFFF);
                             DDKeyCode xButtonUpCode = xButtonUp == 1 ? DDKeyCode.XBUTTON1 : DDKeyCode.XBUTTON2;
-                            if (!_ddDriverService.IsSequenceMode && _pendingStartKey == xButtonUpCode)
+                            
+                            // 添加完整的状态判断
+                            if (!_ddDriverService.IsSequenceMode && 
+                                xButtonUpCode == _pendingStartKey && 
+                                (_isHoldModeRunning || _isKeyHeld))
                             {
+                                _logger.Debug($"全局鼠标钩子捕获到侧键释放: {xButtonUpCode}, 当前状态: HoldMode={_isHoldModeRunning}, KeyHeld={_isKeyHeld}");
                                 HandleHoldModeKeyRelease();
-                                _logger.Debug("全局鼠标钩子捕获到侧键释放");
+                                _ddDriverService.SetHoldMode(false);
                             }
                             break;
 
@@ -1337,10 +1342,14 @@ namespace WpfApp.Services
                             break;
 
                         case WM_MBUTTONUP:
-                            if (!_ddDriverService.IsSequenceMode && _pendingStartKey == DDKeyCode.MBUTTON)
+                            // 添加完整的状态判断
+                            if (!_ddDriverService.IsSequenceMode && 
+                                _pendingStartKey == DDKeyCode.MBUTTON && 
+                                (_isHoldModeRunning || _isKeyHeld))
                             {
+                                _logger.Debug($"全局鼠标钩子捕获到中键释放, 当前状态: HoldMode={_isHoldModeRunning}, KeyHeld={_isKeyHeld}");
                                 HandleHoldModeKeyRelease();
-                                _logger.Debug("全局鼠标钩子捕获到中键释放");
+                                _ddDriverService.SetHoldMode(false);
                             }
                             break;
                     }
@@ -1737,12 +1746,32 @@ namespace WpfApp.Services
         {
             try
             {
-                if (_isKeyHeld)
+                _logger.Debug($"处理按压模式按键释放 - 当前状态: KeyHeld={_isKeyHeld}, HoldMode={_isHoldModeRunning}, Sequence={_isSequenceRunning}");
+                
+                if (_isKeyHeld || _isHoldModeRunning)
                 {
                     _isKeyHeld = false;
+                    _isHoldModeRunning = false;
+                    _isSequenceRunning = false;
+                    _isStarted = false;
+                    
                     StopHotkeyPressed?.Invoke();
-                    _ddDriverService.SetHoldMode(false);
-                    _logger.Debug("按压模式按键已释放");
+                    
+                    // 确保驱动服务状态同步
+                    try
+                    {
+                        _ddDriverService.SetHoldMode(false);
+                    }
+                    catch (Exception driverEx)
+                    {
+                        _logger.Error("重置驱动服务状态异常", driverEx);
+                    }
+                    
+                    _logger.Debug("按压模式按键已释放，所有状态已重置");
+                }
+                else
+                {
+                    _logger.Debug("按键已经处于释放状态，无需处理");
                 }
             }
             catch (Exception ex)
@@ -1750,6 +1779,9 @@ namespace WpfApp.Services
                 _logger.Error("处理按键释放异常", ex);
                 // 确保状态被重置
                 _isKeyHeld = false;
+                _isHoldModeRunning = false;
+                _isSequenceRunning = false;
+                _isStarted = false;
                 _ddDriverService.SetHoldMode(false);
             }
         }
