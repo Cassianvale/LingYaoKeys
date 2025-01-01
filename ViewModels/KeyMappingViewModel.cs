@@ -443,6 +443,7 @@ namespace WpfApp.ViewModels
         // 设置开始热键
         public void SetStartHotkey(DDKeyCode keyCode, ModifierKeys modifiers)
         {
+            // 只检查与KeyList的冲突
             if (IsKeyInList(keyCode))
             {
                 _logger.Debug($"该按键已在按键列表中，请选择其他按键: {keyCode}");
@@ -452,6 +453,12 @@ namespace WpfApp.ViewModels
 
             try
             {
+                // 先停止当前运行的序列
+                if (IsExecuting)
+                {
+                    StopKeyMapping();
+                }
+
                 bool result = _hotkeyService.RegisterStartHotkey(keyCode, modifiers);
                 if (!result && !_hotkeyService.IsMouseButton(keyCode))
                 {
@@ -498,6 +505,7 @@ namespace WpfApp.ViewModels
         // 设置停止热键
         public void SetStopHotkey(DDKeyCode keyCode, ModifierKeys modifiers)
         {
+            // 只检查与KeyList的冲突
             if (IsKeyInList(keyCode))
             {
                 _logger.Debug($"该按键已在按键列表中，请选择其他按键: {keyCode}");
@@ -507,6 +515,12 @@ namespace WpfApp.ViewModels
 
             try
             {
+                // 先停止当前运行的序列
+                if (IsExecuting)
+                {
+                    StopKeyMapping();
+                }
+
                 bool result = _hotkeyService.RegisterStopHotkey(keyCode, modifiers);
                 if (!result)
                 {
