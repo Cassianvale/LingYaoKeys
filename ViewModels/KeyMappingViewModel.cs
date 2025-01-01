@@ -703,10 +703,16 @@ namespace WpfApp.ViewModels
                     config.soundEnabled = IsSoundEnabled;
                     configChanged = true;
                 }
-                
+
                 if (config.IsGameMode != IsGameMode)
                 {
                     config.IsGameMode = IsGameMode;
+                    configChanged = true;
+                }
+
+                if (config.IsFloatingWindowEnabled != IsFloatingWindowEnabled)
+                {
+                    config.IsFloatingWindowEnabled = IsFloatingWindowEnabled;
                     configChanged = true;
                 }
 
@@ -714,10 +720,7 @@ namespace WpfApp.ViewModels
                 if (configChanged)
                 {
                     AppConfigService.SaveConfig();
-                    // 确保同步按键列表状态
-                    UpdateHotkeyServiceKeyList();
-                    _logger.Debug($"配置已保存 - 声音模式: {IsSoundEnabled}, 游戏模式: {IsGameMode}, 开始热键: {_startHotkey}, 停止热键: {_stopHotkey}, " +
-                        $"按键数: {keyList.Count}, 选中按键数: {keySelections.Count(x => x)}");
+                    _logger.Debug("配置已保存");
                 }
             }
             catch (Exception ex)
@@ -748,7 +751,7 @@ namespace WpfApp.ViewModels
                     // 记录按键列表
                     foreach (var key in keys)
                     {
-                        _logger.Debug($"选中的按键: {key} ({(int)key})");
+                        _logger.Debug($"选中的按键: {key}");
                     }
 
                     IsExecuting = true;
@@ -828,18 +831,18 @@ namespace WpfApp.ViewModels
         {
             try
             {
-                // 先检查是否有选中的按键，避免不必要的状态更新
+                _logger.Debug("🍎 ==》 启动热键按下 《== 🍎");
+                
+                // 获取选中的按键
                 var keys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
-                if (!keys.Any())
+                if (keys.Count == 0)
                 {
-                    _logger.Warning("没有选中任何按键");
+                    _logger.Warning("没有选中任何按键，无法启动");
                     _mainViewModel.UpdateStatusMessage("请至少选择一个按键", true);
+                    IsHotkeyEnabled = false;
+                    IsExecuting = false;
                     return;
                 }
-                // 只有在确实有选中按键时才更新UI状态和执行后续操作
-                IsExecuting = true;
-                _logger.Debug("================================================");
-                _logger.Debug($"🍏 ==》 启动热键按下 《==  🍏 | 当前模式: {(SelectedKeyMode == 0 ? "顺序模式" : "按压模式")} ");
 
                 // 设置按键列表参数
                 _ddDriver.SetKeyList(keys);

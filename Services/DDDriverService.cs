@@ -628,13 +628,16 @@ namespace WpfApp.Services
                 {
                     _isHoldMode = true;
                     _isEnabled = true;
+                    OnEnableStatusChanged(_isEnabled);  // 触发状态变化事件
                 }
                 else if (!isHold && _isHoldMode)
                 {
                     _isHoldMode = false;
                     _isEnabled = false;
+                    OnEnableStatusChanged(_isEnabled);  // 触发状态变化事件
                 }
                 
+                // 处理按压模式
                 if (_currentKeyMode is HoldKeyMode holdMode)
                 {
                     if (isHold)
@@ -649,10 +652,11 @@ namespace WpfApp.Services
                 else if (isHold)
                 {
                     // 如果当前没有按压模式实例，创建一个新的
-                    _currentKeyMode = new HoldKeyMode(this);
+                    var newHoldMode = new HoldKeyMode(this);
+                    _currentKeyMode = newHoldMode;
                     _currentKeyMode.SetKeyList(_keyList);
                     _currentKeyMode.SetKeyInterval(_keyInterval);
-                    (_currentKeyMode as HoldKeyMode)?.HandleKeyPress();
+                    newHoldMode.HandleKeyPress();
                 }
                 
                 _logger.Debug(
@@ -667,6 +671,7 @@ namespace WpfApp.Services
                 // 发生异常时确保停止
                 _isEnabled = false;
                 _isHoldMode = false;
+                OnEnableStatusChanged(_isEnabled);  // 触发状态变化事件
                 if (_currentKeyMode is HoldKeyMode holdMode)
                 {
                     try
@@ -848,6 +853,12 @@ namespace WpfApp.Services
         public void ResetKeyPressInterval()
         {
             KeyPressInterval = DEFAULT_KEY_PRESS_INTERVAL;
+        }
+
+        // 触发状态变化事件
+        private void OnEnableStatusChanged(bool isEnabled)
+        {
+            EnableStatusChanged?.Invoke(this, isEnabled);
         }
     }
 

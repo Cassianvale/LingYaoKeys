@@ -20,6 +20,8 @@ namespace WpfApp.Services.KeyModes
         public HoldKeyMode(DDDriverService driverService) : base(driverService)
         {
             _driverService = driverService;
+            _isKeyHeld = false; // 用于按压模式的执行控制
+            _isExecuting = false;   // 当前是否有按键序列正在执行
         }
 
         public override async Task StartAsync()
