@@ -97,8 +97,8 @@ namespace WpfApp.ViewModels
         public ICommand DeleteSelectedKeysCommand { get; private set; } = null!;
 
         // 按键模式选项
-        public List<string> KeyModes { get; } = new List<string> 
-        { 
+        public List<string> KeyModes { get; } = new List<string>
+        {
             "顺序模式",
             "按压模式"
         };
@@ -144,15 +144,15 @@ namespace WpfApp.ViewModels
                 {
                     // 当模式改变时更新驱动服务
                     _ddDriver.IsSequenceMode = value;
-                    
+
                     // 更新HotkeyService的按键列表
                     var selectedKeys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
                     _hotkeyService.SetKeySequence(selectedKeys, KeyInterval);
-                    
+
                     _logger.Debug($"模式切换 - 当前模式: {(value ? "顺序模式" : "按压模式")}, " +
                                     $"选中按键数: {selectedKeys.Count}, " +
                                     $"按键间隔: {KeyInterval}ms");
-                            }
+                }
             }
         }
 
@@ -223,7 +223,7 @@ namespace WpfApp.ViewModels
                     _isFloatingWindowEnabled = value;
                     OnPropertyChanged();
                     UpdateFloatingWindow();
-                    
+
                     // 保存到配置
                     if (!_isInitializing)
                     {
@@ -263,7 +263,7 @@ namespace WpfApp.ViewModels
             }
         }
 
-        public KeyMappingViewModel(DDDriverService ddDriver, ConfigService configService, 
+        public KeyMappingViewModel(DDDriverService ddDriver, ConfigService configService,
             HotkeyService hotkeyService, MainViewModel mainViewModel, AudioService audioService)
         {
             _ddDriver = ddDriver;
@@ -332,7 +332,7 @@ namespace WpfApp.ViewModels
             try
             {
                 var appConfig = AppConfigService.Config;
-                
+
                 // 加载按键列表和选中状态
                 if (appConfig.keyList != null)
                 {
@@ -340,7 +340,7 @@ namespace WpfApp.ViewModels
                     for (int i = 0; i < appConfig.keyList.Count; i++)
                     {
                         var keyItem = new KeyItem(appConfig.keyList[i]);
-                        keyItem.IsSelected = i < appConfig.keySelections.Count ? 
+                        keyItem.IsSelected = i < appConfig.keySelections.Count ?
                             appConfig.keySelections[i] : true;
                         keyItem.SelectionChanged += (s, isSelected) => SaveConfig();
                         KeyList.Add(keyItem);
@@ -355,7 +355,7 @@ namespace WpfApp.ViewModels
                         _logger.Debug($"已加载按键列表 - 按键数量: {selectedKeys.Count}, 间隔: {appConfig.interval}ms");
                     }
                 }
-                
+
                 // 加载热键配置
                 if (appConfig.startKey.HasValue)
                 {
@@ -365,7 +365,7 @@ namespace WpfApp.ViewModels
                 {
                     SetStopHotkey(appConfig.stopKey.Value, appConfig.stopMods);
                 }
-                
+
                 // 加载其他设置
                 _ddDriver.SetKeyInterval(appConfig.interval);
                 SelectedKeyMode = appConfig.keyMode;
@@ -436,7 +436,7 @@ namespace WpfApp.ViewModels
             // 通知命令状态更新
             System.Windows.Input.CommandManager.InvalidateRequerySuggested();
             _logger.Debug("SetCurrentKey", $"设置当前按键: {keyCode} | {CurrentKeyText}");
-            
+
 
         }
 
@@ -466,12 +466,12 @@ namespace WpfApp.ViewModels
                     _mainViewModel.UpdateStatusMessage("开始热键注册失败，请尝试其他按键", true);
                     return;
                 }
-                
+
                 // 只有在注册成功后才更新状态和显示
                 _startHotkey = keyCode;
                 _startModifiers = modifiers;
                 UpdateHotkeyText(keyCode, modifiers, true);
-                
+
                 _mainViewModel.UpdateStatusMessage($"已设置开始热键: {keyCode.ToDisplayName()}");
                 _logger.Debug($"设置开始热键: {keyCode}, 修饰键: {modifiers}");
             }
@@ -486,16 +486,16 @@ namespace WpfApp.ViewModels
         private void UpdateHotkeyText(DDKeyCode keyCode, ModifierKeys modifiers, bool isStart)
         {
             StringBuilder keyText = new StringBuilder();
-            
+
             if ((modifiers & ModifierKeys.Control) == ModifierKeys.Control)
                 keyText.Append("Ctrl + ");
             if ((modifiers & ModifierKeys.Alt) == ModifierKeys.Alt)
                 keyText.Append("Alt + ");
             if ((modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
                 keyText.Append("Shift + ");
-            
+
             keyText.Append(keyCode.ToDisplayName());
-            
+
             if (isStart)
                 StartHotkeyText = keyText.ToString();
             else
@@ -528,12 +528,12 @@ namespace WpfApp.ViewModels
                     _mainViewModel.UpdateStatusMessage("停止热键注册失败，请尝试其他按键", true);
                     return;
                 }
-                
+
                 // 只有在注册成功后才更新状态和显示
                 _stopHotkey = keyCode;
                 _stopModifiers = modifiers;
                 UpdateHotkeyText(keyCode, modifiers, false);
-                
+
                 _mainViewModel.UpdateStatusMessage($"已设置停止热键: {keyCode.ToDisplayName()}");
                 _logger.Debug($"设置停止热键: {keyCode}, 修饰键: {modifiers}");
             }
@@ -554,7 +554,7 @@ namespace WpfApp.ViewModels
         private void AddKey()
         {
             _logger.Debug($"尝试添加按键，当前按键: {_currentKey}");
-            
+
             if (!_currentKey.HasValue)
             {
                 _logger.Warning("当前按键为空，无法添加");
@@ -587,7 +587,7 @@ namespace WpfApp.ViewModels
             var newKeyItem = new KeyItem(_currentKey.Value);
 
             // 订阅选中状态变化事件
-            newKeyItem.SelectionChanged += (s, isSelected) => 
+            newKeyItem.SelectionChanged += (s, isSelected) =>
             {
                 SaveConfig();
                 UpdateHotkeyServiceKeyList();
@@ -595,13 +595,13 @@ namespace WpfApp.ViewModels
             };
 
             KeyList.Add(newKeyItem);
-            
+
             // 更新HotkeyService的按键列表
             UpdateHotkeyServiceKeyList();
-            
+
             _mainViewModel.UpdateStatusMessage($" {_currentKey.Value} 按键添加成功");
             _logger.Debug($" {_currentKey.Value} 按键添加成功");
-            
+
             // 清空当前按键状态
             _currentKey = null;
             CurrentKeyText = string.Empty;
@@ -615,7 +615,7 @@ namespace WpfApp.ViewModels
             {
                 KeyList.Remove(key);
             }
-            
+
             // 更新HotkeyService的按键列表
             UpdateHotkeyServiceKeyList();
         }
@@ -637,7 +637,7 @@ namespace WpfApp.ViewModels
                 // 获取所有按键和它们的选中状态
                 var keyList = KeyList.Select(k => k.KeyCode).ToList();
                 var keySelections = KeyList.Select(k => k.IsSelected).ToList();
-                
+
                 // 检查热键冲突
                 if (_startHotkey.HasValue && keyList.Contains(_startHotkey.Value))
                 {
@@ -653,10 +653,10 @@ namespace WpfApp.ViewModels
 
                 // 获取当前配置
                 var config = AppConfigService.Config;
-                
+
                 // 只更新需要保存的字段
                 bool configChanged = false;
-                
+
                 // 检查并更新热键配置
                 if (config.startKey != _startHotkey || config.startMods != _startModifiers)
                 {
@@ -664,40 +664,40 @@ namespace WpfApp.ViewModels
                     config.startMods = _startModifiers;
                     configChanged = true;
                 }
-                
+
                 if (config.stopKey != _stopHotkey || config.stopMods != _stopModifiers)
                 {
                     config.stopKey = _stopHotkey;
                     config.stopMods = _stopModifiers;
                     configChanged = true;
                 }
-                
+
                 // 检查并更新按键列表
                 if (!Enumerable.SequenceEqual(config.keyList ?? new List<DDKeyCode>(), keyList))
                 {
                     config.keyList = keyList;
                     configChanged = true;
                 }
-                
+
                 if (!Enumerable.SequenceEqual(config.keySelections ?? new List<bool>(), keySelections))
                 {
                     config.keySelections = keySelections;
                     configChanged = true;
                 }
-                
+
                 // 检查并更新其他设置
                 if (config.keyMode != SelectedKeyMode)
                 {
                     config.keyMode = SelectedKeyMode;
                     configChanged = true;
                 }
-                
+
                 if (config.interval != KeyInterval)
                 {
                     config.interval = KeyInterval;
                     configChanged = true;
                 }
-                
+
                 if (config.soundEnabled != IsSoundEnabled)
                 {
                     config.soundEnabled = IsSoundEnabled;
@@ -760,7 +760,7 @@ namespace WpfApp.ViewModels
                     // 确保先同步按键列表到服务
                     _ddDriver.SetKeyList(keys);
                     _hotkeyService.SetKeySequence(keys, KeyInterval);
-                    
+
                     // 设置驱动服务
                     _ddDriver.IsSequenceMode = SelectedKeyMode == 0;
                     _ddDriver.SetKeyInterval(KeyInterval);
@@ -791,18 +791,18 @@ namespace WpfApp.ViewModels
                     if (_ddDriver == null) return;
 
                     _logger.Debug("开始停止按键映射");
-                    
+
                     // 先停止热键服务
                     _hotkeyService?.StopSequence();
-                    
+
                     // 然后停止驱动服务
                     _ddDriver.IsEnabled = false;
                     _ddDriver.SetHoldMode(false);
-                    
+
                     // 最后更新UI状态
                     IsHotkeyEnabled = false;
                     IsExecuting = false;
-                    
+
                     _logger.Debug("按键映射已停止");
                 }
                 catch (Exception ex)
@@ -832,7 +832,7 @@ namespace WpfApp.ViewModels
             try
             {
                 _logger.Debug("🍎 ==》 启动热键按下 《== 🍎");
-                
+
                 // 获取选中的按键
                 var keys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
                 if (keys.Count == 0)
@@ -903,14 +903,14 @@ namespace WpfApp.ViewModels
             {
                 bool isStartConflict = _startHotkey.HasValue && keyCode == _startHotkey.Value;
                 bool isStopConflict = _stopHotkey.HasValue && keyCode == _stopHotkey.Value;
-                
+
                 if (isStartConflict || isStopConflict)
                 {
                     _logger.Debug(
                         $"检测到热键冲突 - 按键: {keyCode}, 启动键冲突: {isStartConflict}, 停止键冲突: {isStopConflict}");
                     return true;
                 }
-                
+
                 return false;
             }
             catch (Exception ex)
@@ -925,7 +925,7 @@ namespace WpfApp.ViewModels
         {
             foreach (var keyItem in KeyList)
             {
-                keyItem.SelectionChanged += (s, isSelected) => 
+                keyItem.SelectionChanged += (s, isSelected) =>
                 {
                     SaveConfig();
                     UpdateHotkeyServiceKeyList();
@@ -945,7 +945,5 @@ namespace WpfApp.ViewModels
                 KeyList.Add(keyItem);
             }
         }
-
-
     }
-} 
+}

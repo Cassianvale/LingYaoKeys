@@ -18,23 +18,31 @@ namespace WpfApp.Services
     public class HotkeyService
     {
         // Win32 API 函数
+        // 安装鼠标钩子
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
 
+        // 安装键盘钩子
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
 
+        // 释放钩子
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern bool UnhookWindowsHookEx(IntPtr hhk);
+        private static extern bool UnhookWindowsHookEx(IntPtr hhk);  
+
+        // 调用下一个钩子
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
 
+        // 获取模块句柄
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr GetModuleHandle(string lpModuleName);
 
         // 定义低级鼠标钩子回调函数
         private delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+        // 定义低级键盘钩子回调函数
         private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
 
         // Windows消息常量
@@ -50,12 +58,12 @@ namespace WpfApp.Services
         private const int WM_MBUTTONUP = 0x0208;
 
         // 事件
-        public event Action? StartHotkeyPressed;
-        public event Action? StartHotkeyReleased;
-        public event Action? StopHotkeyPressed;
-        public event Action? SequenceModeStarted;
-        public event Action? SequenceModeStopped;
-        public event Action<DDKeyCode>? KeyTriggered;
+        public event Action? StartHotkeyPressed;  // 启动热键按下事件
+        public event Action? StartHotkeyReleased;  // 启动热键释放事件
+        public event Action? StopHotkeyPressed;  // 停止热键按下事件
+        public event Action? SequenceModeStarted;  // 序列模式开始事件
+        public event Action? SequenceModeStopped;  // 序列模式停止事件
+        public event Action<DDKeyCode>? KeyTriggered;  // 触发按键事件
 
         // 核心字段
         private readonly DDDriverService _ddDriverService;
@@ -65,42 +73,42 @@ namespace WpfApp.Services
         private List<DDKeyCode> _keyList = new List<DDKeyCode>();
 
         // 热键状态
-        private int _startVirtualKey;
-        private int _stopVirtualKey;
-        private DDKeyCode? _pendingStartKey;
-        private DDKeyCode? _pendingStopKey;
-        private bool _isKeyHeld;    // 防全局热键的重复触发
-        private bool _isSequenceRunning;
-        private bool _isInputFocused;
-        
+        private int _startVirtualKey;  // 启动热键虚拟键码
+        private int _stopVirtualKey;  // 停止热键虚拟键码
+        private DDKeyCode? _pendingStartKey;  // 等待注册的启动热键
+        private DDKeyCode? _pendingStopKey;  // 等待注册的停止热键
+        private bool _isKeyHeld;    // 防止全局热键的重复触发
+        private bool _isSequenceRunning;  // 序列模式是否正在运行
+        private bool _isInputFocused;  // 输入焦点是否在当前窗口
+
         // 保持回调函数的引用
-        private readonly LowLevelMouseProc _mouseProcDelegate;
-        private readonly LowLevelKeyboardProc _keyboardProcDelegate;
-        private IntPtr _mouseHookHandle;
-        private IntPtr _keyboardHookHandle;
-        private readonly object _hookLock = new object();
+        private readonly LowLevelMouseProc _mouseProcDelegate;  // 鼠标钩子回调函数
+        private readonly LowLevelKeyboardProc _keyboardProcDelegate;  // 键盘钩子回调函数
+        private IntPtr _mouseHookHandle;  // 鼠标钩子句柄
+        private IntPtr _keyboardHookHandle;  // 键盘钩子句柄
+        private readonly object _hookLock = new object();  // 钩子锁
 
         // 构造函数
         public HotkeyService(Window mainWindow, DDDriverService ddDriverService)
         {
             _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
             _ddDriverService = ddDriverService ?? throw new ArgumentNullException(nameof(ddDriverService));
-            _mainViewModel = mainWindow.DataContext as MainViewModel ?? 
+            _mainViewModel = mainWindow.DataContext as MainViewModel ??
                 throw new ArgumentException("Window.DataContext must be of type MainViewModel", nameof(mainWindow));
-            
+
             // 初始化回调委托
             _mouseProcDelegate = MouseHookCallback;
             _keyboardProcDelegate = KeyboardHookCallback;
-            
+
             // 订阅模式切换事件
             _ddDriverService.ModeSwitched += OnModeSwitched;
-            
+
             // 从配置加载初始状态
             LoadInitialState();
-            
-            // 设置钩子
-            SetupHooks();
-            
+
+            // 安装钩子
+            InstallHooks();
+
             // 窗口关闭时清理资源
             _mainWindow.Closed += (s, e) => Dispose();
         }
@@ -108,7 +116,7 @@ namespace WpfApp.Services
         private void LoadInitialState()
         {
             var config = AppConfigService.Config;
-            
+
             // 设置驱动服务模式
             _ddDriverService.IsSequenceMode = config.keyMode == 0;
 
@@ -118,7 +126,7 @@ namespace WpfApp.Services
                 var selectedKeys = config.keyList
                     .Where((key, index) => index < config.keySelections.Count && config.keySelections[index])
                     .ToList();
-                
+
                 if (selectedKeys.Count > 0)
                 {
                     _keyList = selectedKeys;
@@ -138,80 +146,6 @@ namespace WpfApp.Services
             }
         }
 
-        private void SetupHooks()
-        {
-            lock (_hookLock)
-            {
-                try
-                {
-                    var moduleHandle = GetModuleHandle(Process.GetCurrentProcess().MainModule?.ModuleName);
-
-                    // 移除现有钩子
-                    RemoveHooks();
-
-                    // 设置新钩子
-                    _mouseHookHandle = SetWindowsHookEx(WH_MOUSE_LL, _mouseProcDelegate, moduleHandle, 0);
-                    _keyboardHookHandle = SetWindowsHookEx(WH_KEYBOARD_LL, _keyboardProcDelegate, moduleHandle, 0);
-
-                    if (_mouseHookHandle == IntPtr.Zero || _keyboardHookHandle == IntPtr.Zero)
-                    {
-                        int errorCode = Marshal.GetLastWin32Error();
-                        throw new Win32Exception(errorCode);
-                    }
-
-                    _logger.Debug("钩子设置成功");
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error("设置钩子失败", ex);
-                    throw;
-                }
-            }
-        }
-
-        private void RemoveHooks()
-        {
-            lock (_hookLock)
-            {
-                try
-                {
-                    if (_mouseHookHandle != IntPtr.Zero)
-                    {
-                        UnhookWindowsHookEx(_mouseHookHandle);
-                        _mouseHookHandle = IntPtr.Zero;
-                    }
-
-                    if (_keyboardHookHandle != IntPtr.Zero)
-                    {
-                        UnhookWindowsHookEx(_keyboardHookHandle);
-                        _keyboardHookHandle = IntPtr.Zero;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error("移除钩子失败", ex);
-                }
-            }
-        }
-
-        private void ResetHooks()
-        {
-            lock (_hookLock)
-            {
-                try
-                {
-                    _logger.Debug("开始重置钩子");
-                    SetupHooks();
-                    _logger.Debug("钩子重置完成");
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error("重置钩子失败", ex);
-                    throw;
-                }
-            }
-        }
-
         public void Dispose()
         {
             lock (_hookLock)
@@ -219,11 +153,21 @@ namespace WpfApp.Services
                 // 停止序列
                 StopSequence();
 
-                // 移除钩子
-                RemoveHooks();
-                
                 // 移除事件订阅
                 _ddDriverService.ModeSwitched -= OnModeSwitched;
+
+                // 卸载钩子
+                if (_keyboardHookHandle != IntPtr.Zero)
+                {
+                    UnhookWindowsHookEx(_keyboardHookHandle);
+                    _keyboardHookHandle = IntPtr.Zero;
+                }
+
+                if (_mouseHookHandle != IntPtr.Zero)
+                {
+                    UnhookWindowsHookEx(_mouseHookHandle);
+                    _mouseHookHandle = IntPtr.Zero;
+                }
             }
         }
 
@@ -234,10 +178,6 @@ namespace WpfApp.Services
             {
                 _startVirtualKey = GetVirtualKeyFromDDKey(keyCode);  // 转换为Windows虚拟键码
                 _pendingStartKey = keyCode;                          // 保存DD按键码
-                
-                // 重置钩子以确保旧的热键不再生效
-                ResetHooks();
-                
                 SaveHotkeyConfig(true, keyCode, modifiers);         // 保存到配置文件
                 return true;
             }
@@ -254,10 +194,6 @@ namespace WpfApp.Services
             {
                 _stopVirtualKey = GetVirtualKeyFromDDKey(keyCode);  // 转换为Windows虚拟键码
                 _pendingStopKey = keyCode;                          // 保存DD按键码
-                
-                // 重置钩子以确保旧的热键不再生效
-                ResetHooks();
-                
                 SaveHotkeyConfig(false, keyCode, modifiers);        // 保存到配置文件
                 return true;
             }
@@ -295,13 +231,13 @@ namespace WpfApp.Services
             }
 
             _isSequenceRunning = true;
-            
+
             if (_ddDriverService.IsSequenceMode)
             {
                 _ddDriverService.IsEnabled = true;
-                    }
-                    else
-                    {
+            }
+            else
+            {
                 _ddDriverService.SetHoldMode(true);
                 _ddDriverService.IsEnabled = true;  // 确保在按压模式下也设置启用状态
             }
@@ -313,32 +249,32 @@ namespace WpfApp.Services
         {
             if (!_isSequenceRunning) return;
 
-                _isSequenceRunning = false;
-                    _ddDriverService.IsEnabled = false;
-            
-                    if (!_ddDriverService.IsSequenceMode)
-                    {
-                        _ddDriverService.SetHoldMode(false);
+            _isSequenceRunning = false;
+            _ddDriverService.IsEnabled = false;
+
+            if (!_ddDriverService.IsSequenceMode)
+            {
+                _ddDriverService.SetHoldMode(false);
             }
 
-                    SequenceModeStopped?.Invoke();
+            SequenceModeStopped?.Invoke();
         }
 
         // 钩子回调处理
         private IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
             if (nCode >= 0 && !_isInputFocused)
-        {
-            try
             {
+                try
+                {
                     var hookStruct = (KBDLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT))!;
                     bool isStartKey = hookStruct.vkCode == _startVirtualKey;
                     bool isStopKey = hookStruct.vkCode == _stopVirtualKey;
 
                     if (isStartKey || isStopKey)
                     {
-                if (!_ddDriverService.IsSequenceMode)
-                {
+                        if (!_ddDriverService.IsSequenceMode)
+                        {
                             // 按压模式：阻止原始按键信号
                             if (isStartKey)
                             {
@@ -346,10 +282,10 @@ namespace WpfApp.Services
                                 {
                                     case WM_KEYDOWN:
                                     case WM_SYSKEYDOWN:
-                        if (!_isKeyHeld)
-                        {
-                            _isKeyHeld = true;
-                            StartHotkeyPressed?.Invoke();
+                                        if (!_isKeyHeld)
+                                        {
+                                            _isKeyHeld = true;
+                                            StartHotkeyPressed?.Invoke();
                                             StartSequence();
                                         }
                                         return new IntPtr(1);
@@ -358,15 +294,15 @@ namespace WpfApp.Services
                                     case WM_SYSKEYUP:
                                         if (_isKeyHeld)
                                         {
-                _isKeyHeld = false;
+                                            _isKeyHeld = false;
                                             StopSequence();
                                         }
                                         return new IntPtr(1);
+                                }
+                            }
                         }
-                    }
-                }
-                else
-                {
+                        else
+                        {
                             // 顺序模式：允许原始按键信号
                             switch ((int)wParam)
                             {
@@ -378,24 +314,24 @@ namespace WpfApp.Services
                                         if (_isSequenceRunning)
                                         {
                                             if (isStopKey || (_startVirtualKey == _stopVirtualKey && isStartKey))
-                    {
-                        StopHotkeyPressed?.Invoke();
-                        StopSequence();
-                    }
+                                            {
+                                                StopHotkeyPressed?.Invoke();
+                                                StopSequence();
+                                            }
                                         }
                                         else if (isStartKey)
-                        {
-                            StartHotkeyPressed?.Invoke();
-                            StartSequence();
+                                        {
+                                            StartHotkeyPressed?.Invoke();
+                                            StartSequence();
                                         }
-                        }
-                        break;
+                                    }
+                                    break;
 
                                 case WM_KEYUP:
                                 case WM_SYSKEYUP:
                                     if (_isKeyHeld)
                                     {
-                _isKeyHeld = false;
+                                        _isKeyHeld = false;
                                         if (isStartKey)
                                         {
                                             StartHotkeyReleased?.Invoke();
@@ -404,13 +340,13 @@ namespace WpfApp.Services
                                     break;
                             }
                         }
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
+                catch (Exception ex)
+                {
                     _logger.Error("键盘钩子回调异常", ex);
                     _isKeyHeld = false;
-                StopSequence();
+                    StopSequence();
                 }
             }
             return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);
@@ -424,7 +360,7 @@ namespace WpfApp.Services
                 {
                     var hookStruct = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT))!;
                     int wParamInt = (int)wParam;
-                    
+
                     switch (wParamInt)
                     {
                         case WM_XBUTTONDOWN:
@@ -463,10 +399,10 @@ namespace WpfApp.Services
                         _isKeyHeld = true;
                         StartHotkeyPressed?.Invoke();
                         StartSequence();
-                        }
                     }
-                    else
-                    {
+                }
+                else
+                {
                     if (!_isKeyHeld)
                     {
                         _isKeyHeld = true;
@@ -491,9 +427,9 @@ namespace WpfApp.Services
         private void HandleMouseButtonUp(int wParam, MSLLHOOKSTRUCT hookStruct)
         {
             DDKeyCode buttonCode = GetMouseButtonCode(wParam, hookStruct);
-            
-            if (!_ddDriverService.IsSequenceMode && 
-                buttonCode == _pendingStartKey && 
+
+            if (!_ddDriverService.IsSequenceMode &&
+                buttonCode == _pendingStartKey &&
                 _isKeyHeld)
             {
                 _isKeyHeld = false;
@@ -507,7 +443,7 @@ namespace WpfApp.Services
             {
                 return DDKeyCode.MBUTTON;
             }
-            
+
             int xButton = (int)((hookStruct.mouseData >> 16) & 0xFFFF);
             return xButton == 1 ? DDKeyCode.XBUTTON1 : DDKeyCode.XBUTTON2;
         }
@@ -537,8 +473,8 @@ namespace WpfApp.Services
 
         private void OnModeSwitched(object? sender, bool isSequenceMode)
         {
-                StopSequence();
-                
+            StopSequence();
+
             // 重新注册热键
             if (_pendingStartKey.HasValue)
             {
@@ -596,11 +532,49 @@ namespace WpfApp.Services
         // 判断是否为鼠标按键
         public bool IsMouseButton(DDKeyCode keyCode)
         {
-            return keyCode == DDKeyCode.LBUTTON || 
-                   keyCode == DDKeyCode.RBUTTON || 
+            return keyCode == DDKeyCode.LBUTTON ||
+                   keyCode == DDKeyCode.RBUTTON ||
                    keyCode == DDKeyCode.MBUTTON ||
-                   keyCode == DDKeyCode.XBUTTON1 || 
+                   keyCode == DDKeyCode.XBUTTON1 ||
                    keyCode == DDKeyCode.XBUTTON2;
+        }
+
+        // 添加钩子安装方法
+        private void InstallHooks()
+        {
+            try
+            {
+                using (Process curProcess = Process.GetCurrentProcess())
+                using (ProcessModule curModule = curProcess.MainModule!)
+                {
+                    IntPtr hModule = GetModuleHandle(curModule.ModuleName);
+                    
+                    // 安装键盘钩子
+                    _keyboardHookHandle = SetWindowsHookEx(
+                        WH_KEYBOARD_LL,
+                        _keyboardProcDelegate,
+                        hModule,
+                        0);
+
+                    // 安装鼠标钩子
+                    _mouseHookHandle = SetWindowsHookEx(
+                        WH_MOUSE_LL,
+                        _mouseProcDelegate,
+                        hModule,
+                        0);
+
+                    if (_keyboardHookHandle == IntPtr.Zero || _mouseHookHandle == IntPtr.Zero)
+                    {
+                        throw new Win32Exception(Marshal.GetLastWin32Error());
+                    }
+                }
+                _logger.Debug("成功安装键盘和鼠标钩子");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("安装钩子失败", ex);
+                throw;
+            }
         }
     }
 }
