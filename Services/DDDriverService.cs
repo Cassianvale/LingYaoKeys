@@ -496,6 +496,9 @@ namespace WpfApp.Services
             }
         }
 
+        // 添加模式切换事件
+        public event EventHandler<bool>? ModeSwitched;
+
         // 顺序模式&按压模式逻辑
         // 添加属性用于设置按键模式和按键列表
         public bool IsSequenceMode
@@ -561,8 +564,57 @@ namespace WpfApp.Services
             }
         }
 
-        // 添加模式切换事件
-        public event EventHandler<bool>? ModeSwitched;
+        // 设置模式而不触发事件
+        public void SetModeWithoutEvent(bool isSequenceMode)
+        {
+            bool wasSequenceMode = IsSequenceMode;
+            if (wasSequenceMode == isSequenceMode) return;
+            
+            try
+            {
+                // 停止当前运行的序列
+                IsEnabled = false;
+
+                if (isSequenceMode)
+                {
+                    // 切换到顺序模式
+                    _currentKeyMode = new SequenceKeyMode(this);
+                    _isHoldMode = false;
+                }
+                else
+                {
+                    // 切换到按压模式
+                    _currentKeyMode = new HoldKeyMode(this);
+                    _isHoldMode = true;
+                }
+
+                // 设置按键列表和间隔
+                _currentKeyMode?.SetKeyList(_keyList);
+                _currentKeyMode?.SetKeyInterval(_keyInterval);
+                if (_currentKeyMode != null)
+                {
+                    _currentKeyMode.SetKeyPressInterval(KeyPressInterval);
+                }
+                
+                _logger.Debug(
+                    $"静默模式切换完成 - " +
+                    $"新模式: {(isSequenceMode ? "顺序模式" : "按压模式")}");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("静默模式切换异常", ex);
+                // 发生异常时恢复到原始状态
+                if (_currentKeyMode != null)
+                {
+                    _currentKeyMode.Dispose();
+                }
+                _currentKeyMode = wasSequenceMode ? 
+                    new SequenceKeyMode(this) : 
+                    new HoldKeyMode(this) as KeyModeBase;
+                _isHoldMode = !wasSequenceMode;
+                IsEnabled = false;
+            }
+        }
 
         // 设置按键列表
         public void SetKeyList(List<DDKeyCode> keyList)

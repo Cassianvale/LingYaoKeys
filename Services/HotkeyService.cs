@@ -92,7 +92,7 @@ namespace WpfApp.Services
             _mouseProcDelegate = MouseHookCallback;
             _keyboardProcDelegate = KeyboardHookCallback;
 
-            // 订阅模式切换事件
+            // 订阅模式切换事件（仅在真正切换模式时触发）
             _ddDriverService.ModeSwitched += OnModeSwitched;
 
             // 从配置加载初始状态
@@ -109,9 +109,6 @@ namespace WpfApp.Services
         {
             var config = AppConfigService.Config;
 
-            // 设置驱动服务模式
-            _ddDriverService.IsSequenceMode = config.keyMode == 0;
-
             // 加载按键列表
             if (config.keyList?.Count > 0)
             {
@@ -127,15 +124,9 @@ namespace WpfApp.Services
                 }
             }
 
-            // 加载热键配置
-            if (config.startKey.HasValue)
-            {
-                RegisterStartHotkey(config.startKey.Value, config.startMods);
-                if (_ddDriverService.IsSequenceMode && config.stopKey.HasValue)
-                {
-                    RegisterStopHotkey(config.stopKey.Value, config.stopMods);
-                }
-            }
+            // 直接设置模式，不触发事件
+            _ddDriverService.SetModeWithoutEvent(config.keyMode == 0);
+
         }
 
         public void Dispose()
