@@ -72,62 +72,6 @@ namespace WpfApp.Services.KeyModes
             }
         }
 
-        // public PerformanceMetrics GetCurrentMetrics(IEnumerable<DDKeyCode> currentSequence)
-        // {
-        //     lock (_metricsLock)
-        //     {
-        //         return new PerformanceMetrics
-        //         {
-        //             AverageKeyPressTime = CalculateAverage(_keyPressDurations),
-        //             AverageKeyInterval = CalculateAverage(_keyIntervals),
-        //             TotalExecutionTime = _sequenceStopwatch.Elapsed,
-        //             TotalKeyPresses = _totalKeyPresses,
-        //             CurrentSequence = string.Join(", ", currentSequence)
-        //         };
-        //     }
-        // }
-
-        private double CalculateAverage(Queue<TimeSpan> timings)
-        {
-            if (timings == null || timings.Count == 0)
-                return 0;
-
-            lock (_metricsLock)
-            {
-                double sum = 0;
-                int count = 0;
-                foreach (var timing in timings)
-                {
-                    if (timing.TotalMilliseconds > 0)
-                    {
-                        sum += timing.TotalMilliseconds;
-                        count++;
-                    }
-                }
-                return count > 0 ? sum / count : 0;
-            }
-        }
-
-        // public void LogSequenceEnd(int keyInterval)
-        // {
-        //     double avgPressDuration;
-        //     double avgInterval;
-
-        //     lock (_metricsLock)
-        //     {
-        //         avgPressDuration = CalculateAverage(_keyPressDurations);
-        //         avgInterval = CalculateAverage(_keyIntervals);
-        //     }
-
-        //     var details = $"\n├─ 执行时间: {_sequenceStopwatch.Elapsed.TotalSeconds:F2}s\n" +
-        //                  $"├─ 总按键次数: {_totalKeyPresses}\n" +
-        //                  $"├─ 平均按压时长: {avgPressDuration:F2}ms\n" +
-        //                  $"├─ 平均实际间隔: {avgInterval:F2}ms\n" +
-        //                  $"└─ 设定间隔: {keyInterval}ms";
-            
-        //     _logger.SequenceEvent("结束", details);
-        // }
-
         public void IncrementKeyCount()
         {
             Interlocked.Increment(ref _keyCount);

@@ -59,12 +59,7 @@ namespace WpfApp.Services.KeyModes
                 }
             }
         }
-
-        // public virtual void LogMetrics()
-        // {
-        //     Metrics.SequenceEnd(_driverService.KeyInterval);
-        // }
-
+        
         protected virtual void LogModeStart()
         {
             _logger.SequenceEvent("开始", $"模式: {GetType().Name} | 按键列表: {string.Join(", ", _keyList)} | 间隔: {_driverService.KeyInterval}ms");

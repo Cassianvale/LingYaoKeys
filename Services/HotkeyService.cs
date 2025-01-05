@@ -18,32 +18,24 @@ namespace WpfApp.Services
     public class HotkeyService
     {
         // Win32 API 函数
-        // 安装鼠标钩子
-        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
+        // 统一的钩子回调委托
+        private delegate IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam);
 
-        // 安装键盘钩子
+        // 统一的钩子安装函数
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+        private static extern IntPtr SetWindowsHookEx(int idHook, HookProc lpfn, IntPtr hMod, uint dwThreadId);
 
         // 释放钩子
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern bool UnhookWindowsHookEx(IntPtr hhk);  
 
         // 调用下一个钩子
-
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
 
         // 获取模块句柄
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr GetModuleHandle(string lpModuleName);
-
-        // 定义低级鼠标钩子回调函数
-        private delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
-
-        // 定义低级键盘钩子回调函数
-        private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
 
         // Windows消息常量
         private const int WH_KEYBOARD_LL = 13;
@@ -82,8 +74,8 @@ namespace WpfApp.Services
         private bool _isInputFocused;  // 输入焦点是否在当前窗口
 
         // 保持回调函数的引用
-        private readonly LowLevelMouseProc _mouseProcDelegate;  // 鼠标钩子回调函数
-        private readonly LowLevelKeyboardProc _keyboardProcDelegate;  // 键盘钩子回调函数
+        private readonly HookProc _mouseProcDelegate;  // 鼠标钩子回调函数
+        private readonly HookProc _keyboardProcDelegate;  // 键盘钩子回调函数
         private IntPtr _mouseHookHandle;  // 鼠标钩子句柄
         private IntPtr _keyboardHookHandle;  // 键盘钩子句柄
         private readonly object _hookLock = new object();  // 钩子锁
