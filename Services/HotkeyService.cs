@@ -67,8 +67,8 @@ namespace WpfApp.Services
         // 热键状态
         private int _startVirtualKey;  // 启动热键虚拟键码
         private int _stopVirtualKey;  // 停止热键虚拟键码
-        private DDKeyCode? _pendingStartKey;  // 等待注册的启动热键
-        private DDKeyCode? _pendingStopKey;  // 等待注册的停止热键
+        private DDKeyCode? _pendingStartKey;  // dd启动键键码
+        private DDKeyCode? _pendingStopKey;  // dd停止键键码
         private bool _isKeyHeld;    // 防止全局热键的重复触发
         private bool _isSequenceRunning;  // 序列模式是否正在运行
         private bool _isInputFocused;  // 输入焦点是否在当前窗口
