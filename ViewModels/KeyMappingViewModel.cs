@@ -149,6 +149,15 @@ namespace WpfApp.ViewModels
                     var selectedKeys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
                     _hotkeyService.SetKeySequence(selectedKeys, KeyInterval);
 
+                    // 实时保存模式设置
+                    if (!_isInitializing)
+                    {
+                        AppConfigService.UpdateConfig(config =>
+                        {
+                            config.keyMode = value ? 0 : 1;
+                        });
+                    }
+
                     _logger.Debug($"模式切换 - 当前模式: {(value ? "顺序模式" : "按压模式")}, " +
                                     $"选中按键数: {selectedKeys.Count}, " +
                                     $"按键间隔: {KeyInterval}ms");
@@ -599,6 +608,16 @@ namespace WpfApp.ViewModels
             // 更新HotkeyService的按键列表
             UpdateHotkeyServiceKeyList();
 
+            // 实时保存按键列表
+            if (!_isInitializing)
+            {
+                AppConfigService.UpdateConfig(config =>
+                {
+                    config.keyList = KeyList.Select(k => k.KeyCode).ToList();
+                    config.keySelections = KeyList.Select(k => k.IsSelected).ToList();
+                });
+            }
+
             _mainViewModel.UpdateStatusMessage($" {_currentKey.Value} 按键添加成功");
             _logger.Debug($" {_currentKey.Value} 按键添加成功");
 
@@ -618,6 +637,16 @@ namespace WpfApp.ViewModels
 
             // 更新HotkeyService的按键列表
             UpdateHotkeyServiceKeyList();
+
+            // 实时保存按键列表
+            if (!_isInitializing)
+            {
+                AppConfigService.UpdateConfig(config =>
+                {
+                    config.keyList = KeyList.Select(k => k.KeyCode).ToList();
+                    config.keySelections = KeyList.Select(k => k.IsSelected).ToList();
+                });
+            }
         }
 
         // 添加更新HotkeyService按键列表的辅助方法
