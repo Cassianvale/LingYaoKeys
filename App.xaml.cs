@@ -4,13 +4,14 @@ using System.Threading.Tasks;
 using WpfApp.Services;
 using System.Reflection;
 using System.Windows;
+using Forms = System.Windows.Forms;
 
 namespace WpfApp
 {
     public partial class App : System.Windows.Application
     {
         private readonly SerilogManager _logger = SerilogManager.Instance;
-        public static DDDriverService DDDriver { get; private set; } = new DDDriverService();
+        public static LyKeysService LyKeysDriver { get; private set; }
         public static ConfigService ConfigService { get; private set; } = new ConfigService();
         public static AudioService AudioService { get; private set; } = new AudioService();
         private bool _isShuttingDown;
@@ -85,43 +86,36 @@ namespace WpfApp
                 _logger.Debug($"日志系统初始化完成, 配置: Level={AppConfigService.Config.Logging.LogLevel}, MaxSize={AppConfigService.Config.Logging.FileSettings.MaxFileSize}MB");
                 _logger.Debug("应用程序启动...");
 
-                // 初始化驱动服务
-                DDDriver = new DDDriverService();
-
-                // 从嵌入式资源提取驱动文件
-                string dllFileName = Environment.Is64BitProcess ? "ddx64.dll" : "ddx32.dll";
-                string tempPath = Path.Combine(Path.GetTempPath(), "LingYaoKeys");
-                Directory.CreateDirectory(tempPath);
-                string dllPath = Path.Combine(tempPath, dllFileName);
-
-                // 如果临时文件不存在，从嵌入式资源提取
-                if (!File.Exists(dllPath))
+                // 获取驱动文件路径
+                string driverPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resource", "lykeysdll");
+                if (!Directory.Exists(driverPath))
                 {
-                    string resourceName = $"WpfApp.Resource.dd.{dllFileName}";
-                    using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
-                    {
-                        if (stream == null)
-                        {
-                            _logger.Error($"找不到嵌入的驱动资源：{resourceName}");
-                            System.Windows.MessageBox.Show($"找不到驱动资源：{resourceName}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                            Current.Shutdown();
-                            return;
-                        }
-
-                        using (FileStream fileStream = File.Create(dllPath))
-                        {
-                            stream.CopyTo(fileStream);
-                        }
-                    }
+                    _logger.Error($"驱动文件目录不存在: {driverPath}");
+                    System.Windows.MessageBox.Show("驱动文件丢失，请确保程序完整性", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Current.Shutdown();
+                    return;
                 }
 
-                _logger.Debug($"使用驱动: {dllPath}");
+                _logger.Debug($"驱动文件目录: {driverPath}");
 
-                // 加载驱动
-                _logger.Debug("开始加载驱动...");
-                if (!DDDriver.LoadDllFile(dllPath))
+                // 初始化驱动管理器
+                try 
                 {
-                    _logger.Error("驱动加载失败，无法加载DD驱动文件");
+                    // 初始化 LyKeys 服务
+                    LyKeysDriver = new LyKeysService();
+                    if (!LyKeysDriver.Initialize(driverPath))
+                    {
+                        _logger.Error("驱动加载失败，无法加载LyKeys驱动文件");
+                        System.Windows.MessageBox.Show("驱动加载失败，请检查是否以管理员身份运行程序", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        Current.Shutdown();
+                        return;
+                    }
+                    _logger.Debug("驱动初始化成功");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"驱动初始化失败: {ex.Message}", ex);
+                    System.Windows.MessageBox.Show("驱动初始化失败，请检查是否以管理员身份运行程序", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     Current.Shutdown();
                     return;
                 }
@@ -136,8 +130,7 @@ namespace WpfApp
                 mainWindow.Show();
                 _logger.Debug("主窗口已显示");
 
-                // 创建 HotkeyService 并设置到 DDDriver
-                var hotkeyService = new HotkeyService(mainWindow, DDDriver);
+                var hotkeyService = new HotkeyService(mainWindow, LyKeysDriver);
                 _logger.Debug("热键服务初始化完成");
 
                 // 注册应用程序退出事件
@@ -151,6 +144,27 @@ namespace WpfApp
             }
         }
 
+        private void ExtractEmbeddedResource(string resourceName, string outputPath)
+        {
+            if (!File.Exists(outputPath))
+            {
+                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                {
+                    if (stream == null)
+                    {
+                        _logger.Error($"找不到嵌入的资源：{resourceName}");
+                        throw new FileNotFoundException($"找不到驱动资源：{resourceName}");
+                    }
+
+                    using (FileStream fileStream = File.Create(outputPath))
+                    {
+                        stream.CopyTo(fileStream);
+                    }
+                    _logger.Debug($"已提取资源文件: {resourceName} -> {outputPath}");
+                }
+            }
+        }
+
         private void OnApplicationExit(object sender, ExitEventArgs e)
         {
             if (_isShuttingDown) return;
@@ -161,15 +175,15 @@ namespace WpfApp
                 _logger.Debug("开始释放应用程序资源...");
                 
                 // 确保所有服务都被释放
-                if (!DDDriver.IsDisposed)
+                if (LyKeysDriver != null)
                 {
-                    DDDriver?.Dispose();
-                    DDDriver = null;
+                    LyKeysDriver.Dispose();
+                    LyKeysDriver = null;
                 }
                 
-                if (!AudioService.IsDisposed)
+                if (AudioService != null)
                 {
-                    AudioService?.Dispose();
+                    AudioService.Dispose();
                     AudioService = null;
                 }
 

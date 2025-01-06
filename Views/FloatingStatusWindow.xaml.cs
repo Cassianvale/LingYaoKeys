@@ -5,7 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using System.Runtime.InteropServices;
-using WpfApp.Models;
+using WpfApp.Services.Models;
 using WpfApp.Services;
 
 namespace WpfApp.Views

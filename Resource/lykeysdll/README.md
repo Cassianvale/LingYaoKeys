@@ -41,12 +41,22 @@
 
 ## 状态码说明
 
+## 驱动初始化返回值
+| 返回值 | 错误码 | 说明 |
+|--------|--------|------|
+| STATUS_SUCCESS | 0x00000000 | 驱动初始化成功，非0就是初始化失败 |
+| STATUS_UNSUCCESSFUL | 0xC0000001 | 操作失败 |
+| STATUS_NOT_SUPPORTED | 0xC00000BB | 不支持的操作 |
+| STATUS_INVALID_PARAMETER | 0xC000000D | 无效的参数 |
+| STATUS_INSUFFICIENT_RESOURCES | 0xC000009A | 资源不足 |
+| STATUS_DEVICE_NOT_CONNECTED | 0xC000009D | 设备未连接 |
+
 ### DEVICE_STATUS 枚举值
-| 值 | 含义 |
+| 设备状态枚举值 | 含义 |
 |----|------|
-| DEVICE_STATUS_UNKNOWN (0) | 设备状态未知 |
-| DEVICE_STATUS_READY (1) | 设备就绪 |
-| DEVICE_STATUS_ERROR (2) | 设备错误 |
+| DEVICE_STATUS_UNKNOWN (0) | 设备状态未知，驱动刚加载时的状态 |
+| DEVICE_STATUS_READY (1) | 设备就绪，设备已经成功初始化可以正常接收和处理输入 |
+| DEVICE_STATUS_ERROR (2) | 设备错误，设备初始化失败回调函数设置失败，需要重新初始化或者排查问题 |
 
 ## 使用注意事项
 1. 使用前必须先调用 `LoadNTDriver` 加载驱动
@@ -65,3 +75,5 @@
 - 所有接口都是线程安全的
 - 多线程环境下无需额外同步措施
 - 建议在主线程中进行驱动加载和卸载操作
+
+

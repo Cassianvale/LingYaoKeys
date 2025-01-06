@@ -8,6 +8,7 @@
       xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
       xmlns:behaviors="clr-namespace:WpfApp.Behaviors"
       mc:Ignorable="d"
+      Title="按键映射"
       PreviewMouseDown="Page_PreviewMouseDown">
     <!-- 添加 PreviewMouseDown 事件处理 -->
     <Grid Margin="10">

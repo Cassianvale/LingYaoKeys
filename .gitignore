@@ -17,6 +17,9 @@ output/
 logs/
 packages/
 DvlErrLog.txt
+lykeys.sys
+lykeysdll.dll
+lykeys.cat
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
