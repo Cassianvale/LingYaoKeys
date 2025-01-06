@@ -24,6 +24,9 @@ namespace WpfApp.Services.KeyModes
             
             try
             {
+                // 在开始序列前切换输入法
+                (_driverService as DDDriverService)?._inputMethodService.SwitchToEnglish();
+
                 LogModeStart();
                 PrepareStart();
 
@@ -59,6 +62,19 @@ namespace WpfApp.Services.KeyModes
             finally
             {
                 LogModeEnd();
+            }
+        }
+
+        public override async Task StopAsync()
+        {
+            try
+            {
+                await base.StopAsync();
+            }
+            finally
+            {
+                // 恢复输入法状态
+                (_driverService as DDDriverService)?._inputMethodService.RestorePreviousLayout();
             }
         }
     }

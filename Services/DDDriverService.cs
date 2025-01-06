@@ -446,9 +446,6 @@ namespace WpfApp.Services
             
             try
             {
-                // 切换到英文输入法
-                _inputMethodService.SwitchToEnglish();
-                
                 // 使用自定义延迟或配置的间隔
                 int delayMs = customDelay ?? _keyInterval;
                 int pressIntervalMs = customPressInterval ?? _keyPressInterval;
@@ -498,6 +495,9 @@ namespace WpfApp.Services
                 _logger.Error("释放资源时发生异常", ex);
             }
         }
+
+        // 添加模式切换事件
+        public event EventHandler<bool>? ModeSwitched;
 
         // 顺序模式&按压模式逻辑
         // 添加属性用于设置按键模式和按键列表
@@ -564,8 +564,57 @@ namespace WpfApp.Services
             }
         }
 
-        // 添加模式切换事件
-        public event EventHandler<bool>? ModeSwitched;
+        // 设置模式而不触发事件
+        public void SetModeWithoutEvent(bool isSequenceMode)
+        {
+            bool wasSequenceMode = IsSequenceMode;
+            if (wasSequenceMode == isSequenceMode) return;
+            
+            try
+            {
+                // 停止当前运行的序列
+                IsEnabled = false;
+
+                if (isSequenceMode)
+                {
+                    // 切换到顺序模式
+                    _currentKeyMode = new SequenceKeyMode(this);
+                    _isHoldMode = false;
+                }
+                else
+                {
+                    // 切换到按压模式
+                    _currentKeyMode = new HoldKeyMode(this);
+                    _isHoldMode = true;
+                }
+
+                // 设置按键列表和间隔
+                _currentKeyMode?.SetKeyList(_keyList);
+                _currentKeyMode?.SetKeyInterval(_keyInterval);
+                if (_currentKeyMode != null)
+                {
+                    _currentKeyMode.SetKeyPressInterval(KeyPressInterval);
+                }
+                
+                _logger.Debug(
+                    $"静默模式切换完成 - " +
+                    $"新模式: {(isSequenceMode ? "顺序模式" : "按压模式")}");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("静默模式切换异常", ex);
+                // 发生异常时恢复到原始状态
+                if (_currentKeyMode != null)
+                {
+                    _currentKeyMode.Dispose();
+                }
+                _currentKeyMode = wasSequenceMode ? 
+                    new SequenceKeyMode(this) : 
+                    new HoldKeyMode(this) as KeyModeBase;
+                _isHoldMode = !wasSequenceMode;
+                IsEnabled = false;
+            }
+        }
 
         // 设置按键列表
         public void SetKeyList(List<DDKeyCode> keyList)
@@ -626,36 +675,46 @@ namespace WpfApp.Services
                     return;
                 }
 
-                // 确保状态一致性
-                if (isHold && !_isHoldMode)
-                {
-                    _isHoldMode = true;
-                    _isEnabled = true;
-                }
-                else if (!isHold && _isHoldMode)
-                {
-                    _isHoldMode = false;
-                    _isEnabled = false;
-                }
-                
-                if (_currentKeyMode is HoldKeyMode holdMode)
+                lock (_stateLock)
                 {
                     if (isHold)
                     {
-                        holdMode.HandleKeyPress();
+                        // 先准备好所有状态
+                        if (_currentKeyMode is not HoldKeyMode)
+                        {
+                            _currentKeyMode?.Dispose();
+                            _currentKeyMode = new HoldKeyMode(this);
+                            _currentKeyMode.SetKeyList(_keyList);
+                            _currentKeyMode.SetKeyInterval(_keyInterval);
+                            _currentKeyMode.SetKeyPressInterval(KeyPressInterval);
+                        }
+
+                        // 设置状态
+                        _isHoldMode = true;
+                        _isEnabled = true;
+                        
+                        // 通知状态变更
+                        OnEnableStatusChanged(_isEnabled);
+                        
+                        // 最后启动按压模式
+                        if (_currentKeyMode is HoldKeyMode holdMode)
+                        {
+                            holdMode.HandleKeyPress();
+                        }
                     }
                     else
                     {
-                        holdMode.HandleKeyRelease();
+                        // 先处理按键释放
+                        if (_currentKeyMode is HoldKeyMode holdMode)
+                        {
+                            holdMode.HandleKeyRelease();
+                        }
+                        
+                        // 然后更新状态
+                        _isHoldMode = false;
+                        _isEnabled = false;
+                        OnEnableStatusChanged(_isEnabled);
                     }
-                }
-                else if (isHold)
-                {
-                    // 如果当前没有按压模式实例，创建一个新的
-                    _currentKeyMode = new HoldKeyMode(this);
-                    _currentKeyMode.SetKeyList(_keyList);
-                    _currentKeyMode.SetKeyInterval(_keyInterval);
-                    (_currentKeyMode as HoldKeyMode)?.HandleKeyPress();
                 }
                 
                 _logger.Debug(
@@ -670,6 +729,7 @@ namespace WpfApp.Services
                 // 发生异常时确保停止
                 _isEnabled = false;
                 _isHoldMode = false;
+                OnEnableStatusChanged(_isEnabled);
                 if (_currentKeyMode is HoldKeyMode holdMode)
                 {
                     try
@@ -851,6 +911,12 @@ namespace WpfApp.Services
         public void ResetKeyPressInterval()
         {
             KeyPressInterval = DEFAULT_KEY_PRESS_INTERVAL;
+        }
+
+        // 触发状态变化事件
+        private void OnEnableStatusChanged(bool isEnabled)
+        {
+            EnableStatusChanged?.Invoke(this, isEnabled);
         }
     }
 

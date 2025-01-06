@@ -20,6 +20,8 @@ namespace WpfApp.Services.KeyModes
         public HoldKeyMode(DDDriverService driverService) : base(driverService)
         {
             _driverService = driverService;
+            _isKeyHeld = false; // 用于按压模式的执行控制
+            _isExecuting = false;   // 当前是否有按键序列正在执行
         }
 
         public override async Task StartAsync()
@@ -34,6 +36,9 @@ namespace WpfApp.Services.KeyModes
                 }
                 _isExecuting = true;
             }
+
+            // 在开始序列前切换一次输入法
+            (_driverService as DDDriverService)?._inputMethodService.SwitchToEnglish();
 
             // 创建按键列表的副本
             var keyListCopy = new List<DDKeyCode>(_keyList);

@@ -79,13 +79,6 @@ namespace WpfApp.Views
                     // 执行拖拽
                     Left += diff.X;
                     Top += diff.Y;
-
-                    // 保存新位置
-                    AppConfigService.UpdateConfig(config =>
-                    {
-                        config.FloatingWindowLeft = Left;
-                        config.FloatingWindowTop = Top;
-                    });
                 }
             }
         }
@@ -93,7 +86,17 @@ namespace WpfApp.Views
         private void Window_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             ReleaseMouseCapture();
-            if (!_isDragging)
+            
+            // 如果发生了拖拽，保存新位置
+            if (_isDragging)
+            {
+                AppConfigService.UpdateConfig(config =>
+                {
+                    config.FloatingWindowLeft = Math.Round(Left, 2);
+                    config.FloatingWindowTop = Math.Round(Top, 2);
+                });
+            }
+            else
             {
                 var currentTime = DateTime.Now;
                 var timeSinceLastClick = (currentTime - _lastClickTime).TotalMilliseconds;
