@@ -436,8 +436,6 @@ namespace WpfApp.Services
             }
         }
 
-        // 移除通用的按键防抖
-        private readonly Dictionary<DDKeyCode, DateTime> _lastKeyPressTimes = new();
         
         // 优化按键检测方法
         public bool SimulateKeyPress(DDKeyCode keyCode, int? customDelay = null, int? customPressInterval = null)
@@ -744,87 +742,87 @@ namespace WpfApp.Services
             }
         }
 
-        // 模拟带修饰键的按键
-        public async Task SimulateKeyWithModifiersAsync(DDKeyCode keyCode, KeyModifiers modifiers)
-        {
-            if (!_isInitialized) return;
+        // // 模拟带修饰键的按键
+        // public async Task SimulateKeyWithModifiersAsync(DDKeyCode keyCode, KeyModifiers modifiers)
+        // {
+        //     if (!_isInitialized) return;
 
-            var modifierKeys = new List<DDKeyCode>();
+        //     var modifierKeys = new List<DDKeyCode>();
             
-            // 添加修饰键
-            if (modifiers.HasFlag(KeyModifiers.Control))
-                modifierKeys.Add(DDKeyCode.LEFT_CTRL);
-            if (modifiers.HasFlag(KeyModifiers.Alt))
-                modifierKeys.Add(DDKeyCode.LEFT_ALT);
-            if (modifiers.HasFlag(KeyModifiers.Shift))
-                modifierKeys.Add(DDKeyCode.LEFT_SHIFT);
-            if (modifiers.HasFlag(KeyModifiers.Windows))
-                modifierKeys.Add(DDKeyCode.LEFT_WIN);
+        //     // 添加修饰键
+        //     if (modifiers.HasFlag(KeyModifiers.Control))
+        //         modifierKeys.Add(DDKeyCode.LEFT_CTRL);
+        //     if (modifiers.HasFlag(KeyModifiers.Alt))
+        //         modifierKeys.Add(DDKeyCode.LEFT_ALT);
+        //     if (modifiers.HasFlag(KeyModifiers.Shift))
+        //         modifierKeys.Add(DDKeyCode.LEFT_SHIFT);
+        //     if (modifiers.HasFlag(KeyModifiers.Windows))
+        //         modifierKeys.Add(DDKeyCode.LEFT_WIN);
 
-            try
-            {
-                // 按下所有修饰键
-                foreach (var modifier in modifierKeys)
-                {
-                    SendKey(modifier, true);
-                    await Task.Delay(5);
-                }
+        //     try
+        //     {
+        //         // 按下所有修饰键
+        //         foreach (var modifier in modifierKeys)
+        //         {
+        //             SendKey(modifier, true);
+        //             await Task.Delay(5);
+        //         }
 
-                // 按下主键
-                SendKey(keyCode, true);
-                await Task.Delay(10);
-                SendKey(keyCode, false);
+        //         // 按下主键
+        //         SendKey(keyCode, true);
+        //         await Task.Delay(10);
+        //         SendKey(keyCode, false);
 
-                // 释放所有修饰键(反序)
-                for (int i = modifierKeys.Count - 1; i >= 0; i--)
-                {
-                    SendKey(modifierKeys[i], false);
-                    await Task.Delay(5);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("模拟组合键异常", ex);
-                // 确保释放所有按键
-                foreach (var modifier in modifierKeys)
-                {
-                    SendKey(modifier, false);
-                }
-            }
-        }
+        //         // 释放所有修饰键(反序)
+        //         for (int i = modifierKeys.Count - 1; i >= 0; i--)
+        //         {
+        //             SendKey(modifierKeys[i], false);
+        //             await Task.Delay(5);
+        //         }
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         _logger.Error("模拟组合键异常", ex);
+        //         // 确保释放所有按键
+        //         foreach (var modifier in modifierKeys)
+        //         {
+        //             SendKey(modifier, false);
+        //         }
+        //     }
+        // }
 
-        // 检查修饰键状态
-        public bool IsModifierKeyPressed(KeyModifiers modifier)
-        {
-            if (!_isInitialized) return false;
+        // // 检查修饰键状态
+        // public bool IsModifierKeyPressed(KeyModifiers modifier)
+        // {
+        //     if (!_isInitialized) return false;
 
-            try
-            {
-                switch (modifier)
-                {
-                    case KeyModifiers.Control:
-                        return IsKeyPressedByDriver(DDKeyCode.LEFT_CTRL) || IsKeyPressedByDriver(DDKeyCode.RIGHT_CTRL);
-                    case KeyModifiers.Alt:
-                        return IsKeyPressedByDriver(DDKeyCode.LEFT_ALT) || IsKeyPressedByDriver(DDKeyCode.RIGHT_ALT);
-                    case KeyModifiers.Shift:
-                        return IsKeyPressedByDriver(DDKeyCode.LEFT_SHIFT) || IsKeyPressedByDriver(DDKeyCode.RIGHT_SHIFT);
-                    default:
-                        return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("检查修饰键状态异常", ex);
-                return false;
-            }
-        }
+        //     try
+        //     {
+        //         switch (modifier)
+        //         {
+        //             case KeyModifiers.Control:
+        //                 return IsKeyPressedByDriver(DDKeyCode.LEFT_CTRL) || IsKeyPressedByDriver(DDKeyCode.RIGHT_CTRL);
+        //             case KeyModifiers.Alt:
+        //                 return IsKeyPressedByDriver(DDKeyCode.LEFT_ALT) || IsKeyPressedByDriver(DDKeyCode.RIGHT_ALT);
+        //             case KeyModifiers.Shift:
+        //                 return IsKeyPressedByDriver(DDKeyCode.LEFT_SHIFT) || IsKeyPressedByDriver(DDKeyCode.RIGHT_SHIFT);
+        //             default:
+        //                 return false;
+        //         }
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         _logger.Error("检查修饰键状态异常", ex);
+        //         return false;
+        //     }
+        // }
 
-        // 使用DD驱动检测按键状态
-        private bool IsKeyPressedByDriver(DDKeyCode keyCode)
-        {
-            if (_dd.key == null) return false;
-            return _dd.key((int)keyCode, 3) == 1; // 3表示检查按键状态
-        }
+        // // 使用DD驱动检测按键状态
+        // private bool IsKeyPressedByDriver(DDKeyCode keyCode)
+        // {
+        //     if (_dd.key == null) return false;
+        //     return _dd.key((int)keyCode, 3) == 1; // 3表示检查按键状态
+        // }
 
         // 检查驱动是否就绪
         public bool IsReady => _isInitialized && _dd.key != null;
