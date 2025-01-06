@@ -764,11 +764,13 @@ namespace WpfApp.ViewModels
             {
                 try
                 {
+                    _logger.Debug("开始启动按键映射");
+                    
                     // 只获取勾选的按键
                     var keys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
                     if (keys.Count == 0)
                     {
-                        _logger.Warning("警告：没有选中任何按键");
+                        _logger.Warning("没有选中任何按键");
                         _mainViewModel.UpdateStatusMessage("请至少选择一个按键", true);
                         IsHotkeyEnabled = false;
                         IsExecuting = false;
@@ -776,13 +778,18 @@ namespace WpfApp.ViewModels
                     }
 
                     // 记录按键列表
+                    _logger.Debug($"选中的按键列表:");
                     foreach (var key in keys)
                     {
-                        _logger.Debug($"选中的按键: {key}");
+                        _logger.Debug($"- {key} ({_lyKeysService.GetKeyDescription(key)})");
                     }
 
                     IsExecuting = true;
-                    if (_lyKeysService == null) return;
+                    if (_lyKeysService == null)
+                    {
+                        _logger.Error("LyKeysService未初始化");
+                        return;
+                    }
 
                     // 确保先同步按键列表到服务
                     _lyKeysService.SetKeyList(keys);
@@ -791,6 +798,8 @@ namespace WpfApp.ViewModels
                     // 设置驱动服务
                     _lyKeysService.IsHoldMode = SelectedKeyMode == 1;
                     _lyKeysService.KeyInterval = KeyInterval;
+                    
+                    // 启用服务
                     _lyKeysService.IsEnabled = true;
                     IsHotkeyEnabled = true;
 
@@ -804,6 +813,10 @@ namespace WpfApp.ViewModels
                     IsExecuting = false;
                     _mainViewModel.UpdateStatusMessage($"启动按键映射失败: {ex.Message}", true);
                 }
+            }
+            else
+            {
+                _logger.Debug("按键映射已在执行中，忽略启动请求");
             }
         }
 

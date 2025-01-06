@@ -19,9 +19,9 @@ namespace WpfApp.Services
         private bool _isInitialized;
         private bool _isEnabled;
         private bool _isHoldMode;
+        internal readonly InputMethodService _inputMethodService;
         private readonly object _stateLock = new object();
         private readonly Stopwatch _sequenceStopwatch = new Stopwatch();
-        internal readonly InputMethodService _inputMethodService;
         private List<LyKeysCode> _keyList = new List<LyKeysCode>();
         private const int MIN_KEY_INTERVAL = 1;  // 最小按键间隔
         public const int DEFAULT_KEY_PRESS_INTERVAL = 5; // 默认按键按下时长
@@ -184,6 +184,8 @@ namespace WpfApp.Services
             _isEnabled = false;
             _isHoldMode = false;
             _virtualKeyMap = InitializeVirtualKeyMap();
+            _inputMethodService = new InputMethodService();  // 初始化InputMethodService
+            _logger.Debug("LyKeysService构造函数：已初始化InputMethodService");
         }
         #endregion
 
@@ -484,13 +486,21 @@ namespace WpfApp.Services
             {
                 if (!CheckInitialization()) return;
 
+                _logger.Debug("开始启动按键序列");
                 StopKeySequence();
                 _sequenceStopwatch.Restart();
 
                 if (_keyList.Count > 0)
                 {
+                    _logger.Debug($"按键列表数量: {_keyList.Count}, 间隔: {_keyInterval}ms");
                     // 在新线程中启动按键序列
-                    new Thread(ExecuteKeySequence) { IsBackground = true }.Start();
+                    Thread sequenceThread = new Thread(ExecuteKeySequence) { IsBackground = true };
+                    sequenceThread.Start();
+                    _logger.Debug("按键序列线程已启动");
+                }
+                else
+                {
+                    _logger.Warning("按键列表为空，无法启动序列");
                 }
             }
             catch (Exception ex)
@@ -519,6 +529,18 @@ namespace WpfApp.Services
 
         private void ExecuteKeySequence()
         {
+            _logger.Debug("开始执行按键序列");
+            try
+            {
+                // 在序列开始时切换到英文输入法
+                _inputMethodService.SwitchToEnglish();
+                _logger.Debug("已切换到英文输入法");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("切换输入法失败", ex);
+            }
+
             while (_isEnabled && !_isHoldMode)
             {
                 try
@@ -527,6 +549,7 @@ namespace WpfApp.Services
                     {
                         if (!_isEnabled || _isHoldMode) break;
 
+                        _logger.Debug($"执行按键: {key}");
                         SendKeyPress(key, _keyPressInterval);
                         Thread.Sleep(_keyInterval);
                     }
@@ -537,6 +560,17 @@ namespace WpfApp.Services
                     IsEnabled = false;
                     break;
                 }
+            }
+
+            try
+            {
+                // 在序列结束时恢复之前的输入法
+                _inputMethodService.RestorePreviousLayout();
+                _logger.Debug("已恢复之前的输入法");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("恢复输入法失败", ex);
             }
         }
 

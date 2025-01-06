@@ -178,19 +178,19 @@ namespace WpfApp.Services
                 bool loadResult = LoadNTDriver(driverName, sysPath);
                 uint error = GetLastError();
                 
-                // 只要错误码为0，就认为是成功的
-                if (error == 0)
-                {
-                    if (!loadResult)
-                    {
-                        _logger.Debug("驱动已存在，继续初始化");
-                    }
-                }
-                else
-                {
-                    _logger.Error($"加载驱动失败，错误码: 0x{error:X8}");
-                    return false;
-                }
+                // // 只要错误码为0，就认为是成功的
+                // if (error == 0)
+                // {
+                //     if (!loadResult)
+                //     {
+                //         _logger.Debug("驱动已存在，继续初始化");
+                //     }
+                // }
+                // else
+                // {
+                //     _logger.Error($"加载驱动失败，错误码: 0x{error:X8}");
+                //     return false;
+                // }
                 
                 _logger.Debug("等待驱动初始化...");
                 Thread.Sleep(100);
@@ -285,24 +285,19 @@ namespace WpfApp.Services
 
                 if (!IsAdministrator())
                 {
-                    _logger.Error("需要管理员权限才能加载驱动，请以管理员身份运行程序");
+                    _logger.Error("需要管理员权限才能加载驱动");
                     return false;
                 }
-
-                _logger.Debug($"开始初始化驱动，路径: {driverPath}");
 
                 if (!InitializeDriverEnvironment(driverPath))
                     return false;
 
-                // 卸载现有驱动
                 UnloadDriver();
 
-                // 加载驱动
                 string sysPath = Path.Combine(driverPath, "lykeys.sys");
                 if (!LoadDriver(sysPath))
                     return false;
 
-                // 设置驱动句柄
                 if (!InitializeDriverHandle())
                     return false;
 

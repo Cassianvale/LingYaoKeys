@@ -11,7 +11,7 @@ namespace WpfApp.Services.Models
         private volatile bool _isKeyHeld;
         private readonly SemaphoreSlim _executionLock = new SemaphoreSlim(1, 1);
         private readonly object _stateLock = new object();
-        private bool _isExecuting; 
+        private bool _isExecuting;  // 当前是否有按键序列正在执行
         private readonly LyKeysService _driverService;
         // 添加状态消息更新事件
         public event Action<string, bool>? OnStatusMessageUpdated;

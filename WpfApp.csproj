@@ -70,9 +70,8 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     
-
-    <!-- DD驱动和音频文件配置为EmbeddedResource
-    <EmbeddedResource Include="Resource\dd\**">
+    <!-- lykeys驱动和音频文件配置为EmbeddedResource
+    <EmbeddedResource Include="Resource\lykeys\**">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource> -->
 

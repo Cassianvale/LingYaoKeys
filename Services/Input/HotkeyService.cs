@@ -206,25 +206,44 @@ namespace WpfApp.Services
         // 序列控制
         public void StartSequence()
         {
-            if (_keyList.Count == 0)
+            try
             {
-                _mainViewModel.UpdateStatusMessage("请至少选择一个按键", true);
-                return;
+                _logger.Debug("开始启动按键序列");
+                
+                if (_keyList.Count == 0)
+                {
+                    _logger.Warning("按键列表为空，无法启动序列");
+                    _mainViewModel.UpdateStatusMessage("请至少选择一个按键", true);
+                    return;
+                }
+
+                _isSequenceRunning = true;
+                _logger.Debug($"序列运行状态已设置为: {_isSequenceRunning}");
+
+                if (!_lyKeysService.IsHoldMode)
+                {
+                    _logger.Debug("当前为顺序模式，启动LyKeysService");
+                    _lyKeysService.IsEnabled = true;
+                }
+                else
+                {
+                    _logger.Debug("当前为按压模式，设置并启动LyKeysService");
+                    _lyKeysService.IsHoldMode = true;
+                    _lyKeysService.IsEnabled = true;
+                }
+
+                _logger.Debug($"序列已启动 - 模式: {(_lyKeysService.IsHoldMode ? "按压" : "顺序")}, " +
+                             $"按键数: {_keyList.Count}, 间隔: {_lyKeysService.KeyInterval}ms");
+                
+                SequenceModeStarted?.Invoke();
             }
-
-            _isSequenceRunning = true;
-
-            if (!_lyKeysService.IsHoldMode)
+            catch (Exception ex)
             {
-                _lyKeysService.IsEnabled = true;
+                _logger.Error("启动序列时发生异常", ex);
+                _isSequenceRunning = false;
+                _lyKeysService.IsEnabled = false;
+                _mainViewModel.UpdateStatusMessage("启动序列失败，请检查日志", true);
             }
-            else
-            {
-                _lyKeysService.IsHoldMode = true;
-                _lyKeysService.IsEnabled = true;  // 确保在按压模式下也设置启用状态
-            }
-
-            SequenceModeStarted?.Invoke();  // 触发序列开始事件
         }
 
         public void StopSequence()
