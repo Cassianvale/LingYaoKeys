@@ -15,11 +15,11 @@
     <ApplicationIcon>Resource\icon\app.ico</ApplicationIcon>
     
     <!-- 项目信息配置 -->
-    <Version>1.2.3</Version>
+    <Version>1.2.4</Version>
     <Product>LingYaoKeys</Product>
     <Authors>慕长秋</Authors>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
-    <Copyright>Copyright © 2024 Cassianvale</Copyright>
+    <Copyright>Copyright © 2025 Cassianvale</Copyright>
     <Description>灵曜按键 (LingYao Keys)</Description>
     
     <!-- 发布相关配置 -->
@@ -65,11 +65,18 @@
     <Resource Include="Resource\img\**" />
     <Resource Include="Resource\icon\**" />
     
-    <!-- DD驱动和音频文件配置为EmbeddedResource -->
+    <!-- 驱动文件配置 -->
+    <Content Include="Resource\lykeysdll\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    
+
+    <!-- DD驱动和音频文件配置为EmbeddedResource
     <EmbeddedResource Include="Resource\dd\**">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </EmbeddedResource>
-    
+    </EmbeddedResource> -->
+
+    <!-- 音频文件配置为EmbeddedResource -->
     <EmbeddedResource Include="Resource\sound\**">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
@@ -95,17 +102,17 @@
   <!-- 新增：发布后清理临时文件 -->
   <Target Name="CleanupTempFiles" AfterTargets="Publish">
     <ItemGroup>
-      <FilesToDelete Include="$(PublishDir)*.pdb"/>
-      <FilesToDelete Include="$(PublishDir)*.xml"/>
-      <FilesToDelete Include="$(PublishDir)*.deps.json"/>
-      <FilesToDelete Include="$(PublishDir)*.dll"/>
-      <FilesToDelete Include="$(PublishDir)runtimes\**\*.*"/>
-      <DirectoriesToDelete Include="$(PublishDir)runtimes"/>
-      <FilesToDelete Include="$(PublishDir)*.exe.WebView2\**\*.*"/>
-      <DirectoriesToDelete Include="$(PublishDir)*.exe.WebView2"/>
+      <FilesToDelete Include="$(PublishDir)*.pdb" />
+      <FilesToDelete Include="$(PublishDir)*.xml" />
+      <FilesToDelete Include="$(PublishDir)*.deps.json" />
+      <FilesToDelete Include="$(PublishDir)*.dll" />
+      <FilesToDelete Include="$(PublishDir)runtimes\**\*.*" />
+      <DirectoriesToDelete Include="$(PublishDir)runtimes" />
+      <FilesToDelete Include="$(PublishDir)*.exe.WebView2\**\*.*" />
+      <DirectoriesToDelete Include="$(PublishDir)*.exe.WebView2" />
     </ItemGroup>
-    <Delete Files="@(FilesToDelete)"/>
-    <RemoveDir Directories="@(DirectoriesToDelete)"/>
+    <Delete Files="@(FilesToDelete)" />
+    <RemoveDir Directories="@(DirectoriesToDelete)" />
   </Target>
 
   <!-- 新增：WebView2资源处理 -->
@@ -114,11 +121,11 @@
       <WebView2LoaderPath>$(OutputPath)runtimes\win-$(Platform)\native\WebView2Loader.dll</WebView2LoaderPath>
     </PropertyGroup>
     <ItemGroup>
-      <WebView2Files Include="$(OutputPath)runtimes\**\*.*"/>
-      <WebView2Dirs Include="$(OutputPath)runtimes"/>
+      <WebView2Files Include="$(OutputPath)runtimes\**\*.*" />
+      <WebView2Dirs Include="$(OutputPath)runtimes" />
     </ItemGroup>
     <Delete Files="@(WebView2Files)" />
-    <RemoveDir Directories="@(WebView2Dirs)"/>
+    <RemoveDir Directories="@(WebView2Dirs)" />
   </Target>
 
   <ItemGroup>

@@ -9,7 +9,7 @@ using System.Windows.Input;
 using System.Diagnostics;
 using WpfApp.Commands;
 using WpfApp.Views;
-using WpfApp.Models;
+using WpfApp.Services.Models;
 
 namespace WpfApp.ViewModels
 {

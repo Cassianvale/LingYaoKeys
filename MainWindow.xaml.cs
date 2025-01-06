@@ -17,7 +17,7 @@ namespace WpfApp
     /// <summary>
     /// MainWindow.xaml 的交互逻辑
     /// </summary>
-    public partial class MainWindow : System.Windows.Window
+    public partial class MainWindow : Window
     {
         private readonly SerilogManager _logger = SerilogManager.Instance;
         private readonly MainViewModel _viewModel;
@@ -98,7 +98,7 @@ namespace WpfApp
             try
             {
                 // 先初始化ViewModel
-                _viewModel = new MainViewModel(App.DDDriver, this);
+                _viewModel = new MainViewModel(App.LyKeysDriver, this);
                 
                 // 设置初始窗口大小
                 Width = _viewModel.Config.UI.MainWindow.DefaultWidth;

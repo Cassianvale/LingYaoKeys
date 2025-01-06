@@ -7,7 +7,7 @@ using System.IO;
 using System.Threading;
 using WpfApp.Services;
 using WpfApp.ViewModels;
-using WpfApp.Models;
+using WpfApp.Services.Models;
 using System.Windows.Media;
 using System.Windows.Threading;
 using System;
@@ -23,7 +23,7 @@ namespace WpfApp.ViewModels
         private bool _isDisposed;
         private readonly object _disposeLock = new object();
         private Page? _currentPage;
-        private readonly DDDriverService _ddDriver;
+        private readonly LyKeysService _ddDriver;
         private readonly Window _mainWindow;
         private readonly KeyMappingViewModel _keyMappingViewModel;
         private readonly FeedbackViewModel _feedbackViewModel;
@@ -100,7 +100,7 @@ namespace WpfApp.ViewModels
         public ICommand NavigateCommand { get; }
 
 
-        public MainViewModel(DDDriverService ddDriver, Window mainWindow)
+        public MainViewModel(LyKeysService ddDriver, Window mainWindow)
         {
             _ddDriver = ddDriver;
             _mainWindow = mainWindow;
