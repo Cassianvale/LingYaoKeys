@@ -53,8 +53,11 @@
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="4">
                             <ScrollViewer Padding="1" 
-                                        Focusable="False"
-                                        VerticalScrollBarVisibility="Auto">
+                                        Focusable="True"
+                                        VerticalScrollBarVisibility="Auto"
+                                        HorizontalScrollBarVisibility="Disabled"
+                                        IsDeferredScrollingEnabled="True"
+                                        CanContentScroll="True">
                                 <ItemsPresenter />
                             </ScrollViewer>
                         </Border>
