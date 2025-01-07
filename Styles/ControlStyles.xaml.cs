@@ -604,8 +604,6 @@ namespace WpfApp.Styles
                     if (current is System.Windows.Controls.ComboBox || 
                         current is System.Windows.Controls.ComboBoxItem ||
                         current.GetType().Name.Contains("ComboBox") || // 处理ComboBox的模板元素
-                        current is System.Windows.Controls.CheckBox || // 处理Switch控件
-                        current.GetType().Name.Contains("Switch") || // 处理Switch的模板元素
                         current is System.Windows.Controls.Button || // 处理所有按钮
                         current is System.Windows.Controls.Primitives.Popup || // 处理浮窗
                         current is System.Windows.Controls.ToolTip) // 处理工具提示
@@ -614,15 +612,28 @@ namespace WpfApp.Styles
                         return true;
                     }
 
-                    // 检查父级是否包含特殊UI元素
+                    // 特殊处理Switch控件
+                    if (current is System.Windows.Controls.CheckBox checkBox)
+                    {
+                        var checkBoxParent = VisualTreeHelper.GetParent(checkBox);
+                        if (checkBoxParent != null && (checkBoxParent.GetType().Name.Contains("Switch") || checkBox.Style?.ToString().Contains("Switch") == true))
+                        {
+                            // 如果是Switch控件，不拦截其点击事件
+                            return false;
+                        }
+                        // 如果是普通CheckBox，则视为特殊UI元素
+                        _logger.Debug($"检测到特殊UI元素: CheckBox");
+                        return true;
+                    }
+
+                    // 检查父级
                     var parent = VisualTreeHelper.GetParent(current);
                     if (parent != null)
                     {
                         // 检查父级是否是特殊UI元素
                         if (parent is System.Windows.Controls.Button ||
-                            parent is System.Windows.Controls.CheckBox ||
+                            (parent is System.Windows.Controls.CheckBox && !parent.GetType().Name.Contains("Switch")) ||
                             parent is System.Windows.Controls.ComboBox ||
-                            parent.GetType().Name.Contains("Switch") ||
                             parent.GetType().Name.Contains("Help"))
                         {
                             _logger.Debug($"检测到特殊UI元素的子元素: {current.GetType().Name} -> {parent.GetType().Name}");

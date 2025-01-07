@@ -253,7 +253,7 @@ namespace WpfApp.ViewModels
             _pageCache.Clear();
         }
 
-        // 订阅DDDriverService的事件，用于更新状态栏消息
+        // 用于更新状态栏消息
         private void OnDriverStatusMessageChanged(object? sender, StatusMessageEventArgs e)
         {
             System.Windows.Application.Current.Dispatcher.Invoke(() =>

@@ -384,6 +384,12 @@ namespace WpfApp.Services
 
             try
             {
+                // 检查是否为鼠标按键
+                if (IsMouseButton(keyCode))
+                {
+                    return _lyKeys.SendMouseButton(ConvertToMouseButtonType(keyCode), true);
+                }
+                
                 _lyKeys.SendKeyDown((ushort)keyCode);
                 return true;
             }
@@ -410,6 +416,12 @@ namespace WpfApp.Services
 
             try
             {
+                // 检查是否为鼠标按键
+                if (IsMouseButton(keyCode))
+                {
+                    return _lyKeys.SendMouseButton(ConvertToMouseButtonType(keyCode), false);
+                }
+                
                 _lyKeys.SendKeyUp((ushort)keyCode);
                 return true;
             }
@@ -418,6 +430,28 @@ namespace WpfApp.Services
                 _logger.Error($"按键释放异常: {keyCode}", ex);
                 return false;
             }
+        }
+
+        private bool IsMouseButton(LyKeysCode keyCode)
+        {
+            return keyCode == LyKeysCode.VK_LBUTTON ||
+                   keyCode == LyKeysCode.VK_RBUTTON ||
+                   keyCode == LyKeysCode.VK_MBUTTON ||
+                   keyCode == LyKeysCode.VK_XBUTTON1 ||
+                   keyCode == LyKeysCode.VK_XBUTTON2;
+        }
+
+        private LyKeys.MouseButtonType ConvertToMouseButtonType(LyKeysCode keyCode)
+        {
+            return keyCode switch
+            {
+                LyKeysCode.VK_LBUTTON => LyKeys.MouseButtonType.Left,
+                LyKeysCode.VK_RBUTTON => LyKeys.MouseButtonType.Right,
+                LyKeysCode.VK_MBUTTON => LyKeys.MouseButtonType.Middle,
+                LyKeysCode.VK_XBUTTON1 => LyKeys.MouseButtonType.XButton1,
+                LyKeysCode.VK_XBUTTON2 => LyKeys.MouseButtonType.XButton2,
+                _ => throw new ArgumentException($"非法的鼠标按键类型: {keyCode}")
+            };
         }
 
         /// <summary>
@@ -437,9 +471,32 @@ namespace WpfApp.Services
 
             try
             {
-                if (!SendKeyDown(keyCode)) return false;
+                bool isMouseButton = IsMouseButton(keyCode);
+                if (isMouseButton)
+                {
+                    _logger.Debug($"正在执行鼠标按键: {keyCode}, 持续时间: {duration}ms");
+                }
+
+                if (!SendKeyDown(keyCode))
+                {
+                    _logger.Error($"按键按下失败: {keyCode}");
+                    return false;
+                }
+                
                 Thread.Sleep(duration);
-                return SendKeyUp(keyCode);
+                
+                bool result = SendKeyUp(keyCode);
+                if (!result)
+                {
+                    _logger.Error($"按键释放失败: {keyCode}");
+                }
+                
+                if (isMouseButton)
+                {
+                    _logger.Debug($"鼠标按键执行完成: {keyCode}, 结果: {result}");
+                }
+                
+                return result;
             }
             catch (Exception ex)
             {
