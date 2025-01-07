@@ -14,7 +14,7 @@ namespace WpfApp.Services
     public class LyKeysService : IDisposable
     {
         #region 私有字段
-        private readonly LyKeys _lyKeys;
+        private LyKeys? _lyKeys;
         private readonly SerilogManager _logger;
         private bool _isInitialized;
         private bool _isEnabled;
@@ -178,7 +178,6 @@ namespace WpfApp.Services
         /// </summary>
         public LyKeysService()
         {
-            _lyKeys = new LyKeys();
             _logger = SerilogManager.Instance;
             _isInitialized = false;
             _isEnabled = false;
@@ -271,7 +270,7 @@ namespace WpfApp.Services
         /// </summary>
         /// <param name="driverPath">驱动文件路径</param>
         /// <returns>是否初始化成功</returns>
-        public bool Initialize(string driverPath)
+        public async Task<bool> InitializeAsync(string driverPath)
         {
             try
             {
@@ -283,15 +282,16 @@ namespace WpfApp.Services
 
                 _logger.Debug($"开始初始化LyKeys服务，驱动路径: {driverPath}");
 
-                // 验证驱动路径
-                if (!Directory.Exists(driverPath))
+                // 验证驱动文件
+                if (!File.Exists(driverPath))
                 {
-                    _logger.Error($"驱动目录不存在: {driverPath}");
+                    _logger.Error($"驱动文件不存在: {driverPath}");
                     return false;
                 }
 
                 // 初始化驱动
-                if (!_lyKeys.Initialize(driverPath))
+                _lyKeys = new LyKeys(driverPath);
+                if (!await _lyKeys.Initialize())
                 {
                     return false; // 初始化失败返回false
                 }
@@ -675,7 +675,7 @@ namespace WpfApp.Services
                 IsEnabled = false;
                 StopKeySequence();
                 StopHoldMode();
-                _lyKeys.Dispose();
+                _lyKeys?.Dispose();
                 _isInitialized = false;
                 _isDisposed = true;
             }

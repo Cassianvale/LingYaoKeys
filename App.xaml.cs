@@ -36,7 +36,7 @@ namespace WpfApp
             }
         }
 
-        protected override void OnStartup(StartupEventArgs e)
+        protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
             
@@ -86,24 +86,52 @@ namespace WpfApp
                 _logger.Debug($"日志系统初始化完成, 配置: Level={AppConfigService.Config.Logging.LogLevel}, MaxSize={AppConfigService.Config.Logging.FileSettings.MaxFileSize}MB");
                 _logger.Debug("应用程序启动...");
 
-                // 获取驱动文件路径
-                string driverPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resource", "lykeysdll");
-                if (!Directory.Exists(driverPath))
+                // 获取临时目录路径
+                string tempPath = Path.Combine(Path.GetTempPath(), "LingYaoKeys");
+                string driverPath = Path.Combine(tempPath, "Resource", "lykeysdll");
+                string driverFile = Path.Combine(driverPath, "lykeys.sys");
+                string dllFile = Path.Combine(driverPath, "lykeysdll.dll");
+                string catFile = Path.Combine(driverPath, "lykeys.cat");
+
+                try
                 {
-                    _logger.Error($"驱动文件目录不存在: {driverPath}");
+                    // 确保临时目录存在
+                    Directory.CreateDirectory(driverPath);
+
+                    // 从嵌入式资源提取驱动文件
+                    ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeys.sys", driverFile);
+                    ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeysdll.dll", dllFile);
+                    ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeys.cat", catFile);
+
+                    _logger.Debug($"驱动文件已提取到临时目录: {driverPath}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"提取驱动文件失败: {ex.Message}", ex);
+                    System.Windows.MessageBox.Show("提取驱动文件失败，请确保程序完整性", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Current.Shutdown();
+                    return;
+                }
+
+                if (!File.Exists(driverFile) || !File.Exists(dllFile))
+                {
+                    _logger.Error($"驱动文件丢失: {driverFile} 或 {dllFile}");
                     System.Windows.MessageBox.Show("驱动文件丢失，请确保程序完整性", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     Current.Shutdown();
                     return;
                 }
 
                 _logger.Debug($"驱动文件目录: {driverPath}");
+                _logger.Debug($"驱动文件: {driverFile}");
+                _logger.Debug($"DLL文件: {dllFile}");
+                _logger.Debug($"CAT文件: {catFile}");
 
                 // 初始化驱动管理器
                 try 
                 {
                     // 初始化 LyKeys 服务
                     LyKeysDriver = new LyKeysService();
-                    if (!LyKeysDriver.Initialize(driverPath))
+                    if (!await LyKeysDriver.InitializeAsync(driverFile))
                     {
                         _logger.Error("驱动加载失败，无法加载LyKeys驱动文件");
                         System.Windows.MessageBox.Show("驱动加载失败，请检查是否以管理员身份运行程序", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -135,6 +163,24 @@ namespace WpfApp
 
                 // 注册应用程序退出事件
                 Exit += OnApplicationExit;
+
+                // 添加程序退出时的清理逻辑
+                Current.Exit += (s, e) =>
+                {
+                    try
+                    {
+                        // 清理临时文件
+                        if (Directory.Exists(tempPath))
+                        {
+                            Directory.Delete(tempPath, true);
+                            _logger.Debug("临时文件已清理");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error($"清理临时文件失败: {ex.Message}", ex);
+                    }
+                };
             }
             catch (Exception ex)
             {
@@ -144,24 +190,31 @@ namespace WpfApp
             }
         }
 
+        /// <summary>
+        /// 从嵌入式资源提取文件
+        /// </summary>
+        /// <param name="resourceName">资源名称</param>
+        /// <param name="outputPath">输出路径</param>
         private void ExtractEmbeddedResource(string resourceName, string outputPath)
         {
-            if (!File.Exists(outputPath))
+            try
             {
-                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                using (Stream? stream = GetType().Assembly.GetManifestResourceStream(resourceName))
                 {
                     if (stream == null)
                     {
-                        _logger.Error($"找不到嵌入的资源：{resourceName}");
-                        throw new FileNotFoundException($"找不到驱动资源：{resourceName}");
+                        throw new FileNotFoundException($"找不到嵌入式资源: {resourceName}");
                     }
 
-                    using (FileStream fileStream = File.Create(outputPath))
+                    using (FileStream fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write))
                     {
                         stream.CopyTo(fileStream);
                     }
-                    _logger.Debug($"已提取资源文件: {resourceName} -> {outputPath}");
                 }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"提取资源文件失败: {resourceName}", ex);
             }
         }
 
