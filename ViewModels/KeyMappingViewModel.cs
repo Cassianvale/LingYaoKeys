@@ -893,14 +893,15 @@ namespace WpfApp.ViewModels
                 if (SelectedKeyMode == 0)
                 {
                     _logger.Debug("启动顺序模式");
-                    _lyKeysService.IsEnabled = true;
+                    _lyKeysService.IsEnabled = true;    // 启用服务
                 }
                 else
                 {
                     _logger.Debug("启动按压模式");
-                    _lyKeysService.IsHoldMode = true;
+                    _lyKeysService.IsHoldMode = true;   // 设置为按压模式
+                    _lyKeysService.IsEnabled = true;    // 启用服务
                 }
-                IsHotkeyEnabled = true;
+                IsHotkeyEnabled = true;  // 按键是否启用
             }
             catch (Exception ex)
             {

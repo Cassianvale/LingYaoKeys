@@ -428,13 +428,26 @@ namespace WpfApp.Services
         private void HandleMouseButtonUp(int wParam, MSLLHOOKSTRUCT hookStruct)
         {
             LyKeysCode buttonCode = GetMouseButtonCode(wParam, hookStruct);
+            bool isStartKey = buttonCode == _pendingStartKey;
 
-            if (_lyKeysService.IsHoldMode &&
-                buttonCode == _pendingStartKey &&
-                _isKeyHeld)
+            if (_lyKeysService.IsHoldMode)
             {
-                _isKeyHeld = false;
-                StopSequence();
+                if (isStartKey && _isKeyHeld)
+                {
+                    _isKeyHeld = false;
+                    StopSequence();
+                }
+            }
+            else
+            {
+                if (_isKeyHeld)
+                {
+                    _isKeyHeld = false;
+                    if (isStartKey)
+                    {
+                        StartHotkeyReleased?.Invoke();
+                    }
+                }
             }
         }
 

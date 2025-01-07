@@ -548,8 +548,7 @@ namespace WpfApp.Services
                     foreach (var key in _keyList)
                     {
                         if (!_isEnabled || _isHoldMode) break;
-
-                        _logger.Debug($"执行按键: {key}");
+                        
                         SendKeyPress(key, _keyPressInterval);
                         Thread.Sleep(_keyInterval);
                     }
@@ -622,23 +621,33 @@ namespace WpfApp.Services
 
             try
             {
-                // 按下所有按键
-                foreach (var key in _keyList)
-                {
-                    if (_holdModeCts.Token.IsCancellationRequested) break;
-                    SendKeyDown(key);
-                    await Task.Delay(5, _holdModeCts.Token);
-                }
+                _logger.Debug("开始执行按压模式循环");
+                int currentIndex = 0;
 
-                // 等待取消信号
                 while (!_holdModeCts.Token.IsCancellationRequested)
                 {
-                    await Task.Delay(100, _holdModeCts.Token);
+                    // 获取当前要执行的按键
+                    var key = _keyList[currentIndex];
+                    
+                    try
+                    {
+                        // 执行按键操作
+                        SendKeyPress(key, _keyPressInterval);
+                        await Task.Delay(_keyInterval, _holdModeCts.Token);
+                        
+                        // 更新索引，循环执行按键列表
+                        currentIndex = (currentIndex + 1) % _keyList.Count;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // 正常取消，跳出循环
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error($"按压模式执行按键异常: {key}", ex);
+                    }
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                // 正常取消，不需要处理
             }
             catch (Exception ex)
             {
@@ -651,6 +660,7 @@ namespace WpfApp.Services
                 {
                     SendKeyUp(key);
                 }
+                _logger.Debug("按压模式循环已结束");
             }
         }
 
