@@ -19,21 +19,22 @@
 
         <!-- 左侧按键列表区域 -->
         <DockPanel Grid.Column="0" Margin="0,0,10,0">
-            <TextBox x:Name="txtKeyInput"
+            <TextBox x:Name="KeyInputBox"
                      Style="{StaticResource ModernTextBox}"
                      IsEnabled="{Binding IsNotExecuting}"
-                     DockPanel.Dock="Top"
+                     Text="{Binding CurrentKeyText, Mode=OneWay}"
+                     PreviewKeyDown="KeyInputBox_PreviewKeyDown"
+                     PreviewMouseDown="KeyInputBox_PreviewMouseDown"
+                     GotFocus="KeyInputBox_GotFocus"
+                     LostFocus="KeyInputBox_LostFocus"
                      Height="32"
                      Margin="0,0,0,10"
                      TextAlignment="Center"
                      Tag="点此输入按键"
-                     Text="{Binding CurrentKeyText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      IsReadOnly="True"
                      IsUndoEnabled="False"
                      CaretBrush="Transparent"
-                     PreviewKeyDown="KeyInputBox_PreviewKeyDown"
-                     GotFocus="KeyInputBox_GotFocus"
-                     LostFocus="KeyInputBox_LostFocus"/>
+                     DockPanel.Dock="Top"/>
                     
             <ListBox x:Name="KeysList" 
                      IsEnabled="{Binding IsNotExecuting}"

@@ -208,6 +208,13 @@ namespace WpfApp.Services
             map[0x20] = LyKeysCode.VK_SPACE;    // Space
             map[0x2E] = LyKeysCode.VK_DELETE;   // Delete
 
+            // 添加鼠标按键映射
+            map[0x01] = LyKeysCode.VK_LBUTTON;  // 左键
+            map[0x02] = LyKeysCode.VK_RBUTTON;  // 右键
+            map[0x04] = LyKeysCode.VK_MBUTTON;  // 中键
+            map[0x05] = LyKeysCode.VK_XBUTTON1; // 侧键1
+            map[0x06] = LyKeysCode.VK_XBUTTON2; // 侧键2
+
             return map;
         }
 
@@ -251,6 +258,21 @@ namespace WpfApp.Services
         /// <returns>描述信息</returns>
         public string GetKeyDescription(LyKeysCode code)
         {
+            // 首先处理鼠标按键的特殊描述
+            switch (code)
+            {
+                case LyKeysCode.VK_LBUTTON:
+                    return "鼠标左键";
+                case LyKeysCode.VK_RBUTTON:
+                    return "鼠标右键";
+                case LyKeysCode.VK_MBUTTON:
+                    return "鼠标中键";
+                case LyKeysCode.VK_XBUTTON1:
+                    return "鼠标侧键1";
+                case LyKeysCode.VK_XBUTTON2:
+                    return "鼠标侧键2";
+            }
+
             var field = typeof(LyKeysCode).GetField(code.ToString());
             if (field != null)
             {
