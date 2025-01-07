@@ -147,7 +147,7 @@ namespace WpfApp.Services
             _driverPath = driverPath ?? throw new ArgumentNullException(nameof(driverPath));
         }
 
-        public async Task<bool> Initialize()
+        public async Task<bool> Initialize(CancellationToken cancellationToken = default)
         {
             try
             {
@@ -191,78 +191,143 @@ namespace WpfApp.Services
                     throw new UnauthorizedAccessException($"无法访问文件: {ex.Message}", ex);
                 }
 
-                // 加载DLL
-                _logger.Debug($"开始加载DLL: {dllPath}");
-                _dllHandle = LoadLibrary(dllPath);
-                if (_dllHandle == IntPtr.Zero)
+                // 使用Task.Run包装同步操作
+                return await Task.Run(async () =>
                 {
-                    int error = Marshal.GetLastWin32Error();
-                    string errorMessage = new Win32Exception(error).Message;
-                    _logger.Error($"DLL加载失败 - 错误代码: {error}, 错误信息: {errorMessage}");
-                    throw new Win32Exception(error, $"DLL加载失败: {errorMessage}");
-                }
-                _logger.Debug("DLL加载成功");
-
-                // 加载驱动
-                _logger.Debug($"开始加载驱动: {DriverName}, 路径: {_driverPath}");
-                bool loadResult = LoadNTDriver(DriverName, _driverPath);
-                if (!loadResult)
-                {
-                    int error = Marshal.GetLastWin32Error();
-                    string errorMessage = new Win32Exception(error).Message;
-                    _logger.Error($"驱动加载失败 - 错误代码: {error}, 错误信息: {errorMessage}");
-                    return false;
-                }
-
-                // 初始化设备句柄
-                _logger.Debug("开始初始化设备句柄");
-                bool handleResult = SetHandle();
-                _logger.Debug($"设备句柄初始化结果: {handleResult}");
-                if (!handleResult)  // 返回FALSE表示失败
-                {
-                    int error = Marshal.GetLastWin32Error();
-                    string errorMessage = new Win32Exception(error).Message;
-                    _logger.Error($"初始化设备句柄失败 - 错误代码: {error}, 错误信息: {errorMessage}");
-                    throw new InvalidOperationException($"初始化设备句柄失败: {errorMessage}");
-                }
-                _logger.Debug("设备句柄初始化成功");
-
-                // 检查设备状态
-                _logger.Debug("开始检查设备状态");
-                CheckDeviceStatus();
-                Thread.Sleep(100); // 等待状态更新
-                var status = GetDriverStatus();
-                _logger.Debug($"设备状态: {status}");
-                
-                if (status != DeviceStatus.Ready)
-                {
-                    // 尝试重新初始化句柄
-                    _logger.Debug("设备状态不正确，尝试重新初始化句柄");
-                    if (!SetHandle())
+                    try
                     {
-                        throw new InvalidOperationException("重新初始化设备句柄失败");
+                        // 加载DLL
+                        _logger.Debug($"开始加载DLL: {dllPath}");
+                        _dllHandle = LoadLibrary(dllPath);
+                        if (_dllHandle == IntPtr.Zero)
+                        {
+                            int error = Marshal.GetLastWin32Error();
+                            string errorMessage = new Win32Exception(error).Message;
+                            _logger.Error($"DLL加载失败 - 错误代码: {error}, 错误信息: {errorMessage}");
+                            throw new Win32Exception(error, $"DLL加载失败: {errorMessage}");
+                        }
+                        _logger.Debug("DLL加载成功");
+
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        // 加载驱动
+                        _logger.Debug($"开始加载驱动: {DriverName}, 路径: {_driverPath}");
+                        bool loadResult = LoadNTDriver(DriverName, _driverPath);
+                        if (!loadResult)
+                        {
+                            int error = Marshal.GetLastWin32Error();
+                            string errorMessage = new Win32Exception(error).Message;
+                            _logger.Error($"驱动加载失败 - 错误代码: {error}, 错误信息: {errorMessage}");
+                            return false;
+                        }
+
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        // 初始化设备句柄
+                        _logger.Debug("开始初始化设备句柄");
+                        bool handleResult = SetHandle();
+                        _logger.Debug($"设备句柄初始化结果: {handleResult}");
+                        if (!handleResult)
+                        {
+                            int error = Marshal.GetLastWin32Error();
+                            string errorMessage = new Win32Exception(error).Message;
+                            _logger.Error($"初始化设备句柄失败 - 错误代码: {error}, 错误信息: {errorMessage}");
+                            throw new InvalidOperationException($"初始化设备句柄失败: {errorMessage}");
+                        }
+                        _logger.Debug("设备句柄初始化成功");
+
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        // 检查设备状态
+                        _logger.Debug("开始检查设备状态");
+                        CheckDeviceStatus();
+                        await Task.Delay(100, cancellationToken); // 等待状态更新
+                        var status = GetDriverStatus();
+                        _logger.Debug($"设备状态: {status}");
+                        
+                        if (status != DeviceStatus.Ready)
+                        {
+                            // 尝试重新初始化句柄
+                            _logger.Debug("设备状态不正确，尝试重新初始化句柄");
+                            if (!SetHandle())
+                            {
+                                throw new InvalidOperationException("重新初始化设备句柄失败");
+                            }
+
+                            await Task.Delay(500, cancellationToken);
+                            CheckDeviceStatus();
+                            status = GetDriverStatus();
+                            _logger.Debug($"重新初始化后的设备状态: {status}");
+
+                            if (status != DeviceStatus.Ready)
+                            {
+                                throw new InvalidOperationException($"设备状态异常: {status}");
+                            }
+                        }
+
+                        _logger.Debug("设备句柄初始化成功");
+                        _isInitialized = true;
+                        _logger.InitLog("LyKeys驱动初始化成功");
+                        return true;
                     }
-
-                    Thread.Sleep(500);
-                    CheckDeviceStatus();
-                    status = GetDriverStatus();
-                    _logger.Debug($"重新初始化后的设备状态: {status}");
-
-                    if (status != DeviceStatus.Ready)
+                    catch (OperationCanceledException)
                     {
-                        throw new InvalidOperationException($"设备状态异常: {status}");
+                        _logger.Warning("驱动初始化操作被取消");
+                        throw;
                     }
-                }
-
-                _logger.Debug("设备句柄初始化成功");
-                _isInitialized = true;
-                _logger.InitLog("LyKeys驱动初始化成功");
-                return true;
+                    catch (Exception ex)
+                    {
+                        _logger.Error($"驱动初始化失败: {ex.Message}", ex);
+                        return false;
+                    }
+                }, cancellationToken);
             }
             catch (Exception ex)
             {
                 _logger.Error($"LyKeys驱动初始化失败: {ex.Message}", ex);
                 return false;
+            }
+        }
+
+        public async Task UnloadDriverAsync(CancellationToken cancellationToken = default)
+        {
+            if (_isDisposed || !_isInitialized)
+                return;
+
+            try
+            {
+                await Task.Run(() =>
+                {
+                    try
+                    {
+                        if (_isInitialized)
+                        {
+                            UnloadNTDriver(DriverName);
+                            _isInitialized = false;
+                        }
+
+                        if (_dllHandle != IntPtr.Zero)
+                        {
+                            FreeLibrary(_dllHandle);
+                            _dllHandle = IntPtr.Zero;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error("卸载驱动或DLL失败", ex);
+                        throw;
+                    }
+                }, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.Warning("驱动卸载操作被取消");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"驱动卸载失败: {ex.Message}", ex);
+                throw;
             }
         }
 
@@ -286,6 +351,7 @@ namespace WpfApp.Services
             {
                 if (_isInitialized)
                 {
+                    // 同步卸载驱动，因为这是Dispose方法
                     UnloadNTDriver(DriverName);
                     _isInitialized = false;
                 }

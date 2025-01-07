@@ -5,6 +5,9 @@ using WpfApp.Services;
 using System.Reflection;
 using System.Windows;
 using Forms = System.Windows.Forms;
+using System.Runtime.InteropServices;
+using System.ComponentModel;
+using System.Diagnostics;
 
 namespace WpfApp
 {
@@ -20,6 +23,21 @@ namespace WpfApp
             ".lingyao"
         );
 
+        [DllImport("Kernel32")]
+        private static extern bool SetConsoleCtrlHandler(EventHandler handler, bool add);
+
+        private delegate bool EventHandler(CtrlType sig);
+        private static EventHandler _handler;
+
+        private enum CtrlType
+        {
+            CTRL_C_EVENT = 0,
+            CTRL_BREAK_EVENT = 1,
+            CTRL_CLOSE_EVENT = 2,
+            CTRL_LOGOFF_EVENT = 5,
+            CTRL_SHUTDOWN_EVENT = 6
+        }
+
         public App()
         {
             // 设置高DPI模式
@@ -27,22 +45,123 @@ namespace WpfApp
             {
                 try
                 {
-                    System.Windows.Forms.Application.SetHighDpiMode(System.Windows.Forms.HighDpiMode.PerMonitorV2);
+                    Forms.Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
                 }
                 catch (Exception ex)
                 {
                     _logger?.Error("设置高DPI模式失败", ex);
                 }
             }
+
+            // 注册进程退出事件处理
+            _handler += new EventHandler(Handler);
+            SetConsoleCtrlHandler(_handler, true);
+
+            // 注册应用程序域未处理异常处理程序
+            AppDomain.CurrentDomain.ProcessExit += (s, e) => CleanupServices();
+            
+            // 注册任务调度器未观察到的异常处理程序
+            TaskScheduler.UnobservedTaskException += (s, e) =>
+            {
+                CleanupServices();
+                e.SetObserved();
+            };
+
+            // 注册应用程序退出事件
+            this.Exit += OnApplicationExit;
+        }
+
+        private bool Handler(CtrlType sig)
+        {
+            switch (sig)
+            {
+                case CtrlType.CTRL_BREAK_EVENT:
+                case CtrlType.CTRL_C_EVENT:
+                case CtrlType.CTRL_LOGOFF_EVENT:
+                case CtrlType.CTRL_SHUTDOWN_EVENT:
+                case CtrlType.CTRL_CLOSE_EVENT:
+                    CleanupServices();
+                    return false;
+                default:
+                    return false;
+            }
+        }
+
+        private void CleanupServices()
+        {
+            if (_isShuttingDown) return;
+            _isShuttingDown = true;
+
+            try
+            {
+                _logger.Debug("开始清理服务...");
+
+                // 确保所有服务都被释放
+                if (LyKeysDriver != null)
+                {
+                    LyKeysDriver.Dispose();
+                    LyKeysDriver = null;
+                }
+
+                if (AudioService != null)
+                {
+                    AudioService.Dispose();
+                    AudioService = null;
+                }
+
+                // 清理配置服务
+                ConfigService = null;
+
+                // 尝试强制停止和删除驱动服务
+                try
+                {
+                    using (Process p = new Process())
+                    {
+                        p.StartInfo.FileName = "sc.exe";
+                        p.StartInfo.Arguments = "stop lykeys";
+                        p.StartInfo.UseShellExecute = false;
+                        p.StartInfo.CreateNoWindow = true;
+                        p.Start();
+                        p.WaitForExit(100);
+                    }
+
+                    using (Process p = new Process())
+                    {
+                        p.StartInfo.FileName = "sc.exe";
+                        p.StartInfo.Arguments = "delete lykeys";
+                        p.StartInfo.UseShellExecute = false;
+                        p.StartInfo.CreateNoWindow = true;
+                        p.Start();
+                        p.WaitForExit(100);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"清理驱动服务失败: {ex.Message}");
+                }
+
+                // 最后释放日志服务
+                _logger.Debug("服务清理完成");
+                _logger.Debug("=================================================");
+                _logger.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"清理服务异常: {ex.Message}");
+            }
+            finally
+            {
+                Environment.Exit(0);
+            }
         }
 
         protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-            
+
             // 预初始化WebView2环境
             _ = Services.WebView2Service.Instance.GetEnvironmentAsync();
-            
+
             try
             {
                 // 确保用户数据目录存在
@@ -127,7 +246,7 @@ namespace WpfApp
                 _logger.Debug($"CAT文件: {catFile}");
 
                 // 初始化驱动管理器
-                try 
+                try
                 {
                     // 初始化 LyKeys 服务
                     LyKeysDriver = new LyKeysService();
@@ -226,14 +345,14 @@ namespace WpfApp
             try
             {
                 _logger.Debug("开始释放应用程序资源...");
-                
+
                 // 确保所有服务都被释放
                 if (LyKeysDriver != null)
                 {
                     LyKeysDriver.Dispose();
                     LyKeysDriver = null;
                 }
-                
+
                 if (AudioService != null)
                 {
                     AudioService.Dispose();
@@ -242,7 +361,7 @@ namespace WpfApp
 
                 // 清理配置服务
                 ConfigService = null;
-                
+
                 // 最后释放日志服务
                 _logger.Debug("应用程序资源已释放");
                 _logger.Debug("=================================================");
