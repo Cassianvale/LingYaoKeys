@@ -639,6 +639,14 @@ namespace WpfApp.Views
         {
             if (sender is System.Windows.Controls.ListBox listBox)
             {
+                // 检查点击是否在ScrollBar上
+                var scrollBar = FindParent<System.Windows.Controls.Primitives.ScrollBar>(e.OriginalSource as DependencyObject);
+                if (scrollBar != null)
+                {
+                    // 如果点击在滚动条上，不处理事件
+                    return;
+                }
+
                 // 检查点击是否在ListBox的空白区域
                 HitTestResult hitTest = VisualTreeHelper.HitTest(listBox, e.GetPosition(listBox));
                 if (hitTest == null || 

@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -5,6 +6,9 @@ using System.Windows.Media;
 using WpfApp.Services;
 using TextBox = System.Windows.Controls.TextBox;
 using ComboBox = System.Windows.Controls.ComboBox;
+using Application = System.Windows.Application;
+using RichTextBox = System.Windows.Controls.RichTextBox;
+using PasswordBox = System.Windows.Controls.PasswordBox;
 
 namespace WpfApp.Behaviors
 {
@@ -74,11 +78,37 @@ namespace WpfApp.Behaviors
             {
                 element.PreviewMouseDown += (s, args) =>
                 {
-                    if (!IsInputControl(args.OriginalSource as DependencyObject))
+                    var hitTestResult = VisualTreeHelper.HitTest(element, args.GetPosition(element));
+                    if (hitTestResult == null || !IsInputControl(hitTestResult.VisualHit as DependencyObject))
                     {
-                        FocusManagementService.Instance.ClearFocus();
+                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            FocusManagementService.Instance.ClearFocus();
+                            Keyboard.ClearFocus();
+                            
+                            // 如果是窗口，设置焦点到窗口本身
+                            if (element is Window window)
+                            {
+                                window.Focus();
+                            }
+                        }), System.Windows.Threading.DispatcherPriority.Input);
+                        
+                        args.Handled = true;
                     }
                 };
+
+                // 添加窗口失去焦点的处理
+                if (element is Window window)
+                {
+                    window.Deactivated += (s, args) =>
+                    {
+                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            FocusManagementService.Instance.ClearFocus();
+                            Keyboard.ClearFocus();
+                        }), System.Windows.Threading.DispatcherPriority.Input);
+                    };
+                }
             }
         }
 
@@ -123,27 +153,60 @@ namespace WpfApp.Behaviors
             // 处理选择变化
             comboBox.SelectionChanged += (s, e) =>
             {
-                if (!comboBox.IsDropDownOpen)
+                if (comboBox.IsLoaded && !comboBox.IsDropDownOpen && !comboBox.IsFocused)
                 {
-                    FocusManagementService.Instance.ClearFocus();
+                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        FocusManagementService.Instance.ClearFocus();
+                    }), System.Windows.Threading.DispatcherPriority.Input);
                 }
             };
 
             // 处理下拉框关闭
             comboBox.DropDownClosed += (s, e) =>
             {
-                FocusManagementService.Instance.ClearFocus();
+                if (comboBox.IsLoaded && !comboBox.IsFocused)
+                {
+                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        FocusManagementService.Instance.ClearFocus();
+                    }), System.Windows.Threading.DispatcherPriority.Input);
+                }
+            };
+
+            // 处理失去焦点
+            comboBox.LostFocus += (s, e) =>
+            {
+                if (comboBox.IsLoaded && !comboBox.IsDropDownOpen)
+                {
+                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        FocusManagementService.Instance.ClearFocus();
+                    }), System.Windows.Threading.DispatcherPriority.Input);
+                }
             };
         }
 
         private static bool IsInputControl(DependencyObject element)
         {
+            if (element == null) return false;
+            
             while (element != null)
             {
-                if (element is TextBox || element is ComboBox)
+                // 检查是否是输入控件
+                if (element is TextBox || element is ComboBox || 
+                    element is PasswordBox || element is RichTextBox)
                 {
                     return true;
                 }
+                
+                // 检查是否有特定标记
+                if (element is FrameworkElement fe && 
+                    GetEnableFocusManagement(fe))
+                {
+                    return true;
+                }
+                
                 element = VisualTreeHelper.GetParent(element);
             }
             return false;

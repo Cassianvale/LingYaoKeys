@@ -138,18 +138,23 @@ namespace WpfApp.Services
             {
                 try
                 {
-                    UpdateBindings(CurrentFocusedElement);
+                    var element = CurrentFocusedElement;
+                    if (element == null) return;
+
+                    UpdateBindings(element);
                     
-                    if (CurrentFocusedElement is ComboBox comboBox)
+                    if (element is ComboBox comboBox)
                     {
                         comboBox.IsDropDownOpen = false;
                     }
 
-                    Keyboard.ClearFocus();
-                    FocusManager.SetFocusedElement(
-                        FocusManager.GetFocusScope(CurrentFocusedElement), 
-                        null);
+                    var focusScope = FocusManager.GetFocusScope(element);
+                    if (focusScope != null)
+                    {
+                        FocusManager.SetFocusedElement(focusScope, null);
+                    }
                     
+                    Keyboard.ClearFocus();
                     CurrentFocusedElement = null;
                     _logger.Debug("清除当前焦点");
                 }

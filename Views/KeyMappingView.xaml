@@ -42,7 +42,10 @@
                      ItemsSource="{Binding KeyList}"
                      Background="White"
                      BorderBrush="#BDBDBD"
-                     PreviewMouseDown="KeysList_PreviewMouseDown">
+                     PreviewMouseDown="KeysList_PreviewMouseDown"
+                     ScrollViewer.CanContentScroll="True"
+                     VirtualizingStackPanel.IsVirtualizing="True"
+                     VirtualizingStackPanel.VirtualizationMode="Recycling">
                 <b:Interaction.Behaviors>
                     <behaviors:ListBoxDragDropBehavior />
                 </b:Interaction.Behaviors>
@@ -52,12 +55,12 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="4">
-                            <ScrollViewer Padding="1" 
-                                        Focusable="True"
+                            <ScrollViewer x:Name="ScrollViewer" 
+                                        Padding="1" 
+                                        Focusable="False"
                                         VerticalScrollBarVisibility="Auto"
                                         HorizontalScrollBarVisibility="Disabled"
-                                        IsDeferredScrollingEnabled="True"
-                                        CanContentScroll="True">
+                                        Template="{DynamicResource ScrollViewerControlTemplate}">
                                 <ItemsPresenter />
                             </ScrollViewer>
                         </Border>
