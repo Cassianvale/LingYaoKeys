@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows;
 
+// 列表框拖放行为
 namespace WpfApp.Behaviors
 {
     public class ListBoxDragDropBehavior : Behavior<System.Windows.Controls.ListBox>

@@ -1,10 +1,11 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:local="clr-namespace:WpfApp.Styles">
+                    xmlns:local="clr-namespace:WpfApp.Styles"
+                    xmlns:behaviors="clr-namespace:WpfApp.Behaviors">
 
     <!-- 通用输入框样式 -->
     <Style x:Key="ModernTextBox" TargetType="TextBox">
-        <Setter Property="local:ControlStyles.AutoFocusManagement" Value="True"/>
+        <Setter Property="behaviors:FocusManagerBehavior.EnableFocusManagement" Value="True"/>
         <Setter Property="Height" Value="32"/>
         <Setter Property="Padding" Value="8,4"/>
         <Setter Property="Background" Value="White"/>
@@ -57,6 +58,7 @@
 
     <!-- 通用下拉框样式 -->
     <Style x:Key="ModernComboBox" TargetType="ComboBox">
+        <Setter Property="behaviors:FocusManagerBehavior.EnableFocusManagement" Value="True"/>
         <Setter Property="Height" Value="32"/>
         <Setter Property="Padding" Value="8,4"/>
         <Setter Property="Background" Value="White"/>
@@ -139,13 +141,13 @@
                                Placement="Bottom"
                                PopupAnimation="None">
                             <Grid>
-                                <Border x:Name="DropDownBorder"
-                                        Background="{TemplateBinding Background}"
-                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="4"
-                                        MaxHeight="{TemplateBinding MaxDropDownHeight}"
-                                        MinWidth="{Binding ActualWidth, ElementName=MainBorder}">
+                            <Border x:Name="DropDownBorder"
+                                     Background="{TemplateBinding Background}"
+                                     BorderBrush="{TemplateBinding BorderBrush}"
+                                     BorderThickness="1"
+                                     CornerRadius="4"
+                                     MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                     MinWidth="{Binding ActualWidth, ElementName=MainBorder}">
                                     <Border.RenderTransform>
                                         <TransformGroup>
                                             <ScaleTransform x:Name="DropDownScale" ScaleY="0"/>
@@ -290,6 +292,7 @@
 
     <!-- 帮助提示浮窗样式 -->
     <Style x:Key="HelpPopupStyle" TargetType="Border">
+        <Setter Property="behaviors:FocusManagerBehavior.AutoClearFocusOnClick" Value="True"/>
         <Setter Property="Background" Value="White"/>
         <Setter Property="BorderBrush" Value="#BDBDBD"/>
         <Setter Property="BorderThickness" Value="1"/>
@@ -312,6 +315,198 @@
         <Setter Property="Foreground" Value="#333333"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="LineHeight" Value="20"/>
+    </Style>
+
+    <!-- ScrollViewer控件模板 -->
+    <ControlTemplate x:Key="ScrollViewerControlTemplate" TargetType="{x:Type ScrollViewer}">
+        <Grid x:Name="Grid" Background="{TemplateBinding Background}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Rectangle x:Name="Corner" Grid.Column="1" Fill="Transparent" Grid.Row="1"/>
+            <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" 
+                                  Grid.Column="0" Grid.Row="0" 
+                                  Margin="{TemplateBinding Padding}" 
+                                  Content="{TemplateBinding Content}" 
+                                  ContentTemplate="{TemplateBinding ContentTemplate}"/>
+            <ScrollBar x:Name="PART_VerticalScrollBar" 
+                      Grid.Column="1" Grid.Row="0" 
+                      AutomationProperties.AutomationId="VerticalScrollBar" 
+                      Cursor="Arrow" 
+                      Maximum="{TemplateBinding ScrollableHeight}" 
+                      Minimum="0" 
+                      Style="{DynamicResource ModernScrollBarStyle}"
+                      ViewportSize="{TemplateBinding ViewportHeight}" 
+                      Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" 
+                      Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}"/>
+            <ScrollBar x:Name="PART_HorizontalScrollBar" 
+                      Grid.Column="0" Grid.Row="1" 
+                      AutomationProperties.AutomationId="HorizontalScrollBar" 
+                      Cursor="Arrow" 
+                      Maximum="{TemplateBinding ScrollableWidth}" 
+                      Minimum="0" 
+                      Orientation="Horizontal" 
+                      Style="{DynamicResource ModernScrollBarStyle}"
+                      ViewportSize="{TemplateBinding ViewportWidth}" 
+                      Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" 
+                      Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}"/>
+        </Grid>
+    </ControlTemplate>
+
+    <!-- 现代风格滚动条样式 -->
+    <Style x:Key="ModernScrollBarStyle" TargetType="{x:Type ScrollBar}">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Width" Value="16"/>
+        <Setter Property="MinWidth" Value="16"/>
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ScrollBar}">
+                    <Grid x:Name="Bg" Background="Transparent" SnapsToDevicePixels="true">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="16"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="16"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- 向上按钮 -->
+                        <RepeatButton Grid.Row="0" 
+                                    Command="{x:Static ScrollBar.LineUpCommand}"
+                                    Style="{DynamicResource ScrollBarLineButton}">
+                            <Path Data="M 0 4 L 10 4 L 5 0 Z" 
+                                  Fill="#BDBDBD"
+                                  Width="10"
+                                  Height="5"
+                                  Stretch="Fill"/>
+                        </RepeatButton>
+
+                        <!-- 滚动轨道 -->
+                        <Track x:Name="PART_Track" 
+                               Grid.Row="1"
+                               IsDirectionReversed="true">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" 
+                                            Style="{DynamicResource ScrollBarPageButton}"/>
+                            </Track.DecreaseRepeatButton>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" 
+                                            Style="{DynamicResource ScrollBarPageButton}"/>
+                            </Track.IncreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb Style="{DynamicResource ScrollBarThumbStyle}"/>
+                            </Track.Thumb>
+                        </Track>
+
+                        <!-- 向下按钮 -->
+                        <RepeatButton Grid.Row="2" 
+                                    Command="{x:Static ScrollBar.LineDownCommand}"
+                                    Style="{DynamicResource ScrollBarLineButton}">
+                            <Path Data="M 0 0 L 5 4 L 10 0 Z" 
+                                  Fill="#BDBDBD"
+                                  Width="10"
+                                  Height="5"
+                                  Stretch="Fill"/>
+                        </RepeatButton>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Orientation" Value="Horizontal">
+                            <Setter Property="LayoutTransform">
+                                <Setter.Value>
+                                    <RotateTransform Angle="-90"/>
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Height" Value="16"/>
+                <Setter Property="MinHeight" Value="16"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- 滚动条滑块样式 -->
+    <Style x:Key="ScrollBarThumbStyle" TargetType="{x:Type Thumb}">
+        <Setter Property="OverridesDefaultStyle" Value="true"/>
+        <Setter Property="IsTabStop" Value="false"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Thumb}">
+                    <Rectangle x:Name="rectangle" 
+                             Fill="#BDBDBD" 
+                             Height="Auto" 
+                             SnapsToDevicePixels="True" 
+                             Width="8" 
+                             RadiusX="4" 
+                             RadiusY="4"
+                             Margin="4,0"/>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="true">
+                            <Setter Property="Fill" Value="#757575" TargetName="rectangle"/>
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="true">
+                            <Setter Property="Fill" Value="#616161" TargetName="rectangle"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 滚动条箭头按钮样式 -->
+    <Style x:Key="ScrollBarLineButton" TargetType="{x:Type RepeatButton}">
+        <Setter Property="OverridesDefaultStyle" Value="true"/>
+        <Setter Property="Focusable" Value="false"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type RepeatButton}">
+                    <Border x:Name="border" 
+                            Background="Transparent" 
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter x:Name="contentPresenter" 
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="true">
+                            <Setter Property="Background" Value="#F5F5F5" TargetName="border"/>
+                            <Setter Property="Opacity" Value="0.8" TargetName="contentPresenter"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="true">
+                            <Setter Property="Background" Value="#EEEEEE" TargetName="border"/>
+                            <Setter Property="Opacity" Value="1" TargetName="contentPresenter"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 滚动条页面按钮样式 -->
+    <Style x:Key="ScrollBarPageButton" TargetType="{x:Type RepeatButton}">
+        <Setter Property="OverridesDefaultStyle" Value="true"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Focusable" Value="false"/>
+        <Setter Property="IsTabStop" Value="false"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type RepeatButton}">
+                    <Rectangle Fill="{TemplateBinding Background}" 
+                             Height="{TemplateBinding Height}" 
+                             Width="{TemplateBinding Width}"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
 </ResourceDictionary>

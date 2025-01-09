@@ -42,6 +42,7 @@ namespace WpfApp.ViewModels
         private bool _isFloatingWindowEnabled;
         private FloatingStatusWindow _floatingWindow;
         private FloatingStatusViewModel _floatingViewModel;
+        private KeyItem? _selectedKeyItem;
 
         // 按键列表
         public ObservableCollection<KeyItem> KeyList
@@ -245,6 +246,13 @@ namespace WpfApp.ViewModels
             }
         }
 
+        // 选中的按键项
+        public KeyItem? SelectedKeyItem
+        {
+            get => _selectedKeyItem;
+            set => SetProperty(ref _selectedKeyItem, value);
+        }
+
         private void UpdateFloatingWindow()
         {
             if (IsFloatingWindowEnabled)
@@ -403,7 +411,46 @@ namespace WpfApp.ViewModels
         private void InitializeCommands()
         {
             AddKeyCommand = new RelayCommand(AddKey, CanAddKey);
-            DeleteSelectedKeysCommand = new RelayCommand(DeleteSelectedKeys);
+            DeleteSelectedKeysCommand = new RelayCommand(() =>
+            {
+                try
+                {
+                    var keysToDelete = new List<KeyItem>();
+
+                    // 如果有右键选中的项，优先删除该项
+                    if (SelectedKeyItem != null)
+                    {
+                        keysToDelete.Add(SelectedKeyItem);
+                        SelectedKeyItem = null;
+                    }
+                    else
+                    {
+                        // 否则删除所有勾选的项
+                        keysToDelete.AddRange(KeyList.Where(k => k.IsSelected));
+                    }
+
+                    // 执行删除
+                    foreach (var key in keysToDelete)
+                    {
+                        KeyList.Remove(key);
+                        _logger.Debug($"删除按键: {key.KeyCode}");
+                    }
+
+                    // 更新HotkeyService的按键列表
+                    UpdateHotkeyServiceKeyList();
+
+                    // 实时保存按键列表
+                    if (!_isInitializing)
+                    {
+                        SaveConfig();
+                        _logger.Debug("配置已保存");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error("删除按键时发生异常", ex);
+                }
+            });
         }
 
         private void InitializeHotkeyStatus()
@@ -627,23 +674,42 @@ namespace WpfApp.ViewModels
         // 删除选中的按键
         private void DeleteSelectedKeys()
         {
-            var selectedKeys = KeyList.Where(k => k.IsSelected).ToList();
-            foreach (var key in selectedKeys)
+            try
             {
-                KeyList.Remove(key);
-            }
+                var keysToDelete = new List<KeyItem>();
 
-            // 更新HotkeyService的按键列表
-            UpdateHotkeyServiceKeyList();
-
-            // 实时保存按键列表
-            if (!_isInitializing)
-            {
-                AppConfigService.UpdateConfig(config =>
+                // 如果有右键选中的项，优先删除该项
+                if (SelectedKeyItem != null)
                 {
-                    config.keyList = KeyList.Select(k => k.KeyCode).ToList();
-                    config.keySelections = KeyList.Select(k => k.IsSelected).ToList();
-                });
+                    keysToDelete.Add(SelectedKeyItem);
+                    SelectedKeyItem = null;
+                }
+                else
+                {
+                    // 否则删除所有勾选的项
+                    keysToDelete.AddRange(KeyList.Where(k => k.IsSelected));
+                }
+
+                // 执行删除
+                foreach (var key in keysToDelete)
+                {
+                    KeyList.Remove(key);
+                    _logger.Debug($"删除按键: {key.KeyCode}");
+                }
+
+                // 更新HotkeyService的按键列表
+                UpdateHotkeyServiceKeyList();
+
+                // 实时保存按键列表
+                if (!_isInitializing)
+                {
+                    SaveConfig();
+                    _logger.Debug("配置已保存");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("删除按键时发生异常", ex);
             }
         }
 
@@ -764,11 +830,13 @@ namespace WpfApp.ViewModels
             {
                 try
                 {
+                    _logger.Debug("开始启动按键映射");
+                    
                     // 只获取勾选的按键
                     var keys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
                     if (keys.Count == 0)
                     {
-                        _logger.Warning("警告：没有选中任何按键");
+                        _logger.Warning("没有选中任何按键");
                         _mainViewModel.UpdateStatusMessage("请至少选择一个按键", true);
                         IsHotkeyEnabled = false;
                         IsExecuting = false;
@@ -776,13 +844,18 @@ namespace WpfApp.ViewModels
                     }
 
                     // 记录按键列表
+                    _logger.Debug($"选中的按键列表:");
                     foreach (var key in keys)
                     {
-                        _logger.Debug($"选中的按键: {key}");
+                        _logger.Debug($"- {key} ({_lyKeysService.GetKeyDescription(key)})");
                     }
 
                     IsExecuting = true;
-                    if (_lyKeysService == null) return;
+                    if (_lyKeysService == null)
+                    {
+                        _logger.Error("LyKeysService未初始化");
+                        return;
+                    }
 
                     // 确保先同步按键列表到服务
                     _lyKeysService.SetKeyList(keys);
@@ -791,6 +864,8 @@ namespace WpfApp.ViewModels
                     // 设置驱动服务
                     _lyKeysService.IsHoldMode = SelectedKeyMode == 1;
                     _lyKeysService.KeyInterval = KeyInterval;
+                    
+                    // 启用服务
                     _lyKeysService.IsEnabled = true;
                     IsHotkeyEnabled = true;
 
@@ -804,6 +879,10 @@ namespace WpfApp.ViewModels
                     IsExecuting = false;
                     _mainViewModel.UpdateStatusMessage($"启动按键映射失败: {ex.Message}", true);
                 }
+            }
+            else
+            {
+                _logger.Debug("按键映射已在执行中，忽略启动请求");
             }
         }
 
@@ -880,14 +959,15 @@ namespace WpfApp.ViewModels
                 if (SelectedKeyMode == 0)
                 {
                     _logger.Debug("启动顺序模式");
-                    _lyKeysService.IsEnabled = true;
+                    _lyKeysService.IsEnabled = true;    // 启用服务
                 }
                 else
                 {
                     _logger.Debug("启动按压模式");
-                    _lyKeysService.IsHoldMode = true;
+                    _lyKeysService.IsHoldMode = true;   // 设置为按压模式
+                    _lyKeysService.IsEnabled = true;    // 启用服务
                 }
-                IsHotkeyEnabled = true;
+                IsHotkeyEnabled = true;  // 按键是否启用
             }
             catch (Exception ex)
             {

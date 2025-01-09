@@ -39,17 +39,14 @@
 - [ ] 离线驱动实装中
 
 ### 🚀 驱动特性
-- [x] 基于内核级驱动实现，性能优异
-- [x] 采用DPC异步处理机制，响应速度极快
-- [x] 支持输入队列缓冲，确保按键不丢失
-- [x] 内置反Hook和内存保护机制，安全可靠
+- [x] 基于DeviceIoControl的内核级驱动实现
+- [x] 完善的反Hook和内存保护机制
 - [x] 支持32位/64位系统架构
-- [x] 兼容Win7/Win10/Win11系统
 - [x] 支持USB/PS2键鼠设备
-- [x] 驱动数字签名，确保系统兼容性
+- [x] 兼容Win7/Win10/Win11系统
 - [x] 支持驱动热插拔，无需重启系统
-    
-## 🌏 直接下载
+  
+## 🌏 直接下载  
 
 您可以从以下位置下载最新版本：  
 
@@ -88,91 +85,6 @@
 ### 发布打包
 
 - `dotnet publish -c Release`
-
-### 项目结构展示
-<details>
-<summary>点击展开查看完整项目结构</summary>
-
-```
-LingYaoKeys/  
-│
-├── Commands/         # MVVM 命令  
-│   └── RelayCommand.cs         # MVVM 命令类实现  
-│
-├── Behaviors/        # 行为定义
-│   ├── ListBoxDragDropBehavior.cs # 列表框拖放行为
-│   ├── DragDropProperties.cs      # 拖放属性定义
-│   └── DragAdorner.cs            # 拖放装饰器
-│
-├── Converters/       # 值转换器  
-│   ├── BoolToVisibilityConverter.cs    # 布尔值转可见性  
-│   ├── BoolToColorConverter.cs         # 布尔值转颜色  
-│   ├── IntToStringConverter.cs         # 整数转字符串  
-│   └── ViewModelToHotkeyStatusConverter.cs # 视图模型到热键状态转换器
-│  
-├── Models/           # 数据模型  
-│   ├── AppConfig.cs              # 应用配置模型  
-│   └── KeyItem.cs                # 键项模型  
-│
-├── Resource/         # 资源文件
-│   ├── img/         # 图片资源
-│   └── sound/       # 音频资源
-│
-├── Services/         # 服务层  
-│   ├── Collections/           # 集合类
-│   │   └── ConcurrentPriorityQueue.cs # 并发优先级队列
-│   │
-│   ├── KeyModes/             # 按键模式
-│   │   ├── KeyModeBase.cs         # 按键模式基类
-│   │   ├── SequenceKeyMode.cs     # 顺序按键模式
-│   │   ├── HoldKeyMode.cs         # 按压按键模式
-│   │   └── KeyModeMetrics.cs      # 按键模式度量
-│   │
-│   ├── AudioService.cs          # 音频服务
-│   ├── TaskManager.cs           # 任务管理器
-│   ├── CDD.cs                   # DD 驱动类核心  
-│   ├── DDDriverService.cs       # DD 驱动服务处理底层按键操作  
-│   ├── HotkeyService.cs         # 热键服务管理全局热键  
-│   ├── AppConfigService.cs      # 应用配置服务类  
-│   ├── ConfigService.cs         # 配置服务类  
-│   ├── KeyCodeMapping.cs        # 按键映射类  
-│   ├── LogManager.cs            # 日志管理类  
-│   ├── DDKeyCodeExtensions.cs   # DD键码扩展类  
-│   └── DDKeyCode.cs             # DD按键码定义类  
-│  
-├── Styles/           # 样式定义  
-│   ├── ControlStyles.xaml      # 控件样式  
-│   ├── ButtonStyles.xaml       # 按钮样式  
-│   └── NavigationStyles.xaml   # 导航样式  
-│  
-├── ViewModels/       # 视图模型  
-│   ├── KeyMappingViewModel.cs    # 按键映射视图模型  
-│   ├── MainViewModel.cs          # 主窗口视图模型  
-│   ├── ViewModelBase.cs          # 视图模型基类  
-│   └── SyncSettingsViewModel.cs  # 同步设置视图模型  
-│  
-├── Views/            # 视图层  
-│   ├── KeyMappingView.xaml(.cs)    # 按键映射视图  
-│   ├── SyncSettingsView.xaml(.cs)  # 同步设置视图  
-│   └── SyncSettingsPage.xaml       # 同步设置页面  
-│  
-├── dd/              # DD驱动文件目录  
-│   ├── ddx32.dll    # 32位DD驱动文件  
-│   └── ddx64.dll    # 64位DD驱动文件  
-│  
-├── logs/            # 日志文件目录
-├── publish/         # 发布输出目录
-│
-├── App.xaml(.cs)    # 应用程序定义  
-├── MainWindow.xaml(.cs) # 主窗口定义  
-├── AppConfig.json   # 应用程序配置文件
-├── AssemblyInfo.cs  # 程序集信息
-├── publish.bat      # 发布打包脚本
-├── WpfApp.csproj    # 项目配置文件  
-├── app.manifest     # 应用程序清单  
-└── WpfApp.sln       # 解决方案文件  
-```
-</details>
 
 ## ☕️ Buy us a coffe
 

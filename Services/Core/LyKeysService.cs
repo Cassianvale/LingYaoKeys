@@ -14,14 +14,14 @@ namespace WpfApp.Services
     public class LyKeysService : IDisposable
     {
         #region 私有字段
-        private readonly LyKeys _lyKeys;
+        private LyKeys? _lyKeys;
         private readonly SerilogManager _logger;
         private bool _isInitialized;
         private bool _isEnabled;
         private bool _isHoldMode;
+        internal readonly InputMethodService _inputMethodService;
         private readonly object _stateLock = new object();
         private readonly Stopwatch _sequenceStopwatch = new Stopwatch();
-        internal readonly InputMethodService _inputMethodService;
         private List<LyKeysCode> _keyList = new List<LyKeysCode>();
         private const int MIN_KEY_INTERVAL = 1;  // 最小按键间隔
         public const int DEFAULT_KEY_PRESS_INTERVAL = 5; // 默认按键按下时长
@@ -178,12 +178,13 @@ namespace WpfApp.Services
         /// </summary>
         public LyKeysService()
         {
-            _lyKeys = new LyKeys();
             _logger = SerilogManager.Instance;
             _isInitialized = false;
             _isEnabled = false;
             _isHoldMode = false;
             _virtualKeyMap = InitializeVirtualKeyMap();
+            _inputMethodService = new InputMethodService();  // 初始化InputMethodService
+            _logger.Debug("LyKeysService构造函数：已初始化InputMethodService");
         }
         #endregion
 
@@ -206,6 +207,13 @@ namespace WpfApp.Services
             map[0x1B] = LyKeysCode.VK_ESCAPE;   // Escape
             map[0x20] = LyKeysCode.VK_SPACE;    // Space
             map[0x2E] = LyKeysCode.VK_DELETE;   // Delete
+
+            // 添加鼠标按键映射
+            map[0x01] = LyKeysCode.VK_LBUTTON;  // 左键
+            map[0x02] = LyKeysCode.VK_RBUTTON;  // 右键
+            map[0x04] = LyKeysCode.VK_MBUTTON;  // 中键
+            map[0x05] = LyKeysCode.VK_XBUTTON1; // 侧键1
+            map[0x06] = LyKeysCode.VK_XBUTTON2; // 侧键2
 
             return map;
         }
@@ -250,6 +258,21 @@ namespace WpfApp.Services
         /// <returns>描述信息</returns>
         public string GetKeyDescription(LyKeysCode code)
         {
+            // 首先处理鼠标按键的特殊描述
+            switch (code)
+            {
+                case LyKeysCode.VK_LBUTTON:
+                    return "鼠标左键";
+                case LyKeysCode.VK_RBUTTON:
+                    return "鼠标右键";
+                case LyKeysCode.VK_MBUTTON:
+                    return "鼠标中键";
+                case LyKeysCode.VK_XBUTTON1:
+                    return "鼠标侧键1";
+                case LyKeysCode.VK_XBUTTON2:
+                    return "鼠标侧键2";
+            }
+
             var field = typeof(LyKeysCode).GetField(code.ToString());
             if (field != null)
             {
@@ -269,7 +292,7 @@ namespace WpfApp.Services
         /// </summary>
         /// <param name="driverPath">驱动文件路径</param>
         /// <returns>是否初始化成功</returns>
-        public bool Initialize(string driverPath)
+        public async Task<bool> InitializeAsync(string driverPath)
         {
             try
             {
@@ -281,15 +304,16 @@ namespace WpfApp.Services
 
                 _logger.Debug($"开始初始化LyKeys服务，驱动路径: {driverPath}");
 
-                // 验证驱动路径
-                if (!Directory.Exists(driverPath))
+                // 验证驱动文件
+                if (!File.Exists(driverPath))
                 {
-                    _logger.Error($"驱动目录不存在: {driverPath}");
+                    _logger.Error($"驱动文件不存在: {driverPath}");
                     return false;
                 }
 
                 // 初始化驱动
-                if (!_lyKeys.Initialize(driverPath))
+                _lyKeys = new LyKeys(driverPath);
+                if (!await _lyKeys.Initialize())
                 {
                     return false; // 初始化失败返回false
                 }
@@ -360,6 +384,12 @@ namespace WpfApp.Services
 
             try
             {
+                // 检查是否为鼠标按键
+                if (IsMouseButton(keyCode))
+                {
+                    return _lyKeys.SendMouseButton(ConvertToMouseButtonType(keyCode), true);
+                }
+                
                 _lyKeys.SendKeyDown((ushort)keyCode);
                 return true;
             }
@@ -386,6 +416,12 @@ namespace WpfApp.Services
 
             try
             {
+                // 检查是否为鼠标按键
+                if (IsMouseButton(keyCode))
+                {
+                    return _lyKeys.SendMouseButton(ConvertToMouseButtonType(keyCode), false);
+                }
+                
                 _lyKeys.SendKeyUp((ushort)keyCode);
                 return true;
             }
@@ -394,6 +430,28 @@ namespace WpfApp.Services
                 _logger.Error($"按键释放异常: {keyCode}", ex);
                 return false;
             }
+        }
+
+        private bool IsMouseButton(LyKeysCode keyCode)
+        {
+            return keyCode == LyKeysCode.VK_LBUTTON ||
+                   keyCode == LyKeysCode.VK_RBUTTON ||
+                   keyCode == LyKeysCode.VK_MBUTTON ||
+                   keyCode == LyKeysCode.VK_XBUTTON1 ||
+                   keyCode == LyKeysCode.VK_XBUTTON2;
+        }
+
+        private LyKeys.MouseButtonType ConvertToMouseButtonType(LyKeysCode keyCode)
+        {
+            return keyCode switch
+            {
+                LyKeysCode.VK_LBUTTON => LyKeys.MouseButtonType.Left,
+                LyKeysCode.VK_RBUTTON => LyKeys.MouseButtonType.Right,
+                LyKeysCode.VK_MBUTTON => LyKeys.MouseButtonType.Middle,
+                LyKeysCode.VK_XBUTTON1 => LyKeys.MouseButtonType.XButton1,
+                LyKeysCode.VK_XBUTTON2 => LyKeys.MouseButtonType.XButton2,
+                _ => throw new ArgumentException($"非法的鼠标按键类型: {keyCode}")
+            };
         }
 
         /// <summary>
@@ -413,9 +471,32 @@ namespace WpfApp.Services
 
             try
             {
-                if (!SendKeyDown(keyCode)) return false;
+                bool isMouseButton = IsMouseButton(keyCode);
+                if (isMouseButton)
+                {
+                    _logger.Debug($"正在执行鼠标按键: {keyCode}, 持续时间: {duration}ms");
+                }
+
+                if (!SendKeyDown(keyCode))
+                {
+                    _logger.Error($"按键按下失败: {keyCode}");
+                    return false;
+                }
+                
                 Thread.Sleep(duration);
-                return SendKeyUp(keyCode);
+                
+                bool result = SendKeyUp(keyCode);
+                if (!result)
+                {
+                    _logger.Error($"按键释放失败: {keyCode}");
+                }
+                
+                if (isMouseButton)
+                {
+                    _logger.Debug($"鼠标按键执行完成: {keyCode}, 结果: {result}");
+                }
+                
+                return result;
             }
             catch (Exception ex)
             {
@@ -484,13 +565,21 @@ namespace WpfApp.Services
             {
                 if (!CheckInitialization()) return;
 
+                _logger.Debug("开始启动按键序列");
                 StopKeySequence();
                 _sequenceStopwatch.Restart();
 
                 if (_keyList.Count > 0)
                 {
+                    _logger.Debug($"按键列表数量: {_keyList.Count}, 间隔: {_keyInterval}ms");
                     // 在新线程中启动按键序列
-                    new Thread(ExecuteKeySequence) { IsBackground = true }.Start();
+                    Thread sequenceThread = new Thread(ExecuteKeySequence) { IsBackground = true };
+                    sequenceThread.Start();
+                    _logger.Debug("按键序列线程已启动");
+                }
+                else
+                {
+                    _logger.Warning("按键列表为空，无法启动序列");
                 }
             }
             catch (Exception ex)
@@ -519,6 +608,18 @@ namespace WpfApp.Services
 
         private void ExecuteKeySequence()
         {
+            _logger.Debug("开始执行按键序列");
+            try
+            {
+                // 在序列开始时切换到英文输入法
+                _inputMethodService.SwitchToEnglish();
+                _logger.Debug("已切换到英文输入法");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("切换输入法失败", ex);
+            }
+
             while (_isEnabled && !_isHoldMode)
             {
                 try
@@ -526,7 +627,7 @@ namespace WpfApp.Services
                     foreach (var key in _keyList)
                     {
                         if (!_isEnabled || _isHoldMode) break;
-
+                        
                         SendKeyPress(key, _keyPressInterval);
                         Thread.Sleep(_keyInterval);
                     }
@@ -537,6 +638,17 @@ namespace WpfApp.Services
                     IsEnabled = false;
                     break;
                 }
+            }
+
+            try
+            {
+                // 在序列结束时恢复之前的输入法
+                _inputMethodService.RestorePreviousLayout();
+                _logger.Debug("已恢复之前的输入法");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("恢复输入法失败", ex);
             }
         }
 
@@ -588,23 +700,33 @@ namespace WpfApp.Services
 
             try
             {
-                // 按下所有按键
-                foreach (var key in _keyList)
-                {
-                    if (_holdModeCts.Token.IsCancellationRequested) break;
-                    SendKeyDown(key);
-                    await Task.Delay(5, _holdModeCts.Token);
-                }
+                _logger.Debug("开始执行按压模式循环");
+                int currentIndex = 0;
 
-                // 等待取消信号
                 while (!_holdModeCts.Token.IsCancellationRequested)
                 {
-                    await Task.Delay(100, _holdModeCts.Token);
+                    // 获取当前要执行的按键
+                    var key = _keyList[currentIndex];
+                    
+                    try
+                    {
+                        // 执行按键操作
+                        SendKeyPress(key, _keyPressInterval);
+                        await Task.Delay(_keyInterval, _holdModeCts.Token);
+                        
+                        // 更新索引，循环执行按键列表
+                        currentIndex = (currentIndex + 1) % _keyList.Count;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // 正常取消，跳出循环
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error($"按压模式执行按键异常: {key}", ex);
+                    }
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                // 正常取消，不需要处理
             }
             catch (Exception ex)
             {
@@ -617,6 +739,7 @@ namespace WpfApp.Services
                 {
                     SendKeyUp(key);
                 }
+                _logger.Debug("按压模式循环已结束");
             }
         }
 
@@ -641,7 +764,7 @@ namespace WpfApp.Services
                 IsEnabled = false;
                 StopKeySequence();
                 StopHoldMode();
-                _lyKeys.Dispose();
+                _lyKeys?.Dispose();
                 _isInitialized = false;
                 _isDisposed = true;
             }

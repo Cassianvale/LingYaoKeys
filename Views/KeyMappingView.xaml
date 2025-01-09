@@ -19,21 +19,22 @@
 
         <!-- 左侧按键列表区域 -->
         <DockPanel Grid.Column="0" Margin="0,0,10,0">
-            <TextBox x:Name="txtKeyInput"
+            <TextBox x:Name="KeyInputBox"
                      Style="{StaticResource ModernTextBox}"
                      IsEnabled="{Binding IsNotExecuting}"
-                     DockPanel.Dock="Top"
+                     Text="{Binding CurrentKeyText, Mode=OneWay}"
+                     PreviewKeyDown="KeyInputBox_PreviewKeyDown"
+                     PreviewMouseDown="KeyInputBox_PreviewMouseDown"
+                     GotFocus="KeyInputBox_GotFocus"
+                     LostFocus="KeyInputBox_LostFocus"
                      Height="32"
                      Margin="0,0,0,10"
                      TextAlignment="Center"
                      Tag="点此输入按键"
-                     Text="{Binding CurrentKeyText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      IsReadOnly="True"
                      IsUndoEnabled="False"
                      CaretBrush="Transparent"
-                     PreviewKeyDown="KeyInputBox_PreviewKeyDown"
-                     GotFocus="KeyInputBox_GotFocus"
-                     LostFocus="KeyInputBox_LostFocus"/>
+                     DockPanel.Dock="Top"/>
                     
             <ListBox x:Name="KeysList" 
                      IsEnabled="{Binding IsNotExecuting}"
@@ -41,7 +42,10 @@
                      ItemsSource="{Binding KeyList}"
                      Background="White"
                      BorderBrush="#BDBDBD"
-                     PreviewMouseDown="KeysList_PreviewMouseDown">
+                     PreviewMouseDown="KeysList_PreviewMouseDown"
+                     ScrollViewer.CanContentScroll="True"
+                     VirtualizingStackPanel.IsVirtualizing="True"
+                     VirtualizingStackPanel.VirtualizationMode="Recycling">
                 <b:Interaction.Behaviors>
                     <behaviors:ListBoxDragDropBehavior />
                 </b:Interaction.Behaviors>
@@ -51,9 +55,12 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="4">
-                            <ScrollViewer Padding="1" 
+                            <ScrollViewer x:Name="ScrollViewer" 
+                                        Padding="1" 
                                         Focusable="False"
-                                        VerticalScrollBarVisibility="Auto">
+                                        VerticalScrollBarVisibility="Auto"
+                                        HorizontalScrollBarVisibility="Disabled"
+                                        Template="{DynamicResource ScrollViewerControlTemplate}">
                                 <ItemsPresenter />
                             </ScrollViewer>
                         </Border>

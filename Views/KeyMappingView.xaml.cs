@@ -10,7 +10,6 @@ using WpfApp.Services;
 using WpfApp.Services.Models;
 using System.Windows.Media;
 using System.Windows.Controls.Primitives;
-using WpfApp.Styles;
 using WpfApp.Behaviors;
 
 // 提供按键映射视图
@@ -81,6 +80,21 @@ namespace WpfApp.Views
 
                 ViewModel?.SetCurrentKey(lyKeysCode);
                 _logger.Debug($"按键已转换: {key} -> {lyKeysCode}");
+
+                // 强制清除焦点
+                var focusScope = FocusManager.GetFocusScope(textBox);
+                FocusManager.SetFocusedElement(focusScope, null);
+                Keyboard.ClearFocus();
+                
+                // 确保输入框失去焦点
+                if (textBox.IsFocused)
+                {
+                    var parent = textBox.Parent as UIElement;
+                    if (parent != null)
+                    {
+                        parent.Focus();
+                    }
+                }
             }
             else
             {
@@ -625,6 +639,14 @@ namespace WpfApp.Views
         {
             if (sender is System.Windows.Controls.ListBox listBox)
             {
+                // 检查点击是否在ScrollBar上
+                var scrollBar = FindParent<System.Windows.Controls.Primitives.ScrollBar>(e.OriginalSource as DependencyObject);
+                if (scrollBar != null)
+                {
+                    // 如果点击在滚动条上，不处理事件
+                    return;
+                }
+
                 // 检查点击是否在ListBox的空白区域
                 HitTestResult hitTest = VisualTreeHelper.HitTest(listBox, e.GetPosition(listBox));
                 if (hitTest == null || 
@@ -715,6 +737,60 @@ namespace WpfApp.Views
             if (modeHelpPopup != null)
             {
                 modeHelpPopup.IsOpen = !modeHelpPopup.IsOpen;
+            }
+        }
+
+        private void KeyInputBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not System.Windows.Controls.TextBox textBox) return;
+
+            // 如果输入框没有焦点，优先获取焦点
+            if (!textBox.IsFocused)
+            {
+                textBox.Focus();
+                e.Handled = true;
+                return;
+            }
+
+            // 已有焦点时，处理所有鼠标按键
+            LyKeysCode? keyCode = e.ChangedButton switch
+            {
+                MouseButton.Left => LyKeysCode.VK_LBUTTON,
+                MouseButton.Right => LyKeysCode.VK_RBUTTON,
+                MouseButton.Middle => LyKeysCode.VK_MBUTTON,
+                MouseButton.XButton1 => LyKeysCode.VK_XBUTTON1,
+                MouseButton.XButton2 => LyKeysCode.VK_XBUTTON2,
+                _ => null
+            };
+
+            if (keyCode.HasValue)
+            {
+                e.Handled = true;
+
+                // 检查是否与热键冲突
+                if (ViewModel.IsHotkeyConflict(keyCode.Value))
+                {
+                    ShowError(HOTKEY_CONFLICT);
+                    return;
+                }
+
+                ViewModel?.SetCurrentKey(keyCode.Value);
+                _logger.Debug($"鼠标按键已转换: {e.ChangedButton} -> {keyCode.Value}");
+                
+                // 强制清除焦点
+                var focusScope = FocusManager.GetFocusScope(textBox);
+                FocusManager.SetFocusedElement(focusScope, null);
+                Keyboard.ClearFocus();
+                
+                // 确保输入框失去焦点
+                if (textBox.IsFocused)
+                {
+                    var parent = textBox.Parent as UIElement;
+                    if (parent != null)
+                    {
+                        parent.Focus();
+                    }
+                }
             }
         }
 

@@ -5,6 +5,9 @@ using WpfApp.Services;
 using System.Reflection;
 using System.Windows;
 using Forms = System.Windows.Forms;
+using System.Runtime.InteropServices;
+using System.ComponentModel;
+using System.Diagnostics;
 
 namespace WpfApp
 {
@@ -20,6 +23,21 @@ namespace WpfApp
             ".lingyao"
         );
 
+        [DllImport("Kernel32")]
+        private static extern bool SetConsoleCtrlHandler(EventHandler handler, bool add);
+
+        private delegate bool EventHandler(CtrlType sig);
+        private static EventHandler _handler;
+
+        private enum CtrlType
+        {
+            CTRL_C_EVENT = 0,
+            CTRL_BREAK_EVENT = 1,
+            CTRL_CLOSE_EVENT = 2,
+            CTRL_LOGOFF_EVENT = 5,
+            CTRL_SHUTDOWN_EVENT = 6
+        }
+
         public App()
         {
             // 设置高DPI模式
@@ -27,22 +45,123 @@ namespace WpfApp
             {
                 try
                 {
-                    System.Windows.Forms.Application.SetHighDpiMode(System.Windows.Forms.HighDpiMode.PerMonitorV2);
+                    Forms.Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
                 }
                 catch (Exception ex)
                 {
                     _logger?.Error("设置高DPI模式失败", ex);
                 }
             }
+
+            // 注册进程退出事件处理
+            _handler += new EventHandler(Handler);
+            SetConsoleCtrlHandler(_handler, true);
+
+            // 注册应用程序域未处理异常处理程序
+            AppDomain.CurrentDomain.ProcessExit += (s, e) => CleanupServices();
+            
+            // 注册任务调度器未观察到的异常处理程序
+            TaskScheduler.UnobservedTaskException += (s, e) =>
+            {
+                CleanupServices();
+                e.SetObserved();
+            };
+
+            // 注册应用程序退出事件
+            this.Exit += OnApplicationExit;
         }
 
-        protected override void OnStartup(StartupEventArgs e)
+        private bool Handler(CtrlType sig)
+        {
+            switch (sig)
+            {
+                case CtrlType.CTRL_BREAK_EVENT:
+                case CtrlType.CTRL_C_EVENT:
+                case CtrlType.CTRL_LOGOFF_EVENT:
+                case CtrlType.CTRL_SHUTDOWN_EVENT:
+                case CtrlType.CTRL_CLOSE_EVENT:
+                    CleanupServices();
+                    return false;
+                default:
+                    return false;
+            }
+        }
+
+        private void CleanupServices()
+        {
+            if (_isShuttingDown) return;
+            _isShuttingDown = true;
+
+            try
+            {
+                _logger.Debug("开始清理服务...");
+
+                // 确保所有服务都被释放
+                if (LyKeysDriver != null)
+                {
+                    LyKeysDriver.Dispose();
+                    LyKeysDriver = null;
+                }
+
+                if (AudioService != null)
+                {
+                    AudioService.Dispose();
+                    AudioService = null;
+                }
+
+                // 清理配置服务
+                ConfigService = null;
+
+                // 尝试强制停止和删除驱动服务
+                try
+                {
+                    using (Process p = new Process())
+                    {
+                        p.StartInfo.FileName = "sc.exe";
+                        p.StartInfo.Arguments = "stop lykeys";
+                        p.StartInfo.UseShellExecute = false;
+                        p.StartInfo.CreateNoWindow = true;
+                        p.Start();
+                        p.WaitForExit(100);
+                    }
+
+                    using (Process p = new Process())
+                    {
+                        p.StartInfo.FileName = "sc.exe";
+                        p.StartInfo.Arguments = "delete lykeys";
+                        p.StartInfo.UseShellExecute = false;
+                        p.StartInfo.CreateNoWindow = true;
+                        p.Start();
+                        p.WaitForExit(100);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"清理驱动服务失败: {ex.Message}");
+                }
+
+                // 最后释放日志服务
+                _logger.Debug("服务清理完成");
+                _logger.Debug("=================================================");
+                _logger.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"清理服务异常: {ex.Message}");
+            }
+            finally
+            {
+                Environment.Exit(0);
+            }
+        }
+
+        protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-            
+
             // 预初始化WebView2环境
             _ = Services.WebView2Service.Instance.GetEnvironmentAsync();
-            
+
             try
             {
                 // 确保用户数据目录存在
@@ -86,24 +205,52 @@ namespace WpfApp
                 _logger.Debug($"日志系统初始化完成, 配置: Level={AppConfigService.Config.Logging.LogLevel}, MaxSize={AppConfigService.Config.Logging.FileSettings.MaxFileSize}MB");
                 _logger.Debug("应用程序启动...");
 
-                // 获取驱动文件路径
-                string driverPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resource", "lykeysdll");
-                if (!Directory.Exists(driverPath))
+                // 获取临时目录路径
+                string tempPath = Path.Combine(Path.GetTempPath(), "LingYaoKeys");
+                string driverPath = Path.Combine(tempPath, "Resource", "lykeysdll");
+                string driverFile = Path.Combine(driverPath, "lykeys.sys");
+                string dllFile = Path.Combine(driverPath, "lykeysdll.dll");
+                string catFile = Path.Combine(driverPath, "lykeys.cat");
+
+                try
                 {
-                    _logger.Error($"驱动文件目录不存在: {driverPath}");
+                    // 确保临时目录存在
+                    Directory.CreateDirectory(driverPath);
+
+                    // 从嵌入式资源提取驱动文件
+                    ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeys.sys", driverFile);
+                    ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeysdll.dll", dllFile);
+                    ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeys.cat", catFile);
+
+                    _logger.Debug($"驱动文件已提取到临时目录: {driverPath}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"提取驱动文件失败: {ex.Message}", ex);
+                    System.Windows.MessageBox.Show("提取驱动文件失败，请确保程序完整性", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Current.Shutdown();
+                    return;
+                }
+
+                if (!File.Exists(driverFile) || !File.Exists(dllFile))
+                {
+                    _logger.Error($"驱动文件丢失: {driverFile} 或 {dllFile}");
                     System.Windows.MessageBox.Show("驱动文件丢失，请确保程序完整性", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     Current.Shutdown();
                     return;
                 }
 
                 _logger.Debug($"驱动文件目录: {driverPath}");
+                _logger.Debug($"驱动文件: {driverFile}");
+                _logger.Debug($"DLL文件: {dllFile}");
+                _logger.Debug($"CAT文件: {catFile}");
 
                 // 初始化驱动管理器
-                try 
+                try
                 {
                     // 初始化 LyKeys 服务
                     LyKeysDriver = new LyKeysService();
-                    if (!LyKeysDriver.Initialize(driverPath))
+                    if (!await LyKeysDriver.InitializeAsync(driverFile))
                     {
                         _logger.Error("驱动加载失败，无法加载LyKeys驱动文件");
                         System.Windows.MessageBox.Show("驱动加载失败，请检查是否以管理员身份运行程序", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -135,6 +282,24 @@ namespace WpfApp
 
                 // 注册应用程序退出事件
                 Exit += OnApplicationExit;
+
+                // 添加程序退出时的清理逻辑
+                Current.Exit += (s, e) =>
+                {
+                    try
+                    {
+                        // 清理临时文件
+                        if (Directory.Exists(tempPath))
+                        {
+                            Directory.Delete(tempPath, true);
+                            _logger.Debug("临时文件已清理");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error($"清理临时文件失败: {ex.Message}", ex);
+                    }
+                };
             }
             catch (Exception ex)
             {
@@ -144,24 +309,31 @@ namespace WpfApp
             }
         }
 
+        /// <summary>
+        /// 从嵌入式资源提取文件
+        /// </summary>
+        /// <param name="resourceName">资源名称</param>
+        /// <param name="outputPath">输出路径</param>
         private void ExtractEmbeddedResource(string resourceName, string outputPath)
         {
-            if (!File.Exists(outputPath))
+            try
             {
-                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                using (Stream? stream = GetType().Assembly.GetManifestResourceStream(resourceName))
                 {
                     if (stream == null)
                     {
-                        _logger.Error($"找不到嵌入的资源：{resourceName}");
-                        throw new FileNotFoundException($"找不到驱动资源：{resourceName}");
+                        throw new FileNotFoundException($"找不到嵌入式资源: {resourceName}");
                     }
 
-                    using (FileStream fileStream = File.Create(outputPath))
+                    using (FileStream fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write))
                     {
                         stream.CopyTo(fileStream);
                     }
-                    _logger.Debug($"已提取资源文件: {resourceName} -> {outputPath}");
                 }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"提取资源文件失败: {resourceName}", ex);
             }
         }
 
@@ -173,14 +345,14 @@ namespace WpfApp
             try
             {
                 _logger.Debug("开始释放应用程序资源...");
-                
+
                 // 确保所有服务都被释放
                 if (LyKeysDriver != null)
                 {
                     LyKeysDriver.Dispose();
                     LyKeysDriver = null;
                 }
-                
+
                 if (AudioService != null)
                 {
                     AudioService.Dispose();
@@ -189,7 +361,7 @@ namespace WpfApp
 
                 // 清理配置服务
                 ConfigService = null;
-                
+
                 // 最后释放日志服务
                 _logger.Debug("应用程序资源已释放");
                 _logger.Debug("=================================================");

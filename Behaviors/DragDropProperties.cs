@@ -1,5 +1,6 @@
 using System.Windows;
 
+// 拖放属性
 namespace WpfApp.Behaviors
 {
     public static class DragDropProperties

@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Media;
 
+// 拖动装饰器
 namespace WpfApp.Behaviors
 {
     public class DragAdorner : Adorner
