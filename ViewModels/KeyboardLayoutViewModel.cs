@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
@@ -14,7 +12,7 @@ namespace WpfApp.ViewModels
         private readonly LyKeysService _lyKeysService;
         private KeyboardLayoutConfig _keyboardConfig;
         private bool _isRapidFireEnabled;
-        private KeyboardLayoutKey _selectedKey;
+        private KeyboardLayoutKey? _selectedKey;
         private readonly List<LyKeysCode> _conflictKeys;
         private int _rapidFireDelay = 10; // 默认连发延迟时间
 
@@ -45,7 +43,7 @@ namespace WpfApp.ViewModels
             }
         }
 
-        public KeyboardLayoutKey SelectedKey
+        public KeyboardLayoutKey? SelectedKey
         {
             get => _selectedKey;
             set
@@ -59,7 +57,7 @@ namespace WpfApp.ViewModels
             }
         }
 
-        public bool IsKeySelected => SelectedKey != null;
+        public bool IsKeySelected => SelectedKey is not null;
 
         public int RapidFireDelay
         {
@@ -82,7 +80,7 @@ namespace WpfApp.ViewModels
         public ICommand KeyClickCommand { get; }
         public ICommand ToggleRapidFireCommand { get; }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         public KeyboardLayoutViewModel(LyKeysService lyKeysService)
         {
@@ -101,7 +99,7 @@ namespace WpfApp.ViewModels
             LoadConfiguration();
         }
 
-        private void OnKeyClick(KeyboardLayoutKey keyConfig)
+        private void OnKeyClick(KeyboardLayoutKey? keyConfig)
         {
             if (keyConfig == null) return;
 
@@ -127,7 +125,7 @@ namespace WpfApp.ViewModels
             }
         }
 
-        private void OnToggleRapidFire(KeyboardLayoutKey keyConfig)
+        private void OnToggleRapidFire(KeyboardLayoutKey? keyConfig)
         {
             if (keyConfig == null) return;
 
