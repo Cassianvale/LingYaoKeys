@@ -14,47 +14,47 @@
       PreviewMouseDown="Page_PreviewMouseDown">
     <Grid>
         <!-- 主要内容 -->
-        <Grid Margin="10">
+        <Grid x:Name="MainContent" Margin="10">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*" MinWidth="300"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <!-- 新增：抽屉按钮 -->
-            <Button Grid.Column="0"
-                    x:Name="btnShowKeyboardLayout"
-                    Style="{StaticResource RoundedShadowButtonSmall}"
-                    Width="40"
-                    Height="40"
-                    Margin="0,0,10,0"
-                    Click="ShowKeyboardLayout_Click"
-                    ToolTip="显示键鼠布局">
-                <Path Data="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"
-                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                      Width="20"
-                      Height="20"
-                      Stretch="Uniform"/>
-            </Button>
-
             <!-- 左侧按键列表区域 -->
-            <DockPanel Grid.Column="1" Margin="0,0,10,0">
-                <TextBox x:Name="KeyInputBox"
-                         Style="{StaticResource ModernTextBox}"
-                         IsEnabled="{Binding IsNotExecuting}"
-                         Text="{Binding CurrentKeyText, Mode=OneWay}"
-                         PreviewKeyDown="KeyInputBox_PreviewKeyDown"
-                         PreviewMouseDown="KeyInputBox_PreviewMouseDown"
-                         GotFocus="KeyInputBox_GotFocus"
-                         LostFocus="KeyInputBox_LostFocus"
-                         Height="32"
-                         Margin="0,0,0,10"
-                         TextAlignment="Center"
-                         Tag="点此输入按键"
-                         IsReadOnly="True"
-                         IsUndoEnabled="False"
-                         CaretBrush="Transparent"
-                         DockPanel.Dock="Top"/>
+            <DockPanel Grid.Column="0" Margin="0,0,10,0" MinWidth="300">
+                <!-- 顶部输入区域 -->
+                <DockPanel DockPanel.Dock="Top" 
+                          Height="32" 
+                          Margin="0,0,0,10">
+                    <Button x:Name="btnShowKeyboardLayout"
+                            Style="{StaticResource RoundedShadowButtonSmall}"
+                            Width="32" Height="32"
+                            Margin="0,0,10,0"
+                            Click="ShowKeyboardLayout_Click"
+                            DockPanel.Dock="Left"
+                            ToolTip="显示键鼠布局">
+                        <TextBlock Text="连发"
+                                  FontSize="13"
+                                  FontWeight="Medium"
+                                  Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"/>
+                    </Button>
+                    
+                    <TextBox x:Name="KeyInputBox"
+                             Style="{StaticResource ModernTextBox}"
+                             IsEnabled="{Binding IsNotExecuting}"
+                             Text="{Binding CurrentKeyText, Mode=OneWay}"
+                             PreviewKeyDown="KeyInputBox_PreviewKeyDown"
+                             PreviewMouseDown="KeyInputBox_PreviewMouseDown"
+                             GotFocus="KeyInputBox_GotFocus"
+                             LostFocus="KeyInputBox_LostFocus"
+                             TextAlignment="Center"
+                             Tag="点此输入按键"
+                             IsReadOnly="True"
+                             IsUndoEnabled="False"
+                             CaretBrush="Transparent"/>
+                </DockPanel>
                         
                 <ListBox x:Name="KeysList" 
                          IsEnabled="{Binding IsNotExecuting}"
@@ -69,6 +69,13 @@
                     <b:Interaction.Behaviors>
                         <behaviors:ListBoxDragDropBehavior />
                     </b:Interaction.Behaviors>
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="2" 
+                                       HorizontalAlignment="Stretch"
+                                       VerticalAlignment="Top"/>
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
                     <ListBox.Template>
                         <ControlTemplate TargetType="ListBox">
                             <Border Background="{TemplateBinding Background}"
@@ -76,7 +83,7 @@
                                     BorderThickness="{TemplateBinding BorderThickness}"
                                     CornerRadius="4">
                                 <ScrollViewer x:Name="ScrollViewer" 
-                                            Padding="1" 
+                                            Padding="4" 
                                             Focusable="False"
                                             VerticalScrollBarVisibility="Auto"
                                             HorizontalScrollBarVisibility="Disabled"
@@ -88,29 +95,41 @@
                     </ListBox.Template>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <CheckBox Style="{StaticResource ModernSwitch}"
-                                      Content="{Binding DisplayName}"
-                                      IsChecked="{Binding IsSelected}"
-                                      Height="30"
-                                      VerticalContentAlignment="Center"/>
+                            <Border Margin="2" 
+                                    Background="Transparent" 
+                                    CornerRadius="4"
+                                    Height="40">
+                                <CheckBox Style="{StaticResource ModernSwitch}"
+                                          Content="{Binding DisplayName}"
+                                          IsChecked="{Binding IsSelected}"
+                                          Height="32"
+                                          Margin="4,0"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Center"
+                                          VerticalContentAlignment="Center"/>
+                            </Border>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem">
-                            <Setter Property="Height" Value="32"/>
-                            <Setter Property="Padding" Value="5,0"/>
+                            <Setter Property="Height" Value="44"/>
+                            <Setter Property="Margin" Value="2"/>
+                            <Setter Property="Padding" Value="0"/>
                             <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="ListBoxItem">
                                         <Border x:Name="Bd"
                                                 Background="{TemplateBinding Background}"
                                                 BorderThickness="0"
+                                                CornerRadius="4"
                                                 Padding="{TemplateBinding Padding}"
                                                 SnapsToDevicePixels="true">
                                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="true">
@@ -139,7 +158,7 @@
             </DockPanel>
 
             <!-- 右侧设置区域 -->
-            <StackPanel Grid.Column="2" Width="180">
+            <StackPanel Grid.Column="1" Width="180">
                 <!-- 顶部按钮组 -->
                 <DockPanel Margin="0,0,0,10">
                     <Button Style="{StaticResource RoundedShadowButtonSmall}"
@@ -354,35 +373,27 @@
 
                 <!-- 底部设置区域重新布局 -->
                 <StackPanel Margin="0,0,0,0">
-                    <!-- 声音提示和游戏模式并排 -->
-                    <Grid Margin="0,0,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        
-                        <CheckBox Grid.Column="0"
-                                  Style="{StaticResource ModernSwitch}"
-                                  Content="声音提示" 
-                                  Height="32"
-                                  VerticalContentAlignment="Center"
-                                  HorizontalAlignment="Left"
-                                  Margin="0,0,0,0"
-                                  Padding="0,0,0,0"
-                                  IsChecked="{Binding IsSoundEnabled, Mode=TwoWay}"/>
-                                  
-                        <CheckBox Grid.Column="1"
-                                  Style="{StaticResource ModernSwitch}"
-                                  Content="游戏模式" 
-                                  Height="32"
-                                  VerticalContentAlignment="Center"
-                                  HorizontalAlignment="Left"
-                                  Margin="0,0,0,0"
-                                  Padding="0,0,0,0"
-                                  IsChecked="{Binding IsGameMode, Mode=TwoWay}"/>
-                    </Grid>
+                    <!-- 声音提示 -->
+                    <CheckBox Style="{StaticResource ModernSwitch}"
+                              Content="声音提示" 
+                              Height="32"
+                              VerticalContentAlignment="Center"
+                              HorizontalAlignment="Left"
+                              Margin="0,0,0,0"
+                              Padding="0,0,0,0"
+                              IsChecked="{Binding IsSoundEnabled, Mode=TwoWay}"/>
+                              
+                    <!-- 游戏模式 -->
+                    <CheckBox Style="{StaticResource ModernSwitch}"
+                              Content="游戏模式" 
+                              Height="32"
+                              VerticalContentAlignment="Center"
+                              HorizontalAlignment="Left"
+                              Margin="0,0,0,0"
+                              Padding="0,0,0,0"
+                              IsChecked="{Binding IsGameMode, Mode=TwoWay}"/>
 
-                    <!-- 添加浮窗开关 -->
+                    <!-- 状态浮窗 -->
                     <CheckBox Style="{StaticResource ModernSwitch}"
                               Content="状态浮窗" 
                               Height="32"
@@ -391,52 +402,53 @@
                               Margin="0,0,0,0"
                               Padding="0,0,0,0"
                               IsChecked="{Binding IsFloatingWindowEnabled, Mode=TwoWay}"/>
+                    <!-- 连发开关 -->
+                    <CheckBox Style="{StaticResource ModernSwitch}"
+                              Content="启动连发" 
+                              Height="32"
+                              VerticalContentAlignment="Center"
+                              HorizontalAlignment="Left"
+                              Margin="0,0,0,0"
+                              Padding="0,0,0,0"
+                              IsChecked="{Binding IsHoldModeEnabled, Mode=TwoWay}"/>
                 </StackPanel>
             </StackPanel>
         </Grid>
 
-        <!-- 键鼠布局抽屉 -->
-        <Grid x:Name="KeyboardLayoutDrawer" 
-              Background="#99000000" 
+        <!-- 键鼠布局页面 -->
+        <Grid x:Name="KeyboardLayoutPage" 
+              Background="White" 
               Visibility="Collapsed">
-            <!-- 抽屉内容 -->
-            <Border x:Name="DrawerContent"
-                    Background="White" 
-                    Width="0"
-                    HorizontalAlignment="Left">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-                    <!-- 抽屉标题栏 -->
-                    <DockPanel Grid.Row="0" 
-                              Background="#F5F5F5" 
-                              Height="48">
-                        <Button x:Name="btnCloseDrawer"
-                                Style="{StaticResource CircleButtonStyle}"
-                                Width="32" Height="32"
-                                Margin="8,0,0,0"
-                                Click="CloseKeyboardLayout_Click">
-                            <Path Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
-                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                  Width="16" Height="16"
-                                  Stretch="Uniform"/>
-                        </Button>
-                        <TextBlock Text="键鼠布局"
-                                   FontSize="16"
-                                   FontWeight="Medium"
-                                   VerticalAlignment="Center"
-                                   Margin="16,0,0,0"/>
-                    </DockPanel>
+            <!-- 标题栏 -->
+            <DockPanel Grid.Row="0" 
+                       Background="#F5F5F5" 
+                       Height="48">
+                <Button x:Name="btnBackToMain"
+                        Style="{StaticResource CircleButtonStyle}"
+                        Width="32" Height="32"
+                        Margin="8,0,0,0"
+                        Click="CloseKeyboardLayout_Click">
+                    <Path Data="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"
+                          Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                          Width="16" Height="16"
+                          Stretch="Uniform"/>
+                </Button>
+                <TextBlock Text="键鼠布局"
+                           FontSize="16"
+                           FontWeight="Medium"
+                           VerticalAlignment="Center"
+                           Margin="16,0,0,0"/>
+            </DockPanel>
 
-                    <!-- 键盘布局控件 -->
-                    <controls:KeyboardLayoutView Grid.Row="1" 
-                                               x:Name="KeyboardLayout"
-                                               DataContext="{Binding KeyboardLayoutViewModel}"/>
-                </Grid>
-            </Border>
+            <!-- 键盘布局控件 -->
+            <controls:KeyboardLayoutView Grid.Row="1" 
+                                       x:Name="KeyboardLayout"
+                                       DataContext="{Binding KeyboardLayoutViewModel}"/>
         </Grid>
     </Grid>
 </Page> 

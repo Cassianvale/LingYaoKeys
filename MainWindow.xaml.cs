@@ -11,6 +11,8 @@ using Forms = System.Windows.Forms;
 using Drawing = System.Drawing;
 using System.IO;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
 
 namespace WpfApp
 {
@@ -25,6 +27,7 @@ namespace WpfApp
         private bool _hasShownMinimizeNotification;
         private Forms.NotifyIcon _trayIcon;
         internal ContextMenu _trayContextMenu;
+        private bool _isNavExpanded = false;
 
         // 窗口调整大小相关
         private bool _isResizing;
@@ -794,6 +797,122 @@ namespace WpfApp
             catch (Exception ex)
             {
                 _logger.Error($"导航到页面 {typeof(T).Name} 失败", ex);
+            }
+        }
+
+        private void NavToggleButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                _isNavExpanded = !_isNavExpanded;
+                var navPanel = FindName("NavPanel") as Border;
+                var navShadow = FindName("NavShadow") as DropShadowEffect;
+                var toggleButton = sender as System.Windows.Controls.Button;
+
+                if (navPanel != null && toggleButton != null && navShadow != null)
+                {
+                    // 创建宽度动画
+                    var widthAnimation = new DoubleAnimation
+                    {
+                        Duration = TimeSpan.FromMilliseconds(250),
+                        EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
+                    };
+
+                    // 创建阴影动画
+                    var shadowAnimation = new DoubleAnimation
+                    {
+                        Duration = TimeSpan.FromMilliseconds(250),
+                        EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
+                    };
+
+                    // 设置动画目标值
+                    if (_isNavExpanded)
+                    {
+                        widthAnimation.To = 200; // 展开宽度
+                        shadowAnimation.To = 0.2; // 显示阴影
+                        toggleButton.Content = "\uE700"; // 收起图标
+                    }
+                    else
+                    {
+                        widthAnimation.To = 45; // 收起后只显示图标的宽度
+                        shadowAnimation.To = 0; // 隐藏阴影
+                        toggleButton.Content = "\uE701"; // 展开图标
+                    }
+
+                    // 应用动画
+                    navPanel.BeginAnimation(FrameworkElement.WidthProperty, widthAnimation);
+                    navShadow.BeginAnimation(DropShadowEffect.OpacityProperty, shadowAnimation);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("导航栏切换失败", ex);
+            }
+        }
+
+        /// <summary>
+        /// GridLength 动画类
+        /// </summary>
+        public class GridLengthAnimation : AnimationTimeline
+        {
+            public override Type TargetPropertyType => typeof(GridLength);
+
+            protected override Freezable CreateInstanceCore()
+            {
+                return new GridLengthAnimation();
+            }
+
+            public GridLength? From
+            {
+                get => (GridLength?)GetValue(FromProperty);
+                set => SetValue(FromProperty, value);
+            }
+
+            public GridLength? To
+            {
+                get => (GridLength?)GetValue(ToProperty);
+                set => SetValue(ToProperty, value);
+            }
+
+            public IEasingFunction EasingFunction
+            {
+                get => (IEasingFunction)GetValue(EasingFunctionProperty);
+                set => SetValue(EasingFunctionProperty, value);
+            }
+
+            public static readonly DependencyProperty FromProperty =
+                DependencyProperty.Register("From", typeof(GridLength?), typeof(GridLengthAnimation));
+
+            public static readonly DependencyProperty ToProperty =
+                DependencyProperty.Register("To", typeof(GridLength?), typeof(GridLengthAnimation));
+
+            public static readonly DependencyProperty EasingFunctionProperty =
+                DependencyProperty.Register("EasingFunction", typeof(IEasingFunction), typeof(GridLengthAnimation));
+
+            public override object GetCurrentValue(object defaultOriginValue,
+                                                object defaultDestinationValue,
+                                                AnimationClock animationClock)
+            {
+                var from = From ?? (GridLength)defaultOriginValue;
+                var to = To ?? (GridLength)defaultDestinationValue;
+                
+                if (animationClock.CurrentProgress == null)
+                    return from;
+
+                var progress = animationClock.CurrentProgress.Value;
+                if (EasingFunction != null)
+                    progress = EasingFunction.Ease(progress);
+                
+                return new GridLength((1 - progress) * from.Value + progress * to.Value, to.IsStar ? GridUnitType.Star : GridUnitType.Pixel);
+            }
+        }
+
+        private void NavButton_Click(object sender, RoutedEventArgs e)
+        {
+            // 如果导航栏是展开状态，点击后自动收起
+            if (_isNavExpanded)
+            {
+                NavToggleButton_Click(FindName("NavToggleButton"), e);
             }
         }
     }

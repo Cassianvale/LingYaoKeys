@@ -182,13 +182,12 @@ namespace WpfApp.Services
                 startMods = 0,
                 stopKey = LyKeysCode.VK_F10,
                 stopMods = 0,
-                keyList = new List<LyKeysCode> 
+                keys = new List<KeyConfig> 
                 { 
-                    LyKeysCode.VK_F,  // F1 (VK_F1)
-                    LyKeysCode.VK_1,  // F2 (VK_F2)
-                    LyKeysCode.VK_2   // F3 (VK_F3)
+                    new KeyConfig(LyKeysCode.VK_F, true),
+                    new KeyConfig(LyKeysCode.VK_1, false),
+                    new KeyConfig(LyKeysCode.VK_2, false)
                 },
-                keySelections = new List<bool> { true, false, false },
                 keyMode = 0,
                 interval = 5,
                 soundEnabled = true,

@@ -1,59 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- 现代开关按钮样式 -->
-    <Style x:Key="ModernToggleButtonStyle" TargetType="ToggleButton">
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ToggleButton">
-                    <Grid>
-                        <Border x:Name="BackgroundBorder"
-                                Width="40"
-                                Height="20"
-                                CornerRadius="10"
-                                Background="#E0E0E0">
-                            <Border x:Name="ThumbBorder"
-                                    Width="16"
-                                    Height="16"
-                                    CornerRadius="8"
-                                    Background="White"
-                                    HorizontalAlignment="Left"
-                                    Margin="2,0,0,0">
-                                <Border.Effect>
-                                    <DropShadowEffect BlurRadius="4"
-                                                    ShadowDepth="1"
-                                                    Direction="270"
-                                                    Color="#66000000"
-                                                    Opacity="0.3"/>
-                                </Border.Effect>
-                            </Border>
-                        </Border>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="BackgroundBorder" Property="Background" Value="#2196F3"/>
-                            <Setter TargetName="ThumbBorder" Property="Margin" Value="22,0,0,0"/>
-                        </Trigger>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="BackgroundBorder" Property="Background" Value="#BDBDBD"/>
-                        </Trigger>
-                        <MultiTrigger>
-                            <MultiTrigger.Conditions>
-                                <Condition Property="IsMouseOver" Value="True"/>
-                                <Condition Property="IsChecked" Value="True"/>
-                            </MultiTrigger.Conditions>
-                            <Setter TargetName="BackgroundBorder" Property="Background" Value="#1976D2"/>
-                        </MultiTrigger>
-                        <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="BackgroundBorder" Property="Opacity" Value="0.5"/>
-                            <Setter TargetName="ThumbBorder" Property="Opacity" Value="0.5"/>
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
     <!-- 现代开关样式 -->
     <Style x:Key="ModernSwitch" TargetType="CheckBox">
         <Setter Property="Cursor" Value="Hand"/>

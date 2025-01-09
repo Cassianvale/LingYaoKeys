@@ -14,8 +14,9 @@ namespace WpfApp.ViewModels
         private readonly LyKeysService _lyKeysService;
         private KeyboardLayoutConfig _keyboardConfig;
         private bool _isRapidFireEnabled;
-        private KeyConfig _selectedKey;
-        private readonly List<LyKeysCode> _conflictKeys; // 存储冲突的按键
+        private KeyboardLayoutKey _selectedKey;
+        private readonly List<LyKeysCode> _conflictKeys;
+        private int _rapidFireDelay = 10; // 默认连发延迟时间
 
         public KeyboardLayoutConfig KeyboardConfig
         {
@@ -44,7 +45,7 @@ namespace WpfApp.ViewModels
             }
         }
 
-        public KeyConfig SelectedKey
+        public KeyboardLayoutKey SelectedKey
         {
             get => _selectedKey;
             set
@@ -53,6 +54,27 @@ namespace WpfApp.ViewModels
                 {
                     _selectedKey = value;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(IsKeySelected));
+                }
+            }
+        }
+
+        public bool IsKeySelected => SelectedKey != null;
+
+        public int RapidFireDelay
+        {
+            get => _rapidFireDelay;
+            set
+            {
+                if (_rapidFireDelay != value && value >= 1)
+                {
+                    _rapidFireDelay = value;
+                    OnPropertyChanged();
+                    if (SelectedKey != null)
+                    {
+                        SelectedKey.RapidFireDelay = value;
+                        SaveConfiguration();
+                    }
                 }
             }
         }
@@ -65,58 +87,63 @@ namespace WpfApp.ViewModels
         public KeyboardLayoutViewModel(LyKeysService lyKeysService)
         {
             _lyKeysService = lyKeysService ?? throw new ArgumentNullException(nameof(lyKeysService));
-            _keyboardConfig = new KeyboardLayoutConfig();
+            _keyboardConfig = new KeyboardLayoutConfig(_lyKeysService);
             _conflictKeys = new List<LyKeysCode>();
 
             // 初始化命令
-            KeyClickCommand = new RelayCommand<KeyConfig>(OnKeyClick);
-            ToggleRapidFireCommand = new RelayCommand<KeyConfig>(OnToggleRapidFire);
+            KeyClickCommand = new RelayCommand<KeyboardLayoutKey>(OnKeyClick);
+            ToggleRapidFireCommand = new RelayCommand<KeyboardLayoutKey>(OnToggleRapidFire);
+
+            // 初始化键盘布局
+            _keyboardConfig.InitializeLayout();
 
             // 加载配置
             LoadConfiguration();
         }
 
-        private void OnKeyClick(KeyConfig keyConfig)
+        private void OnKeyClick(KeyboardLayoutKey keyConfig)
         {
             if (keyConfig == null) return;
-
-            SelectedKey = keyConfig;
 
             // 检查是否为冲突按键
             if (_conflictKeys.Contains(keyConfig.KeyCode))
             {
-                // 显示冲突提示
+                // TODO: 显示冲突提示
                 return;
             }
 
-            // 处理按键点击事件
-            if (keyConfig.IsRapidFire && IsRapidFireEnabled)
+            // 设置选中的按键
+            SelectedKey = keyConfig;
+            
+            // 如果按键已经是连发模式，则使用其当前延迟值
+            if (keyConfig.IsRapidFire)
             {
-                // 如果是连发模式且已启用连发
-                keyConfig.IsDisabled = true;
+                RapidFireDelay = keyConfig.RapidFireDelay;
             }
             else
             {
-                keyConfig.IsDisabled = false;
+                // 否则使用默认延迟值
+                RapidFireDelay = 10;
             }
         }
 
-        private void OnToggleRapidFire(KeyConfig keyConfig)
+        private void OnToggleRapidFire(KeyboardLayoutKey keyConfig)
         {
             if (keyConfig == null) return;
 
             // 检查是否为冲突按键
             if (_conflictKeys.Contains(keyConfig.KeyCode))
             {
-                // 显示冲突提示
+                // TODO: 显示冲突提示
                 return;
             }
 
+            // 切换连发状态
             keyConfig.IsRapidFire = !keyConfig.IsRapidFire;
             
             if (keyConfig.IsRapidFire)
             {
-                keyConfig.IsHighlighted = true;
+                keyConfig.RapidFireDelay = RapidFireDelay;
                 if (IsRapidFireEnabled)
                 {
                     keyConfig.IsDisabled = true;
@@ -124,9 +151,11 @@ namespace WpfApp.ViewModels
             }
             else
             {
-                keyConfig.IsHighlighted = false;
                 keyConfig.IsDisabled = false;
             }
+
+            // 清除选中状态
+            SelectedKey = null;
 
             // 保存配置
             SaveConfiguration();
@@ -143,7 +172,7 @@ namespace WpfApp.ViewModels
             }
         }
 
-        private IEnumerable<KeyConfig> GetAllKeys()
+        private IEnumerable<KeyboardLayoutKey> GetAllKeys()
         {
             if (_keyboardConfig == null) yield break;
 

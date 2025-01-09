@@ -799,26 +799,14 @@ namespace WpfApp.Views
 
         private void ShowKeyboardLayout_Click(object sender, RoutedEventArgs e)
         {
-            KeyboardLayoutDrawer.Visibility = Visibility.Visible;
-            var animation = new DoubleAnimation
-            {
-                To = 400,
-                Duration = TimeSpan.FromMilliseconds(250),
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-            };
-            DrawerContent.BeginAnimation(Border.WidthProperty, animation);
+            MainContent.Visibility = Visibility.Collapsed;
+            KeyboardLayoutPage.Visibility = Visibility.Visible;
         }
 
         private void CloseKeyboardLayout_Click(object sender, RoutedEventArgs e)
         {
-            var animation = new DoubleAnimation
-            {
-                To = 0,
-                Duration = TimeSpan.FromMilliseconds(250),
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-            };
-            animation.Completed += (s, _) => KeyboardLayoutDrawer.Visibility = Visibility.Collapsed;
-            DrawerContent.BeginAnimation(Border.WidthProperty, animation);
+            KeyboardLayoutPage.Visibility = Visibility.Collapsed;
+            MainContent.Visibility = Visibility.Visible;
         }
 
     }

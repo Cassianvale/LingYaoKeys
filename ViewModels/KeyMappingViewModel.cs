@@ -367,14 +367,13 @@ namespace WpfApp.ViewModels
                 var appConfig = AppConfigService.Config;
 
                 // 加载按键列表和选中状态
-                if (appConfig.keyList != null)
+                if (appConfig.keys != null)
                 {
                     KeyList.Clear();
-                    for (int i = 0; i < appConfig.keyList.Count; i++)
+                    foreach (var keyConfig in appConfig.keys)
                     {
-                        var keyItem = new KeyItem(appConfig.keyList[i], _lyKeysService);
-                        keyItem.IsSelected = i < appConfig.keySelections.Count ?
-                            appConfig.keySelections[i] : true;
+                        var keyItem = new KeyItem(keyConfig.Code, _lyKeysService);
+                        keyItem.IsSelected = keyConfig.IsSelected;
                         keyItem.SelectionChanged += (s, isSelected) => SaveConfig();
                         KeyList.Add(keyItem);
                     }
@@ -674,8 +673,7 @@ namespace WpfApp.ViewModels
             {
                 AppConfigService.UpdateConfig(config =>
                 {
-                    config.keyList = KeyList.Select(k => k.KeyCode).ToList();
-                    config.keySelections = KeyList.Select(k => k.IsSelected).ToList();
+                    config.keys = KeyList.Select(k => new KeyConfig(k.KeyCode, k.IsSelected)).ToList();
                 });
             }
 
@@ -744,17 +742,16 @@ namespace WpfApp.ViewModels
             try
             {
                 // 获取所有按键和它们的选中状态
-                var keyList = KeyList.Select(k => k.KeyCode).ToList();
-                var keySelections = KeyList.Select(k => k.IsSelected).ToList();
+                var keyConfigs = KeyList.Select(k => new KeyConfig(k.KeyCode, k.IsSelected)).ToList();
 
                 // 检查热键冲突
-                if (_startHotkey.HasValue && keyList.Contains(_startHotkey.Value))
+                if (_startHotkey.HasValue && keyConfigs.Any(k => k.Code == _startHotkey.Value))
                 {
                     _mainViewModel.UpdateStatusMessage("启动热键与按键列表存在冲突，请修改后再保存", true);
                     return;
                 }
 
-                if (_stopHotkey.HasValue && keyList.Contains(_stopHotkey.Value))
+                if (_stopHotkey.HasValue && keyConfigs.Any(k => k.Code == _stopHotkey.Value))
                 {
                     _mainViewModel.UpdateStatusMessage("停止热键与按键列表存在冲突，请修改后再保存", true);
                     return;
@@ -782,15 +779,9 @@ namespace WpfApp.ViewModels
                 }
 
                 // 检查并更新按键列表
-                if (!Enumerable.SequenceEqual(config.keyList ?? new List<LyKeysCode>(), keyList))
+                if (!AreKeyConfigsEqual(config.keys, keyConfigs))
                 {
-                    config.keyList = keyList;
-                    configChanged = true;
-                }
-
-                if (!Enumerable.SequenceEqual(config.keySelections ?? new List<bool>(), keySelections))
-                {
-                    config.keySelections = keySelections;
+                    config.keys = keyConfigs;
                     configChanged = true;
                 }
 
@@ -837,6 +828,23 @@ namespace WpfApp.ViewModels
                 _logger.Error("保存配置失败", ex);
                 System.Windows.MessageBox.Show($"保存配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private bool AreKeyConfigsEqual(List<KeyConfig> list1, List<KeyConfig> list2)
+        {
+            if (list1 == null || list2 == null)
+                return list1 == list2;
+
+            if (list1.Count != list2.Count)
+                return false;
+
+            for (int i = 0; i < list1.Count; i++)
+            {
+                if (list1[i].Code != list2[i].Code || list1[i].IsSelected != list2[i].IsSelected)
+                    return false;
+            }
+
+            return true;
         }
 
         // 启动按键映射

@@ -183,8 +183,16 @@ namespace WpfApp.Behaviors
                             };
                             _draggedItem.BeginAnimation(UIElement.OpacityProperty, animation);
 
-                            // 移动项目
-                            items.Move(_sourceIndex, targetIndex);
+                            // 交换位置而不是移动
+                            if (_sourceIndex != targetIndex)
+                            {
+                                // 临时保存目标位置的项
+                                var temp = items[targetIndex];
+                                // 将源位置的项移动到目标位置
+                                items[targetIndex] = items[_sourceIndex];
+                                // 将目标位置的项移动到源位置
+                                items[_sourceIndex] = temp;
+                            }
 
                             // 清除所有拖拽标记
                             foreach (var item in listBox.Items)

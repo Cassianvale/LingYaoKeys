@@ -110,10 +110,12 @@ namespace WpfApp.Services
             var config = AppConfigService.Config;
 
             // 加载按键列表
-            if (config.keyList?.Count > 0)
+            if (config.keys?.Count > 0)
             {
-                var selectedKeys = config.keyList
-                    .Where((key, index) => index < config.keySelections.Count && config.keySelections[index])
+                // 只获取选中的按键
+                var selectedKeys = config.keys
+                    .Where(k => k.IsSelected)
+                    .Select(k => k.Code)
                     .ToList();
 
                 if (selectedKeys.Count > 0)

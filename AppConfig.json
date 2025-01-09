@@ -11,9 +11,7 @@
     "ExcludedTags": [],
     "ExcludedSources": [
       "*.xaml*",
-      "ControlStyles.xaml",
-      "App.xaml",
-      "MainWindow.xaml"
+      "ControlStyles.xaml"
     ],
     "ExcludedMethods": [],
     "ExcludedPatterns": [
@@ -27,26 +25,30 @@
       "页面切换到: *"
     ]
   },
-  "startKey": 109,
+  "startKey": 120,
   "startMods": 0,
-  "stopKey": 110,
+  "stopKey": 121,
   "stopMods": 0,
-  "keyList": [
-    404,
-    201,
-    202
-  ],
-  "keySelections": [
-    true,
-    false,
-    false
+  "keys": [
+    {
+      "Code": 70,
+      "IsSelected": true
+    },
+    {
+      "Code": 49,
+      "IsSelected": false
+    },
+    {
+      "Code": 50,
+      "IsSelected": false
+    }
   ],
   "keyMode": 0,
-  "interval": 5,
+  "interval": 10,
   "soundEnabled": true,
   "IsGameMode": true,
   "KeyPressInterval": 5,
-  "FloatingWindowLeft": 0.0,
-  "FloatingWindowTop": 0.0,
+  "FloatingWindowLeft": 1938.0,
+  "FloatingWindowTop": 1054.0,
   "IsFloatingWindowEnabled": true
 }

@@ -198,6 +198,7 @@ namespace WpfApp.ViewModels
                 "Feedback" => new FeedbackView { DataContext = _feedbackViewModel },
                 "About" => new AboutView { DataContext = _aboutViewModel },
                 "QRCode" => new QRCodeView(),
+                "Settings" => PageCacheService.GetPage<SettingsView>(),
                 _ => null
             };
 

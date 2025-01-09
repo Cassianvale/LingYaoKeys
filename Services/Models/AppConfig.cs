@@ -7,6 +7,18 @@ using WpfApp.Services;
 
 namespace WpfApp.Services.Models
 {
+    public class KeyConfig
+    {
+        public LyKeysCode Code { get; set; }
+        public bool IsSelected { get; set; }
+
+        public KeyConfig(LyKeysCode code, bool isSelected = true)
+        {
+            Code = code;
+            IsSelected = isSelected;
+        }
+    }
+
     public class AppConfig
     {
         [JsonIgnore]
@@ -20,8 +32,7 @@ namespace WpfApp.Services.Models
         public ModifierKeys startMods { get; set; }
         public LyKeysCode? stopKey { get; set; }
         public ModifierKeys stopMods { get; set; }
-        public List<LyKeysCode> keyList { get; set; } = new List<LyKeysCode>();
-        public List<bool> keySelections { get; set; } = new List<bool>();
+        public List<KeyConfig> keys { get; set; } = new List<KeyConfig>();
         public int keyMode { get; set; }
         public int interval { get; set; } = 10;
         public bool? soundEnabled { get; set; }
@@ -33,7 +44,6 @@ namespace WpfApp.Services.Models
 
         [JsonIgnore]
         public string Author { get; set; } = "慕长秋";
-
     }
 
     public class AppInfo
