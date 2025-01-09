@@ -1,0 +1,292 @@
+<UserControl x:Class="WpfApp.Views.Controls.KeyboardLayoutView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:WpfApp.Views.Controls"
+             mc:Ignorable="d">
+    
+    <UserControl.Resources>
+        <!-- 紧凑型按键样式 -->
+        <Style x:Key="CompactKeyStyle" TargetType="Button" BasedOn="{StaticResource RoundedShadowButtonSmall}">
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Margin" Value="1"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="2"/>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Auto" 
+                  VerticalScrollBarVisibility="Auto">
+        <Grid Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/> <!-- 主键盘区域 -->
+                <ColumnDefinition Width="10"/> <!-- 间隔 -->
+                <ColumnDefinition Width="Auto"/> <!-- 功能区域 -->
+            </Grid.ColumnDefinitions>
+
+            <!-- 主键盘区域 -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/> <!-- 功能键区域 -->
+                    <RowDefinition Height="5"/> <!-- 间隔 -->
+                    <RowDefinition Height="Auto"/> <!-- 主键区域 -->
+                </Grid.RowDefinitions>
+
+                <!-- 功能键区域 -->
+                <UniformGrid Grid.Row="0" Rows="1" HorizontalAlignment="Left">
+                    <Button Style="{StaticResource CompactKeyStyle}" Content="Esc"/>
+                    <Button Style="{StaticResource CompactKeyStyle}" Content="F1"/>
+                    <Button Style="{StaticResource CompactKeyStyle}" Content="F2"/>
+                    <Button Style="{StaticResource CompactKeyStyle}" Content="F3"/>
+                    <Button Style="{StaticResource CompactKeyStyle}" Content="F4"/>
+                    <Button Style="{StaticResource CompactKeyStyle}" Content="F5"/>
+                    <Button Style="{StaticResource CompactKeyStyle}" Content="F6"/>
+                    <Button Style="{StaticResource CompactKeyStyle}" Content="F7"/>
+                    <Button Style="{StaticResource CompactKeyStyle}" Content="F8"/>
+                    <Button Style="{StaticResource CompactKeyStyle}" Content="F9"/>
+                    <Button Style="{StaticResource CompactKeyStyle}" Content="F10"/>
+                    <Button Style="{StaticResource CompactKeyStyle}" Content="F11"/>
+                    <Button Style="{StaticResource CompactKeyStyle}" Content="F12"/>
+                </UniformGrid>
+
+                <!-- 主键区域 -->
+                <Grid Grid.Row="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 第一行：数字键 -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal">
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="`"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="1"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="2"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="3"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="4"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="5"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="6"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="7"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="8"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="9"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="0"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="-"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="="/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="←" Width="48"/>
+                    </StackPanel>
+
+                    <!-- 第二行：QWERTY -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal">
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="Tab" Width="48"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="Q"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="W"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="E"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="R"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="T"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="Y"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="U"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="I"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="O"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="P"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="["/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="]"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="\" Width="48"/>
+                    </StackPanel>
+
+                    <!-- 第三行：ASDFG -->
+                    <StackPanel Grid.Row="2" Orientation="Horizontal">
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="Caps" Width="56"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="A"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="S"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="D"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="F"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="G"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="H"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="J"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="K"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="L"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content=";"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="'"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="Enter" Width="72"/>
+                    </StackPanel>
+
+                    <!-- 第四行：ZXCVB -->
+                    <StackPanel Grid.Row="3" Orientation="Horizontal">
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="Shift" Width="72"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="Z"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="X"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="C"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="V"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="B"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="N"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="M"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content=","/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="."/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="/"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="Shift" Width="72"/>
+                    </StackPanel>
+
+                    <!-- 第五行：控制键 -->
+                    <StackPanel Grid.Row="4" Orientation="Horizontal">
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="Ctrl" Width="48"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="Win" Width="48"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="Alt" Width="48"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="Space" Width="192"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="Alt" Width="48"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="Win" Width="48"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="Menu" Width="48"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="Ctrl" Width="48"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+
+            <!-- 功能区域 -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/> <!-- 编辑键区域 -->
+                    <RowDefinition Height="5"/> <!-- 间隔 -->
+                    <RowDefinition Height="Auto"/> <!-- 导航键区域 -->
+                    <RowDefinition Height="5"/> <!-- 间隔 -->
+                    <RowDefinition Height="Auto"/> <!-- 数字键盘区域 -->
+                    <RowDefinition Height="5"/> <!-- 间隔 -->
+                    <RowDefinition Height="Auto"/> <!-- 鼠标区域 -->
+                </Grid.RowDefinitions>
+
+                <!-- 编辑键区域 -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
+                    <Button Style="{StaticResource CompactKeyStyle}" Content="PrtSc"/>
+                    <Button Style="{StaticResource CompactKeyStyle}" Content="ScrLk"/>
+                    <Button Style="{StaticResource CompactKeyStyle}" Content="Pause"/>
+                </StackPanel>
+
+                <!-- 导航键区域 -->
+                <Grid Grid.Row="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/> <!-- 导航键 -->
+                        <RowDefinition Height="5"/> <!-- 间隔 -->
+                        <RowDefinition Height="Auto"/> <!-- 方向键 -->
+                    </Grid.RowDefinitions>
+
+                    <!-- 导航键 -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Button Grid.Row="0" Grid.Column="0" Style="{StaticResource CompactKeyStyle}" Content="Ins"/>
+                        <Button Grid.Row="0" Grid.Column="1" Style="{StaticResource CompactKeyStyle}" Content="Home"/>
+                        <Button Grid.Row="0" Grid.Column="2" Style="{StaticResource CompactKeyStyle}" Content="PgUp"/>
+                        <Button Grid.Row="1" Grid.Column="0" Style="{StaticResource CompactKeyStyle}" Content="Del"/>
+                        <Button Grid.Row="1" Grid.Column="1" Style="{StaticResource CompactKeyStyle}" Content="End"/>
+                        <Button Grid.Row="1" Grid.Column="2" Style="{StaticResource CompactKeyStyle}" Content="PgDn"/>
+                    </Grid>
+
+                    <!-- 方向键 -->
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="34"/>
+                            <ColumnDefinition Width="34"/>
+                            <ColumnDefinition Width="34"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="34"/>
+                            <RowDefinition Height="34"/>
+                        </Grid.RowDefinitions>
+
+                        <Button Grid.Row="0" Grid.Column="1" Style="{StaticResource CompactKeyStyle}" Content="↑"/>
+                        <Button Grid.Row="1" Grid.Column="0" Style="{StaticResource CompactKeyStyle}" Content="←"/>
+                        <Button Grid.Row="1" Grid.Column="1" Style="{StaticResource CompactKeyStyle}" Content="↓"/>
+                        <Button Grid.Row="1" Grid.Column="2" Style="{StaticResource CompactKeyStyle}" Content="→"/>
+                    </Grid>
+                </Grid>
+
+                <!-- 数字键盘区域 -->
+                <Grid Grid.Row="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="34"/>
+                        <ColumnDefinition Width="34"/>
+                        <ColumnDefinition Width="34"/>
+                        <ColumnDefinition Width="34"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="34"/>
+                        <RowDefinition Height="34"/>
+                        <RowDefinition Height="34"/>
+                        <RowDefinition Height="34"/>
+                        <RowDefinition Height="34"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 第一行 -->
+                    <Button Grid.Row="0" Grid.Column="0" Style="{StaticResource CompactKeyStyle}" Content="Num"/>
+                    <Button Grid.Row="0" Grid.Column="1" Style="{StaticResource CompactKeyStyle}" Content="/"/>
+                    <Button Grid.Row="0" Grid.Column="2" Style="{StaticResource CompactKeyStyle}" Content="*"/>
+                    <Button Grid.Row="0" Grid.Column="3" Style="{StaticResource CompactKeyStyle}" Content="-"/>
+
+                    <!-- 第二行 -->
+                    <Button Grid.Row="1" Grid.Column="0" Style="{StaticResource CompactKeyStyle}" Content="7"/>
+                    <Button Grid.Row="1" Grid.Column="1" Style="{StaticResource CompactKeyStyle}" Content="8"/>
+                    <Button Grid.Row="1" Grid.Column="2" Style="{StaticResource CompactKeyStyle}" Content="9"/>
+                    <Button Grid.Row="1" Grid.Column="3" Grid.RowSpan="2" Style="{StaticResource CompactKeyStyle}" Content="+" Height="66"/>
+
+                    <!-- 第三行 -->
+                    <Button Grid.Row="2" Grid.Column="0" Style="{StaticResource CompactKeyStyle}" Content="4"/>
+                    <Button Grid.Row="2" Grid.Column="1" Style="{StaticResource CompactKeyStyle}" Content="5"/>
+                    <Button Grid.Row="2" Grid.Column="2" Style="{StaticResource CompactKeyStyle}" Content="6"/>
+
+                    <!-- 第四行 -->
+                    <Button Grid.Row="3" Grid.Column="0" Style="{StaticResource CompactKeyStyle}" Content="1"/>
+                    <Button Grid.Row="3" Grid.Column="1" Style="{StaticResource CompactKeyStyle}" Content="2"/>
+                    <Button Grid.Row="3" Grid.Column="2" Style="{StaticResource CompactKeyStyle}" Content="3"/>
+                    <Button Grid.Row="3" Grid.Column="3" Grid.RowSpan="2" Style="{StaticResource CompactKeyStyle}" Content="Enter" Height="66"/>
+
+                    <!-- 第五行 -->
+                    <Button Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Style="{StaticResource CompactKeyStyle}" Content="0" Width="66"/>
+                    <Button Grid.Row="4" Grid.Column="2" Style="{StaticResource CompactKeyStyle}" Content="."/>
+                </Grid>
+
+                <!-- 鼠标区域 -->
+                <Grid Grid.Row="6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="5"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 鼠标主按键 -->
+                    <Grid Grid.Column="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="34"/>
+                            <ColumnDefinition Width="34"/>
+                            <ColumnDefinition Width="34"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="34"/>
+                            <RowDefinition Height="34"/>
+                        </Grid.RowDefinitions>
+
+                        <Button Grid.Row="0" Grid.Column="1" Style="{StaticResource CompactKeyStyle}" Content="左键"/>
+                        <Button Grid.Row="1" Grid.Column="0" Style="{StaticResource CompactKeyStyle}" Content="侧键"/>
+                        <Button Grid.Row="1" Grid.Column="1" Style="{StaticResource CompactKeyStyle}" Content="中键"/>
+                        <Button Grid.Row="1" Grid.Column="2" Style="{StaticResource CompactKeyStyle}" Content="右键"/>
+                    </Grid>
+
+                    <!-- 鼠标滚轮 -->
+                    <StackPanel Grid.Column="2" Orientation="Vertical">
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="滚轮↑"/>
+                        <Button Style="{StaticResource CompactKeyStyle}" Content="滚轮↓"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
+</UserControl> 

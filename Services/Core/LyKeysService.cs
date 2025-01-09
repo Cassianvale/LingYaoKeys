@@ -189,6 +189,7 @@ namespace WpfApp.Services
         #endregion
 
         #region 按键映射
+        // 初始化虚拟键码映射
         private Dictionary<int, LyKeysCode> InitializeVirtualKeyMap()
         {
             var map = new Dictionary<int, LyKeysCode>();

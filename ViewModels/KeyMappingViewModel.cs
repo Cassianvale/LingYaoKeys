@@ -2,7 +2,7 @@ using System.Windows.Input;
 using System.Linq;
 using WpfApp.Services.Models;
 using WpfApp.Services;
-using WpfApp.Commands;
+using WpfApp.Services.Utils;
 using System.Text;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -43,6 +43,7 @@ namespace WpfApp.ViewModels
         private FloatingStatusWindow _floatingWindow;
         private FloatingStatusViewModel _floatingViewModel;
         private KeyItem? _selectedKeyItem;
+        private KeyboardLayoutViewModel _keyboardLayoutViewModel;
 
         // 按键列表
         public ObservableCollection<KeyItem> KeyList
@@ -253,6 +254,19 @@ namespace WpfApp.ViewModels
             set => SetProperty(ref _selectedKeyItem, value);
         }
 
+        public KeyboardLayoutViewModel KeyboardLayoutViewModel
+        {
+            get => _keyboardLayoutViewModel;
+            private set
+            {
+                if (_keyboardLayoutViewModel != value)
+                {
+                    _keyboardLayoutViewModel = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         private void UpdateFloatingWindow()
         {
             if (IsFloatingWindowEnabled)
@@ -324,6 +338,8 @@ namespace WpfApp.ViewModels
 
             // 在所有初始化完成后
             _isInitializing = false;
+
+            KeyboardLayoutViewModel = new KeyboardLayoutViewModel(lyKeysService);
         }
 
         private void SyncConfigToServices()

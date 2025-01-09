@@ -141,52 +141,7 @@ Adjust analysis depth based on:
 ### Project structure
 
 LingYaoKeys/
-├── Commands/ # MVVM command
-│   └── RelayCommand.cs # MVVM command implementation class
-│
-├── Converters/ # Value converter
-│   ├── BoolToVisibilityConverter.cs # Boolean to visibility
-│   ├── BoolToColorConverter.cs # Boolean to color
-│   └── IntToStringConverter.cs # Integer to string
-│
-├── Models/ # Data model
-│   ├── AppConfig.cs # Application configuration model
-│   └── KeyItem.cs # Key item model
-│
-├── Services/ # Service layer
-│   ├── DDDriverService.cs # DD driver service, handles underlying key operations
-│   ├── HotkeyService.cs # Hotkey service, manages global hotkeys
-│   ├── AppConfigService.cs # Application configuration service
-│   ├── CDD.cs # DD driver core class
-│   ├── ConfigService.cs # Configuration service
-│   ├── KeyCodeMapping.cs # Key mapping
-│   ├── LogManager.cs # Log management
-│   ├── DDKeyCodeExtensions.cs # DD key code extension
-│   └── DDKeyCode.cs # DD key code definition
-│
-├── Styles/ # Style definition
-│   ├── ControlStyles.xaml # Control style
-│   ├── ButtonStyles.xaml # Button style
-│   └── NavigationStyles.xaml # Navigation style
-│
-├── ViewModels/ # View model
-│   ├── KeyMappingViewModel.cs # Key mapping view model
-│   ├── MainViewModel.cs # Main window view model
-│   ├── ViewModelBase.cs # View model base class
-│   └── SyncSettingsViewModel.cs # Synchronization settings view model
-│
-├── Views/ # View layer
-│   ├── KeyMappingView.xaml(.cs) # Key mapping view
-│   ├── SyncSettingsView.xaml(.cs) # Synchronization settings view
-│   └── SyncSettingsPage.xaml # Synchronization settings page
-│
-├── dd/ # DD driver file directory
-│
-├── App.xaml(.cs) # Application definition and entry
-├── MainWindow.xaml(.cs) # Main window definition
-├── WpfApp.csproj # Project configuration file
-├── app.manifest # Application manifest
-└── WpfApp.sln # Solution file
+
 
 ### First priority - View and view model core files
 Search order:

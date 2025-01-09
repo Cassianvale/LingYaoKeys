@@ -11,6 +11,7 @@ using WpfApp.Services.Models;
 using System.Windows.Media;
 using System.Windows.Controls.Primitives;
 using WpfApp.Behaviors;
+using System.Windows.Media.Animation;
 
 // 提供按键映射视图
 namespace WpfApp.Views
@@ -24,12 +25,14 @@ namespace WpfApp.Views
         private const string KEY_ERROR = "无法识别按键，请检查输入法是否关闭";
         private const string HOTKEY_CONFLICT = "无法设置与热键相同的按键";
         private HotkeyService? _hotkeyService;
+        private readonly KeyMappingViewModel _viewModel;
 
         private KeyMappingViewModel ViewModel => (KeyMappingViewModel)DataContext;
 
         public KeyMappingView()
         {
             InitializeComponent();
+            _viewModel = (KeyMappingViewModel)DataContext;
             
             // 监听 DataContext 变化
             this.DataContextChanged += KeyMappingView_DataContextChanged;
@@ -792,6 +795,30 @@ namespace WpfApp.Views
                     }
                 }
             }
+        }
+
+        private void ShowKeyboardLayout_Click(object sender, RoutedEventArgs e)
+        {
+            KeyboardLayoutDrawer.Visibility = Visibility.Visible;
+            var animation = new DoubleAnimation
+            {
+                To = 400,
+                Duration = TimeSpan.FromMilliseconds(250),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            DrawerContent.BeginAnimation(Border.WidthProperty, animation);
+        }
+
+        private void CloseKeyboardLayout_Click(object sender, RoutedEventArgs e)
+        {
+            var animation = new DoubleAnimation
+            {
+                To = 0,
+                Duration = TimeSpan.FromMilliseconds(250),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            animation.Completed += (s, _) => KeyboardLayoutDrawer.Visibility = Visibility.Collapsed;
+            DrawerContent.BeginAnimation(Border.WidthProperty, animation);
         }
 
     }

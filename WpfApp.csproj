@@ -115,6 +115,7 @@
   <!-- 新增：配置程序集依赖项 -->
   <ItemGroup>
     <PackageReference Include="Markdig" Version="0.39.1" PrivateAssets="all" />
+    <PackageReference Include="MaterialDesignColors" Version="5.2.0" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" PrivateAssets="all" />
     <PackageReference Include="NAudio" Version="2.2.1" PrivateAssets="all" />
