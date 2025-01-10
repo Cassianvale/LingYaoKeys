@@ -155,6 +155,118 @@ namespace WpfApp
             }
         }
 
+        private async Task<bool> CheckServiceExistsAsync(string serviceName)
+        {
+            try
+            {
+                using var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "sc.exe",
+                        Arguments = $"query {serviceName}",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        CreateNoWindow = true
+                    }
+                };
+                process.Start();
+                await process.WaitForExitAsync();
+                return process.ExitCode == 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"检查服务状态失败: {ex.Message}", ex);
+                return false;
+            }
+        }
+
+        private async Task<bool> StopServiceAsync(string serviceName)
+        {
+            try
+            {
+                using var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "sc.exe",
+                        Arguments = $"stop {serviceName}",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        CreateNoWindow = true
+                    }
+                };
+                process.Start();
+                await process.WaitForExitAsync();
+                return process.ExitCode == 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"停止服务失败: {ex.Message}", ex);
+                return false;
+            }
+        }
+
+        private async Task<bool> DeleteServiceAsync(string serviceName)
+        {
+            try
+            {
+                using var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "sc.exe",
+                        Arguments = $"delete {serviceName}",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        CreateNoWindow = true
+                    }
+                };
+                process.Start();
+                await process.WaitForExitAsync();
+                return process.ExitCode == 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"删除服务失败: {ex.Message}", ex);
+                return false;
+            }
+        }
+
+        private async Task CleanupExistingServiceAsync()
+        {
+            const string serviceName = "lykeys";
+            
+            try
+            {
+                if (await CheckServiceExistsAsync(serviceName))
+                {
+                    _logger.Debug("检测到已存在的lykeys服务，开始清理...");
+                    
+                    // 尝试停止服务
+                    if (await StopServiceAsync(serviceName))
+                    {
+                        _logger.Debug("成功停止lykeys服务");
+                        // 等待服务完全停止
+                        await Task.Delay(1000);
+                    }
+                    
+                    // 尝试删除服务
+                    if (await DeleteServiceAsync(serviceName))
+                    {
+                        _logger.Debug("成功删除lykeys服务");
+                        // 等待服务完全删除
+                        await Task.Delay(1000);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("清理已存在的服务失败", ex);
+                throw;
+            }
+        }
+
         protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
@@ -205,16 +317,15 @@ namespace WpfApp
                 _logger.Debug($"日志系统初始化完成, 配置: Level={AppConfigService.Config.Logging.LogLevel}, MaxSize={AppConfigService.Config.Logging.FileSettings.MaxFileSize}MB");
                 _logger.Debug("应用程序启动...");
 
-                // 获取临时目录路径
-                string tempPath = Path.Combine(Path.GetTempPath(), "LingYaoKeys");
-                string driverPath = Path.Combine(tempPath, "Resource", "lykeysdll");
+                // 获取用户目录路径
+                string driverPath = Path.Combine(_userDataPath, "Resource", "lykeysdll");
                 string driverFile = Path.Combine(driverPath, "lykeys.sys");
                 string dllFile = Path.Combine(driverPath, "lykeysdll.dll");
                 string catFile = Path.Combine(driverPath, "lykeys.cat");
 
                 try
                 {
-                    // 确保临时目录存在
+                    // 确保驱动目录存在
                     Directory.CreateDirectory(driverPath);
 
                     // 从嵌入式资源提取驱动文件
@@ -222,7 +333,7 @@ namespace WpfApp
                     ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeysdll.dll", dllFile);
                     ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeys.cat", catFile);
 
-                    _logger.Debug($"驱动文件已提取到临时目录: {driverPath}");
+                    _logger.Debug($"驱动文件已提取到用户数据目录: {driverPath}");
                 }
                 catch (Exception ex)
                 {
@@ -244,6 +355,19 @@ namespace WpfApp
                 _logger.Debug($"驱动文件: {driverFile}");
                 _logger.Debug($"DLL文件: {dllFile}");
                 _logger.Debug($"CAT文件: {catFile}");
+
+                // 新增：清理已存在的服务
+                try
+                {
+                    await CleanupExistingServiceAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error("清理已存在的服务失败", ex);
+                    System.Windows.MessageBox.Show("清理已存在的服务失败，请手动停止并删除lykeys服务后重试", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Current.Shutdown();
+                    return;
+                }
 
                 // 初始化驱动管理器
                 try
@@ -288,16 +412,17 @@ namespace WpfApp
                 {
                     try
                     {
-                        // 清理临时文件
-                        if (Directory.Exists(tempPath))
+                        // 清理驱动文件
+                        string driverPath = Path.Combine(_userDataPath, "Resource", "lykeysdll");
+                        if (Directory.Exists(driverPath))
                         {
-                            Directory.Delete(tempPath, true);
-                            _logger.Debug("临时文件已清理");
+                            Directory.Delete(driverPath, true);
+                            _logger.Debug("驱动文件已清理");
                         }
                     }
                     catch (Exception ex)
                     {
-                        _logger.Error($"清理临时文件失败: {ex.Message}", ex);
+                        _logger.Error($"清理驱动文件失败: {ex.Message}", ex);
                     }
                 };
             }
