@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.ComponentModel;
 using WpfApp.ViewModels;
+using WpfApp.Services.Models;
 
 // 提供快捷键服务
 namespace WpfApp.Services
@@ -63,6 +64,9 @@ namespace WpfApp.Services
         private readonly MainViewModel _mainViewModel;
         private readonly Window _mainWindow;
         private List<LyKeysCode> _keyList = new List<LyKeysCode>();
+        private readonly RapidFireService _rapidFireService;
+        private readonly HashSet<LyKeysCode> _rapidFireKeys = new HashSet<LyKeysCode>();
+        private readonly HashSet<LyKeysCode> _pressedKeys = new HashSet<LyKeysCode>();
 
         // 热键状态
         private int _startVirtualKey;  // 启动热键虚拟键码
@@ -87,6 +91,7 @@ namespace WpfApp.Services
             _lyKeysService = lyKeysService ?? throw new ArgumentNullException(nameof(lyKeysService));
             _mainViewModel = mainWindow.DataContext as MainViewModel ??
                 throw new ArgumentException("Window.DataContext must be of type MainViewModel", nameof(mainWindow));
+            _rapidFireService = new RapidFireService(_lyKeysService);
 
             // 初始化回调委托
             _mouseProcDelegate = MouseHookCallback;
@@ -126,6 +131,13 @@ namespace WpfApp.Services
                 }
             }
 
+            // 加载连发状态
+            _rapidFireService.IsEnabled = config.IsRapidFire;
+            if (config.KeyBurst?.Count > 0)
+            {
+                UpdateRapidFireKeys(config.KeyBurst);
+            }
+
             // 直接设置模式，不触发事件
             _lyKeysService.IsHoldMode = config.keyMode != 0;
         }
@@ -136,6 +148,9 @@ namespace WpfApp.Services
             {
                 // 停止序列
                 StopSequence();
+
+                // 清理按键状态
+                _pressedKeys.Clear();
 
                 // 移除事件订阅
                 _lyKeysService.ModeSwitched -= OnModeSwitched;
@@ -152,6 +167,9 @@ namespace WpfApp.Services
                     UnhookWindowsHookEx(_mouseHookHandle);
                     _mouseHookHandle = IntPtr.Zero;
                 }
+
+                // 释放连发服务
+                _rapidFireService.Dispose();
             }
         }
 
@@ -271,9 +289,45 @@ namespace WpfApp.Services
                 try
                 {
                     var hookStruct = (KBDLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT))!;
+                    var lyKeyCode = (LyKeysCode)hookStruct.vkCode;
                     bool isStartKey = hookStruct.vkCode == _startVirtualKey;
                     bool isStopKey = hookStruct.vkCode == _stopVirtualKey;
+                    bool isRapidFireKey = _rapidFireKeys.Contains(lyKeyCode);
 
+                    // 如果是模拟按键，直接放行
+                    if (_lyKeysService.IsSimulatedInput)
+                    {
+                        return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);
+                    }
+
+                    // 处理连发按键，但不影响热键
+                    if (isRapidFireKey && _rapidFireService.IsEnabled && !isStartKey && !isStopKey)
+                    {
+                        switch ((int)wParam)
+                        {
+                            case WM_KEYDOWN:
+                            case WM_SYSKEYDOWN:
+                                // 只在第一次按下时触发
+                                if (!_pressedKeys.Contains(lyKeyCode))
+                                {
+                                    _pressedKeys.Add(lyKeyCode);
+                                    _rapidFireService.StartKey(lyKeyCode);
+                                }
+                                return new IntPtr(1); // 阻止原始按键信号
+
+                            case WM_KEYUP:
+                            case WM_SYSKEYUP:
+                                // 只在最后一次释放时触发
+                                if (_pressedKeys.Contains(lyKeyCode))
+                                {
+                                    _pressedKeys.Remove(lyKeyCode);
+                                    _rapidFireService.StopKey(lyKeyCode);
+                                }
+                                return new IntPtr(1); // 阻止原始按键信号
+                        }
+                    }
+
+                    // 处理热键和模式切换
                     if (isStartKey || isStopKey)
                     {
                         if (_lyKeysService.IsHoldMode)
@@ -362,19 +416,70 @@ namespace WpfApp.Services
                 try
                 {
                     var hookStruct = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT))!;
-                    int wParamInt = (int)wParam;
+                    var buttonCode = GetMouseButtonCode((int)wParam, hookStruct);
+                    bool isStartKey = buttonCode == _pendingStartKey;
+                    bool isStopKey = buttonCode == _pendingStopKey;
+                    bool isRapidFireKey = _rapidFireKeys.Contains(buttonCode);
 
-                    switch (wParamInt)
+                    // 处理连发按键，但不影响热键
+                    if (isRapidFireKey && _rapidFireService.IsEnabled && !isStartKey && !isStopKey)
                     {
-                        case WM_XBUTTONDOWN:
-                        case WM_MBUTTONDOWN:
-                            HandleMouseButtonDown(wParamInt, hookStruct);
-                            break;
+                        switch ((int)wParam)
+                        {
+                            case WM_XBUTTONDOWN:
+                            case WM_MBUTTONDOWN:
+                                // 只在第一次按下时触发
+                                if (!_pressedKeys.Contains(buttonCode))
+                                {
+                                    _pressedKeys.Add(buttonCode);
+                                    _rapidFireService.StartKey(buttonCode);
+                                }
+                                return new IntPtr(1); // 阻止原始按键信号
 
-                        case WM_XBUTTONUP:
-                        case WM_MBUTTONUP:
-                            HandleMouseButtonUp(wParamInt, hookStruct);
-                            break;
+                            case WM_XBUTTONUP:
+                            case WM_MBUTTONUP:
+                                // 只在最后一次释放时触发
+                                if (_pressedKeys.Contains(buttonCode))
+                                {
+                                    _pressedKeys.Remove(buttonCode);
+                                    _rapidFireService.StopKey(buttonCode);
+                                }
+                                return new IntPtr(1); // 阻止原始按键信号
+                        }
+                    }
+
+                    // 处理热键和模式切换
+                    if (isStartKey || isStopKey)
+                    {
+                        if (_lyKeysService.IsHoldMode)
+                        {
+                            if (isStartKey && !_isKeyHeld)
+                            {
+                                _isKeyHeld = true;
+                                StartHotkeyPressed?.Invoke();
+                                StartSequence();
+                            }
+                        }
+                        else
+                        {
+                            if (!_isKeyHeld)
+                            {
+                                _isKeyHeld = true;
+                                if (_isSequenceRunning)
+                                {
+                                    if (isStopKey || (_pendingStartKey == _pendingStopKey && isStartKey))
+                                    {
+                                        StopHotkeyPressed?.Invoke();
+                                        StopSequence();
+                                    }
+                                }
+                                else if (isStartKey)
+                                {
+                                    StartHotkeyPressed?.Invoke();
+                                    StartSequence();
+                                }
+                            }
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -385,72 +490,6 @@ namespace WpfApp.Services
                 }
             }
             return CallNextHookEx(_mouseHookHandle, nCode, wParam, lParam);
-        }
-
-        private void HandleMouseButtonDown(int wParam, MSLLHOOKSTRUCT hookStruct)
-        {
-            LyKeysCode buttonCode = GetMouseButtonCode(wParam, hookStruct);
-            bool isStartKey = buttonCode == _pendingStartKey;
-            bool isStopKey = buttonCode == _pendingStopKey;
-
-            if (isStartKey || isStopKey)
-            {
-                if (_lyKeysService.IsHoldMode)
-                {
-                    if (isStartKey && !_isKeyHeld)
-                    {
-                        _isKeyHeld = true;
-                        StartHotkeyPressed?.Invoke();
-                        StartSequence();
-                    }
-                }
-                else
-                {
-                    if (!_isKeyHeld)
-                    {
-                        _isKeyHeld = true;
-                        if (_isSequenceRunning)
-                        {
-                            if (isStopKey || (_pendingStartKey == _pendingStopKey && isStartKey))
-                            {
-                                StopHotkeyPressed?.Invoke();
-                                StopSequence();
-                            }
-                        }
-                        else if (isStartKey)
-                        {
-                            StartHotkeyPressed?.Invoke();
-                            StartSequence();
-                        }
-                    }
-                }
-            }
-        }
-
-        private void HandleMouseButtonUp(int wParam, MSLLHOOKSTRUCT hookStruct)
-        {
-            LyKeysCode buttonCode = GetMouseButtonCode(wParam, hookStruct);
-            bool isStartKey = buttonCode == _pendingStartKey;
-
-            if (_lyKeysService.IsHoldMode)
-            {
-                if (isStartKey && _isKeyHeld)
-                {
-                    _isKeyHeld = false;
-                    StopSequence();
-                }
-            }
-            else
-            {
-                if (_isKeyHeld)
-                {
-                    _isKeyHeld = false;
-                    if (isStartKey)
-                    {
-                        StartHotkeyReleased?.Invoke();
-                    }
-                }
-            }
         }
 
         private LyKeysCode GetMouseButtonCode(int wParam, MSLLHOOKSTRUCT hookStruct)
@@ -575,6 +614,24 @@ namespace WpfApp.Services
                 _logger.Error("安装钩子失败", ex);
                 throw;
             }
+        }
+
+        // 添加连发按键管理方法
+        public void UpdateRapidFireKeys(IEnumerable<KeyBurstConfig> configs)
+        {
+            _rapidFireKeys.Clear();
+            _rapidFireService.UpdateKeyConfigs(configs);
+            foreach (var config in configs)
+            {
+                _rapidFireKeys.Add(config.Code);
+            }
+            _logger.Debug($"更新连发按键列表，共 {_rapidFireKeys.Count} 个按键");
+        }
+
+        public void SetRapidFireEnabled(bool enabled)
+        {
+            _rapidFireService.IsEnabled = enabled;
+            _logger.Debug($"连发功能已{(enabled ? "启用" : "禁用")}");
         }
     }
 }

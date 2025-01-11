@@ -57,6 +57,9 @@ namespace WpfApp.Services.Models
         public double FloatingWindowTop { get; set; }
         public bool IsFloatingWindowEnabled { get; set; }
 
+        // 连发功能是否启用
+        public bool? IsRapidFireEnabled { get; set; }
+
         [JsonIgnore]
         public string Author { get; set; } = "慕长秋";
     }

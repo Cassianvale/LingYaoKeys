@@ -30,6 +30,8 @@ namespace WpfApp.Services
         private bool _isDisposed;
         private CancellationTokenSource? _holdModeCts;
         private readonly Dictionary<int, LyKeysCode> _virtualKeyMap;
+        // 标记当前是否为模拟按键
+        public bool IsSimulatedInput { get; set; }
         #endregion
 
         #region 事件定义

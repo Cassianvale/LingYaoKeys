@@ -363,7 +363,8 @@ namespace WpfApp.ViewModels
             // 在所有初始化完成后
             _isInitializing = false;
 
-            KeyboardLayoutViewModel = new KeyboardLayoutViewModel(lyKeysService);
+            // 初始化键盘布局视图模型
+            KeyboardLayoutViewModel = new KeyboardLayoutViewModel(lyKeysService, hotkeyService);
         }
 
         private void SyncConfigToServices()

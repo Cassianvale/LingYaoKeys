@@ -16,6 +16,8 @@ namespace WpfApp.ViewModels
         private readonly List<LyKeysCode> _conflictKeys;
         private int _rapidFireDelay = 10; // 默认连发延迟时间
         private int _pressTime = 5; // 默认按压时间
+        private readonly HotkeyService _hotkeyService;
+        private bool _isInitializing = true;
 
         public KeyboardLayoutConfig KeyboardConfig
         {
@@ -35,12 +37,26 @@ namespace WpfApp.ViewModels
             get => _isRapidFireEnabled;
             set
             {
-                if (_isRapidFireEnabled != value)
+                if (SetProperty(ref _isRapidFireEnabled, value))
                 {
-                    _isRapidFireEnabled = value;
-                    OnPropertyChanged();
-                    UpdateRapidFireStatus();
-                    SaveConfiguration();
+                    // 更新连发状态
+                    _hotkeyService.SetRapidFireEnabled(value);
+                    
+                    // 同步连发按键配置
+                    var rapidFireKeys = GetAllKeys()
+                        .Where(k => k.IsRapidFire)
+                        .Select(k => new KeyBurstConfig(k.KeyCode)
+                        {
+                            RapidFireDelay = k.RapidFireDelay,
+                            PressTime = k.PressTime
+                        });
+                    _hotkeyService.UpdateRapidFireKeys(rapidFireKeys);
+
+                    // 保存配置
+                    if (!_isInitializing)
+                    {
+                        SaveConfiguration();
+                    }
                 }
             }
         }
@@ -105,9 +121,10 @@ namespace WpfApp.ViewModels
         // 添加事件用于通知按键连发状态变化
         public event Action<LyKeysCode, bool> KeyBurstStateChanged;
 
-        public KeyboardLayoutViewModel(LyKeysService lyKeysService)
+        public KeyboardLayoutViewModel(LyKeysService lyKeysService, HotkeyService hotkeyService)
         {
             _lyKeysService = lyKeysService ?? throw new ArgumentNullException(nameof(lyKeysService));
+            _hotkeyService = hotkeyService ?? throw new ArgumentNullException(nameof(hotkeyService));
             _keyboardConfig = new KeyboardLayoutConfig(_lyKeysService);
             _conflictKeys = new List<LyKeysCode>();
 
@@ -120,6 +137,11 @@ namespace WpfApp.ViewModels
 
             // 加载配置
             LoadConfiguration();
+
+            // 确保连发状态正确同步
+            _hotkeyService.SetRapidFireEnabled(_isRapidFireEnabled);
+
+            _isInitializing = false;
         }
 
         private void OnKeyClick(KeyboardLayoutKey? keyConfig)
@@ -203,6 +225,7 @@ namespace WpfApp.ViewModels
         {
             try
             {
+                var rapidFireKeys = new List<KeyBurstConfig>();
                 foreach (var key in GetAllKeys())
                 {
                     if (key.IsRapidFire)
@@ -210,8 +233,14 @@ namespace WpfApp.ViewModels
                         key.IsDisabled = IsRapidFireEnabled;
                         // 通知KeyMappingViewModel更新标记状态
                         KeyBurstStateChanged?.Invoke(key.KeyCode, key.IsRapidFire);
+                        // 添加到连发配置列表
+                        rapidFireKeys.Add(new KeyBurstConfig(key.KeyCode, key.RapidFireDelay, key.PressTime));
                     }
                 }
+
+                // 更新 HotkeyService 的连发按键列表
+                _hotkeyService.UpdateRapidFireKeys(rapidFireKeys);
+
                 // 保存配置以保持连发状态
                 SaveConfiguration();
             }
@@ -246,6 +275,9 @@ namespace WpfApp.ViewModels
                 // 加载连发状态
                 _isRapidFireEnabled = config.IsRapidFire;
                 OnPropertyChanged(nameof(IsRapidFireEnabled));
+                
+                // 立即同步连发状态到服务
+                _hotkeyService.SetRapidFireEnabled(_isRapidFireEnabled);
 
                 // 加载按键配置
                 if (config.KeyBurst != null)
@@ -264,6 +296,16 @@ namespace WpfApp.ViewModels
                             KeyBurstStateChanged?.Invoke(key.KeyCode, true);
                         }
                     }
+
+                    // 同步连发按键配置到 HotkeyService
+                    var rapidFireKeys = GetAllKeys()
+                        .Where(k => k.IsRapidFire)
+                        .Select(k => new KeyBurstConfig(k.KeyCode)
+                        {
+                            RapidFireDelay = k.RapidFireDelay,
+                            PressTime = k.PressTime
+                        });
+                    _hotkeyService.UpdateRapidFireKeys(rapidFireKeys);
                 }
             }
             catch (Exception ex)
@@ -308,6 +350,7 @@ namespace WpfApp.ViewModels
                     config.KeyBurst = rapidFireKeys;
                     config.keys = existingKeys;
                     config.IsRapidFire = IsRapidFireEnabled;
+                    config.IsRapidFireEnabled = IsRapidFireEnabled;  // 同时更新两个状态字段
                 });
 
                 Console.WriteLine("配置保存成功");
@@ -327,6 +370,42 @@ namespace WpfApp.ViewModels
         public KeyboardLayoutKey? GetKeyByCode(LyKeysCode keyCode)
         {
             return GetAllKeys().FirstOrDefault(k => k.KeyCode == keyCode);
+        }
+
+        private bool SetProperty<T>(ref T field, T value, [CallerMemberName] string propertyName = null)
+        {
+            if (EqualityComparer<T>.Default.Equals(field, value))
+                return false;
+
+            field = value;
+            OnPropertyChanged(propertyName);
+            return true;
+        }
+
+        private void InitializeRapidFire()
+        {
+            try
+            {
+                // 从配置加载连发状态
+                var config = AppConfigService.Config;
+                _isRapidFireEnabled = config.IsRapidFireEnabled ?? false;
+
+                // 立即同步连发状态和配置
+                _hotkeyService.SetRapidFireEnabled(_isRapidFireEnabled);
+                var rapidFireKeys = GetAllKeys()
+                    .Where(k => k.IsRapidFire)
+                    .Select(k => new KeyBurstConfig(k.KeyCode)
+                    {
+                        RapidFireDelay = k.RapidFireDelay,
+                        PressTime = k.PressTime
+                    });
+                _hotkeyService.UpdateRapidFireKeys(rapidFireKeys);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"初始化连发功能失败: {ex.Message}");
+                _isRapidFireEnabled = false;
+            }
         }
     }
 } 

@@ -163,7 +163,7 @@
                             Background="White"
                             BorderThickness="0,0,1,0" 
                             BorderBrush="#EEEEEE"
-                            Margin="5,37,0,30"
+                            Margin="7,37,0,30"
                             Panel.ZIndex="1">
                         <Border.Effect>
                             <DropShadowEffect x:Name="NavShadow"
