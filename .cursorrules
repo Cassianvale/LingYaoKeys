@@ -136,58 +136,218 @@ Adjust analysis depth based on:
 - If necessary, use dependency injection to manage services to reduce coupling between classes
 - The code must be unit tested to ensure its stability
 
-## Project search priority
+## Project search priority
 
 ### Project structure
 
 LingYaoKeys/
+├── Views/                          # View Layer
+│   └── Controls/                   # Keyboard and Mouse Layout Logic
+├── ViewModels/                     # ViewModel Layer
+│   ├── ViewModelBase.cs           # Base ViewModel Class
+│   ├── MainViewModel.cs           # Main Window ViewModel
+│   ├── KeyboardLayoutViewModel.cs  # Keyboard Layout ViewModel
+│   ├── KeyMappingViewModel.cs     # Key Mapping ViewModel
+│   ├── FloatingStatusViewModel.cs # Floating Status ViewModel
+│   ├── QRCodeViewModel.cs         # QR Code ViewModel
+│   ├── FeedbackViewModel.cs       # Feedback ViewModel
+│   └── AboutViewModel.cs          # About ViewModel
+├── Services/                       # Service Layer
+│   ├── Core/                      # Core Services
+│   │   ├── LyKeysService.cs      # Key Service Main Class
+│   │   ├── LyKeys.cs             # Key Core Implementation Class
+│   │   ├── LyKeysCode.cs         # Key Code Definition Class
+│   │   └── RapidFireService.cs   # Rapid Fire Service Implementation Class
+│   ├── Input/                     # Input Processing Services
+│   │   ├── HotkeyService.cs      # Hotkey Service
+│   │   └── InputMethodService.cs  # Input Method Service
+│   ├── Models/                    # Service Models
+│   │   ├── KeyItem.cs                # Key Item Model Class, Defines Basic Properties and Behaviors of Single Key
+│   │   ├── AppConfig.cs              # Application Configuration Model Class, Manages Global Configuration
+│   │   ├── KeyboardLayoutConfig.cs   # Keyboard Layout Configuration Model Class, Handles Keyboard Layout Settings
+│   │   ├── HoldKeyMode.cs           # Hold Key Mode Model Class, Implements Key Hold Related Functions
+│   │   └── KeyModeBase.cs           # Key Mode Base Class, Defines Basic Interface and Common Behaviors for All Key Modes
+│   ├── Utils/                    # Utility Services
+│   ├── Events/                   # Event Services
+│   ├── Cache/                    # Cache Services
+│   ├── Audio/                    # Audio Services
+│   └── Config/                   # Configuration Services
+├── Converters/                    # Value Converters
+│   ├── InverseBoolConverter.cs           # Boolean Inverse Converter
+│   ├── BoolToColorConverter.cs           # Boolean to Color Converter
+│   ├── StatusToColorConverter.cs         # Status to Color Converter
+│   ├── IntToStringConverter.cs           # Integer to String Converter
+│   ├── BoolToVisibilityConverter.cs      # Boolean to Visibility Converter
+│   └── ViewModelToHotkeyStatusConverter.cs # ViewModel to Hotkey Status Converter
+├── Behaviors/                     # Behavior Definitions
+│   ├── ListBoxDragDropBehavior.cs # ListBox Drag and Drop Behavior
+│   ├── FocusManagerBehavior.cs    # Focus Manager Behavior
+│   ├── DragAdorner.cs            # Drag Adorner
+│   └── DragDropProperties.cs      # Drag and Drop Properties Definition
+├── Styles/                        # Style Definitions
+│   ├── ControlStyles.xaml        # Control Styles
+│   ├── ButtonStyles.xaml         # Button Styles
+│   ├── NavigationStyles.xaml     # Navigation Styles
+│   ├── WindowStyles.xaml         # Window Styles
+│   ├── SwitchStyles.xaml         # Switch Styles
+│   ├── TrayContextMenuStyle.xaml # Tray Context Menu Style
+│   ├── AnimationStyles.xaml      # Animation Styles
+│   └── WindowControlStyles.xaml   # Window Control Styles
+├── Resource/                      # Resource Files
+│   ├── lykeysdll/                # Core Driver Resources
+│   ├── img/                      # Image Resources
+│   ├── icon/                     # Icon Resources
+│   └── sound/                    # Sound Resources
+├── App.xaml                       # Application Definition
+├── App.xaml.cs                    # Application Code
+├── MainWindow.xaml                # Main Window XAML
+├── MainWindow.xaml.cs             # Main Window Code
+├── AppConfig.json                 # Application Configuration File
+├── WpfApp.csproj                 # Project File
+├── WpfApp.sln                    # Solution File
+├── app.manifest                  # Application Manifest
+├── LICENSE                       # License File
+└── README.md                     # Project Documentation
 
 
-### First priority - View and view model core files
+### First priority - View and view model core files
 Search order:
-1. All XAML view files (*.xaml)
-2. All view model files (*ViewModel.cs)
-3. Main window related files (MainWindow.xaml/.cs)
-Key path:
-csharp
-/Views/.xaml
-/ViewModels/ViewModel.cs
+1. Main window related files
+- MainWindow.xaml - Main window UI definition
+- MainWindow.xaml.cs - Main window logic code
+- App.xaml - Application resource definition
+- App.xaml.cs - Application entry point
+
+2. Core view files
+- Views/Controls/KeyboardLayoutControl.xaml - Keyboard layout control UI
+- Views/Controls/KeyboardLayoutControl.xaml.cs - Keyboard layout control logic
+- Views/KeyMappingView.xaml - Key mapping view UI
+- Views/KeyMappingView.xaml.cs - Key mapping view logic
+
+3. Core view model files
+- ViewModels/ViewModelBase.cs - Base view model class
+- ViewModels/MainViewModel.cs - Main window view model
+- ViewModels/KeyboardLayoutViewModel.cs - Keyboard layout view model
+- ViewModels/KeyMappingViewModel.cs - Key mapping view model
+- ViewModels/FloatingStatusViewModel.cs - Floating Status View Model
+
+4. Auxiliary Views and View Models
+- Views/AboutView.xaml(.cs) - About Page
+- Views/FeedbackView.xaml(.cs) - Feedback Page
+- ViewModels/QRCodeViewModel.cs - QR Code View Model
+- ViewModels/FeedbackViewModel.cs - Feedback View Model
+- ViewModels/AboutViewModel.cs - About Page View Model
+
+Key Path:
+```csharp
 /MainWindow.xaml(.cs)
+/App.xaml(.cs)
+/Views/Controls/*.xaml(.cs)
+/Views/*.xaml(.cs)
+/ViewModels/*ViewModel.cs
+```
 
-### Second priority - Service layer core files
-Search order:
-1. All service class files ( *Service.cs)
-2. DD driver core class (CDD.cs)
-3. Key mapping core file (KeyCodeMapping.cs)
-Key path:
-csharp
-/Services/Service.cs
-/Services/CDD.cs
-/Services/KeyCodeMapping.cs
+Search Rules:
+1. Prioritize checking the main window and application entry related files
+2. Secondly, check the views and view models related to the core functions
+3. Finally, check the views and view models related to accessibility
+4. For each functional module, check the view file first, then check the corresponding view model
+5. Make sure to check both the XAML and its corresponding code-behind file
 
-### Third priority - Styles and configuration files
+### Second priority - Service layer core files
 Search order:
-1. Style definition file (Styles/*.xaml)
-2. Application configuration (App.xaml)
-3. Application configuration file (AppConfig.j son)
+1. Core service class files
+- Services/Core/LyKeysService.cs - Key service main class
+- Services/Core/LyKeys.cs - Key core implementation class
+- Services/Core/LyKeysCode.cs - Key code definition class
+- Services/Core/RapidFireService.cs - RapidFire service implementation class
+
+2. Input processing service
+- Services/Input/HotkeyService.cs - Hotkey service
+- Services/Input/InputMethodService.cs - Input method service
+
+3. Service model class
+- Services/Models/KeyItem.cs - Key item model class
+- Services/Models/AppConfig.cs - Application configuration model class
+- Services/Models/KeyboardLayoutConfig.cs - Keyboard layout configuration class
+- Services/Models/HoldKeyMode.cs - Key hold mode class
+- Services/Models/KeyModeBase.cs - Key mode base class
+
 Key path:
-csharp
-/Styles/.xaml
-/App.xaml
+```csharp
+/Services/Core/*.cs
+/Services/Input/*.cs
+/Services/Models/*.cs
+```
+
+Search rules:
+1. Check the core service implementation file first
+2. Check the input processing related services second
+3. Check the service model definition last
+4. For each service module, check its interface definition and implementation class at the same time
+5. Make sure to check the dependencies between services
+
+### Third priority - Styles and configuration files
+Search order:
+1. Style definition file
+- Styles/ControlStyles.xaml - Control styles
+- Styles/ButtonStyles.xaml - Button styles
+- Styles/NavigationStyles.xaml - Navigation styles
+- Styles/WindowStyles.xaml - Window styles
+- Styles/SwitchStyles.xaml - Switch styles
+- Styles/TrayContextMenuStyle.xaml - Tray menu styles
+- Styles/AnimationStyles.xaml - Animation styles
+- Styles/WindowControlStyles.xaml - Window control styles
+
+2. Application configuration
+- App.xaml - Global resources and style definitions
+- App.xaml.cs - Application lifecycle management
+- AppConfig.json - Application configuration file
+
+Key path:
+```csharp
+/Styles/*.xaml
+/App.xaml(.cs)
 /AppConfig.json
+```
 
-## Fourth priority - Models and tools
+Search rules:
+1. Check general style definitions first
+2. Check specific control styles second
+3. Check application configuration last
+4. Ensure that style inheritance and override relationships are correct
+5. Verify the reference integrity of resource dictionaries
+
+### Fourth priority - Models and tools
 Search order:
-1. Data model files (Models/*.cs)
-2. Converter files (Converters/*.cs)
-3. Command files (Commands/*.cs)
-Key path:
-csharp
-/Models/.cs
-/Converters/.cs
-/Commands/.cs
+1. Value converters
+- Converters/InverseBoolConverter.cs - Boolean inverse converter
+- Converters/BoolToColorConverter.cs - Boolean to color converter
+- Converters/StatusToColorConverter.cs - Status to color converter
+- Converters/IntToStringConverter.cs - Integer to string converter
+- Converters/BoolToVisibilityConverter.cs - Boolean to visibility converter
+- Converters/ViewModelToHotkeyStatusConverter.cs - View model to hotkey status converter
 
-## Fifth priority - Other supporting files
+2. Behavior definition
+- Behaviors/ListBoxDragDropBehavior.cs - List box drag and drop behavior
+- Behaviors/FocusManagerBehavior.cs - Focus management behavior
+- Behaviors/DragAdorner.cs - Drag decorator
+- Behaviors/DragDropProperties.cs - Drag and drop property definition
+
+Key path:
+```csharp
+/Converters/*.cs
+/Behaviors/*.cs
+```
+
+Search rules:
+1. Check the value converter implementation first
+2. Check the behavior definition second
+3. Ensure the reusability of converters and behaviors
+4. Verify the correctness of binding with XAML
+5. Check the integrity of exception handling
+
+## Fifth priority - Other supporting files
 Search order:
 1. Application manifest (*.manifest)
 2. Project configuration (*.csproj)
