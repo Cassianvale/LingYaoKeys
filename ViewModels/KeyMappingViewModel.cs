@@ -261,9 +261,33 @@ namespace WpfApp.ViewModels
             {
                 if (_keyboardLayoutViewModel != value)
                 {
+                    if (_keyboardLayoutViewModel != null)
+                    {
+                        // 取消订阅旧的事件
+                        _keyboardLayoutViewModel.KeyBurstStateChanged -= OnKeyBurstStateChanged;
+                    }
+                    
                     _keyboardLayoutViewModel = value;
+                    
+                    if (_keyboardLayoutViewModel != null)
+                    {
+                        // 订阅新的事件
+                        _keyboardLayoutViewModel.KeyBurstStateChanged += OnKeyBurstStateChanged;
+                    }
+                    
                     OnPropertyChanged();
                 }
+            }
+        }
+
+        // 处理连发状态变化
+        private void OnKeyBurstStateChanged(LyKeysCode keyCode, bool isBurst)
+        {
+            var keyItem = KeyList.FirstOrDefault(k => k.KeyCode == keyCode);
+            if (keyItem != null)
+            {
+                keyItem.IsKeyBurst = isBurst;
+                _logger.Debug($"更新按键 {keyCode} 的连发状态为: {isBurst}");
             }
         }
 
@@ -374,6 +398,7 @@ namespace WpfApp.ViewModels
                     {
                         var keyItem = new KeyItem(keyConfig.Code, _lyKeysService);
                         keyItem.IsSelected = keyConfig.IsSelected;
+                        keyItem.IsKeyBurst = keyConfig.IsKeyBurst; // 同步连发状态
                         keyItem.SelectionChanged += (s, isSelected) => SaveConfig();
                         KeyList.Add(keyItem);
                     }
@@ -741,8 +766,11 @@ namespace WpfApp.ViewModels
         {
             try
             {
-                // 获取所有按键和它们的选中状态
-                var keyConfigs = KeyList.Select(k => new KeyConfig(k.KeyCode, k.IsSelected)).ToList();
+                // 获取所有按键和它们的状态
+                var keyConfigs = KeyList.Select(k => new KeyConfig(k.KeyCode, k.IsSelected)
+                {
+                    IsKeyBurst = k.IsKeyBurst // 保存连发状态
+                }).ToList();
 
                 // 检查热键冲突
                 if (_startHotkey.HasValue && keyConfigs.Any(k => k.Code == _startHotkey.Value))
@@ -840,7 +868,9 @@ namespace WpfApp.ViewModels
 
             for (int i = 0; i < list1.Count; i++)
             {
-                if (list1[i].Code != list2[i].Code || list1[i].IsSelected != list2[i].IsSelected)
+                if (list1[i].Code != list2[i].Code || 
+                    list1[i].IsSelected != list2[i].IsSelected ||
+                    list1[i].IsKeyBurst != list2[i].IsKeyBurst)
                     return false;
             }
 

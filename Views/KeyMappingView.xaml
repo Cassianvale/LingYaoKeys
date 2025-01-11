@@ -138,7 +138,7 @@
                                                  VerticalAlignment="Center">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
-                                                    <Setter Property="Text" Value="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListBoxItem}, Path=(ItemsControl.AlternationIndex), StringFormat={}{0:D2}}"/>
+                                                    <Setter Property="Text" Value=""/>
                                                     <Setter Property="Foreground" Value="#757575"/>
                                                     <Style.Triggers>
                                                         <MultiDataTrigger>

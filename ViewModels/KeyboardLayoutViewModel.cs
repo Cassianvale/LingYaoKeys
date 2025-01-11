@@ -117,6 +117,9 @@ namespace WpfApp.ViewModels
 
             // 初始化键盘布局
             _keyboardConfig.InitializeLayout();
+
+            // 加载配置
+            LoadConfiguration();
         }
 
         private void OnKeyClick(KeyboardLayoutKey? keyConfig)
@@ -170,9 +173,9 @@ namespace WpfApp.ViewModels
                 }
 
                 // 设置连发状态和延迟值
-                keyConfig.IsRapidFire = true; // 设置为连发状态
+                keyConfig.IsRapidFire = true;
                 keyConfig.RapidFireDelay = RapidFireDelay;
-                keyConfig.PressTime = PressTime; // 保存按压时间
+                keyConfig.PressTime = PressTime;
                 if (IsRapidFireEnabled)
                 {
                     keyConfig.IsDisabled = true;
@@ -198,14 +201,23 @@ namespace WpfApp.ViewModels
 
         private void UpdateRapidFireStatus()
         {
-            foreach (var key in GetAllKeys())
+            try
             {
-                if (key.IsRapidFire)
+                foreach (var key in GetAllKeys())
                 {
-                    key.IsDisabled = IsRapidFireEnabled;
-                    // 通知KeyMappingViewModel更新标记状态
-                    KeyBurstStateChanged?.Invoke(key.KeyCode, key.IsRapidFire);
+                    if (key.IsRapidFire)
+                    {
+                        key.IsDisabled = IsRapidFireEnabled;
+                        // 通知KeyMappingViewModel更新标记状态
+                        KeyBurstStateChanged?.Invoke(key.KeyCode, key.IsRapidFire);
+                    }
                 }
+                // 保存配置以保持连发状态
+                SaveConfiguration();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"更新连发状态失败: {ex.Message}");
             }
         }
 
@@ -232,7 +244,8 @@ namespace WpfApp.ViewModels
                 var config = AppConfigService.Config;
                 
                 // 加载连发状态
-                IsRapidFireEnabled = config.IsRapidFire;
+                _isRapidFireEnabled = config.IsRapidFire;
+                OnPropertyChanged(nameof(IsRapidFireEnabled));
 
                 // 加载按键配置
                 if (config.KeyBurst != null)
@@ -244,8 +257,11 @@ namespace WpfApp.ViewModels
                         {
                             key.IsRapidFire = true;
                             key.RapidFireDelay = burstKey.RapidFireDelay;
-                            key.PressTime = burstKey.PressTime; // 加载按压时间
+                            key.PressTime = burstKey.PressTime;
                             key.IsDisabled = IsRapidFireEnabled;
+                            
+                            // 触发事件通知 KeyMappingViewModel
+                            KeyBurstStateChanged?.Invoke(key.KeyCode, true);
                         }
                     }
                 }
@@ -261,7 +277,7 @@ namespace WpfApp.ViewModels
             try
             {
                 var config = AppConfigService.Config;
-                var existingKeys = config.keys.ToList();
+                var existingKeys = config.keys?.ToList() ?? new List<KeyConfig>();
                 var rapidFireKeys = new List<KeyBurstConfig>();
 
                 // 收集所有连发按键的信息
