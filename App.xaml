@@ -18,6 +18,9 @@
             <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
             <converters:IntToStringConverter x:Key="IntToStringConverter"/>
+            <converters:ViewModelToHotkeyStatusConverter x:Key="ViewModelToHotkeyStatusConverter"/>
+            <converters:StatusToColorConverter x:Key="StatusToColorConverter"/>
+            <converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
             
             <!-- 颜色资源 -->
             <SolidColorBrush x:Key="PrimaryBrush" Color="#2196F3"/>

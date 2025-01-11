@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
+// 键盘布局配置
 namespace WpfApp.Services.Models
 {
     public class KeyboardLayoutKey : INotifyPropertyChanged
@@ -9,6 +10,7 @@ namespace WpfApp.Services.Models
         private bool _isRapidFire;
         private int _rapidFireDelay = 10;
         private bool _isDisabled;
+        private int _pressTime = 5;
 
         public LyKeysCode KeyCode { get; set; }
         public string DisplayName { get; set; }
@@ -36,6 +38,27 @@ namespace WpfApp.Services.Models
                 {
                     _rapidFireDelay = value;
                     OnPropertyChanged();
+                    if (IsRapidFire)
+                    {
+                        OnPropertyChanged(nameof(IsRapidFire));
+                    }
+                }
+            }
+        }
+
+        public int PressTime
+        {
+            get => _pressTime;
+            set
+            {
+                if (_pressTime != value && value >= 1)
+                {
+                    _pressTime = value;
+                    OnPropertyChanged();
+                    if (IsRapidFire)
+                    {
+                        OnPropertyChanged(nameof(IsRapidFire));
+                    }
                 }
             }
         }

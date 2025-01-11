@@ -27,22 +27,31 @@
                                 CornerRadius="4">
                             <Grid>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="*"/>
-                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/> <!-- 状态信息区域 -->
+                                    <RowDefinition Height="*"/> <!-- 按键名称区域 -->
                                 </Grid.RowDefinitions>
+
+                                <!-- 状态信息区域 -->
+                                <StackPanel Grid.Row="0" 
+                                          Visibility="{Binding IsRapidFire, Converter={StaticResource BoolToVisibilityConverter}}"
+                                          Margin="0,0,0,0">
+                                    <!-- 延迟值 -->
+                                    <TextBlock Text="{Binding RapidFireDelay, StringFormat='{}{0}ms'}"
+                                             HorizontalAlignment="Center"
+                                             Foreground="Red"
+                                             FontSize="9"/>
+                                    <!-- 按压时间 -->
+                                    <TextBlock Text="{Binding PressTime, StringFormat='{}{0}ms'}"
+                                             HorizontalAlignment="Center"
+                                             Foreground="Blue"
+                                             FontSize="9"/>
+                                </StackPanel>
+
                                 <!-- 按键名称 -->
-                                <TextBlock Text="{TemplateBinding Content}"
+                                <TextBlock Grid.Row="1"
+                                         Text="{TemplateBinding Content}"
                                          HorizontalAlignment="Center"
                                          VerticalAlignment="Center"/>
-                                <!-- 延迟值 -->
-                                <TextBlock Grid.Row="1"
-                                         Text="{Binding RapidFireDelay, StringFormat={}{0}ms}"
-                                         HorizontalAlignment="Center"
-                                         VerticalAlignment="Bottom"
-                                         Foreground="Red"
-                                         FontSize="10"
-                                         Margin="0,0,0,2"
-                                         Visibility="{Binding IsRapidFire, Converter={StaticResource BoolToVisibilityConverter}}"/>
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -89,7 +98,8 @@
         <!-- 延迟设置弹出窗口 -->
         <Popup x:Name="DelayPopup" 
                Style="{StaticResource DelayPopupStyle}"
-               IsOpen="{Binding IsKeySelected}">
+               IsOpen="{Binding IsKeySelected, Mode=OneWay}"
+               StaysOpen="False">
             <Border Background="White"
                     BorderBrush="#BDBDBD"
                     BorderThickness="1"
@@ -99,7 +109,17 @@
                     <DockPanel Margin="0,0,0,5">
                         <TextBlock Text="连发延迟:" VerticalAlignment="Center" Margin="0,0,5,0"/>
                         <TextBox Width="60"
-                                 Text="{Binding SelectedKey.RapidFireDelay, UpdateSourceTrigger=PropertyChanged}"
+                                 Text="{Binding RapidFireDelay, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource ModernTextBox}"
+                                 PreviewTextInput="NumberValidationTextBox"
+                                 VerticalContentAlignment="Center"
+                                 TextAlignment="Center"/>
+                        <TextBlock Text="ms" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,0,0,5">
+                        <TextBlock Text="按压时间:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Width="60"
+                                 Text="{Binding PressTime, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource ModernTextBox}"
                                  PreviewTextInput="NumberValidationTextBox"
                                  VerticalContentAlignment="Center"

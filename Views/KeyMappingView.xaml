@@ -92,18 +92,104 @@
                     </ListBox.Template>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Border Margin="2" 
+                            <Border x:Name="itemBorder" 
                                     Background="Transparent" 
-                                    CornerRadius="4"
-                                    Height="40">
-                                <CheckBox Style="{StaticResource ModernSwitch}"
-                                          Content="{Binding DisplayName}"
-                                          IsChecked="{Binding IsSelected}"
-                                          Height="32"
-                                          Margin="4,0"
-                                          HorizontalAlignment="Stretch"
-                                          VerticalAlignment="Center"
-                                          VerticalContentAlignment="Center"/>
+                                    CornerRadius="4" 
+                                    Padding="4">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- 连发标记 -->
+                                    <Border Grid.Column="0"
+                                            Width="24"
+                                            Height="24"
+                                            CornerRadius="12"
+                                            Margin="0,0,4,0"
+                                            VerticalAlignment="Center">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Style.Triggers>
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding IsKeyBurst}" Value="True"/>
+                                                            <Condition Binding="{Binding DataContext.KeyboardLayoutViewModel.IsRapidFireEnabled, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="True"/>
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="Background" Value="#E8F5E9"/>
+                                                        <Setter Property="BorderBrush" Value="#4CAF50"/>
+                                                        <Setter Property="BorderThickness" Value="1"/>
+                                                    </MultiDataTrigger>
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding IsKeyBurst}" Value="True"/>
+                                                            <Condition Binding="{Binding DataContext.KeyboardLayoutViewModel.IsRapidFireEnabled, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="False"/>
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="Background" Value="#FFEBEE"/>
+                                                        <Setter Property="BorderBrush" Value="#F44336"/>
+                                                        <Setter Property="BorderThickness" Value="1"/>
+                                                    </MultiDataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock TextAlignment="Center"
+                                                 VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListBoxItem}, Path=(ItemsControl.AlternationIndex), StringFormat={}{0:D2}}"/>
+                                                    <Setter Property="Foreground" Value="#757575"/>
+                                                    <Style.Triggers>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IsKeyBurst}" Value="True"/>
+                                                                <Condition Binding="{Binding DataContext.KeyboardLayoutViewModel.IsRapidFireEnabled, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="True"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Text" Value="连"/>
+                                                            <Setter Property="Foreground" Value="#4CAF50"/>
+                                                            <Setter Property="FontWeight" Value="Bold"/>
+                                                        </MultiDataTrigger>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IsKeyBurst}" Value="True"/>
+                                                                <Condition Binding="{Binding DataContext.KeyboardLayoutViewModel.IsRapidFireEnabled, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="False"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Text" Value="连"/>
+                                                            <Setter Property="Foreground" Value="#F44336"/>
+                                                            <Setter Property="FontWeight" Value="Bold"/>
+                                                        </MultiDataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Border>
+                                    
+                                    <!-- ModernSwitch -->
+                                    <CheckBox Grid.Column="1"
+                                             Height="32"
+                                             Margin="4,0"
+                                             HorizontalAlignment="Stretch"
+                                             VerticalAlignment="Center"
+                                             VerticalContentAlignment="Center">
+                                        <CheckBox.Style>
+                                            <Style TargetType="CheckBox" BasedOn="{StaticResource ModernSwitch}">
+                                                <Setter Property="Content" Value="{Binding DisplayName}"/>
+                                                <Setter Property="IsChecked" Value="{Binding IsSelected}"/>
+                                                <Style.Triggers>
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding IsKeyBurst}" Value="True"/>
+                                                            <Condition Binding="{Binding DataContext.KeyboardLayoutViewModel.IsRapidFireEnabled, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="True"/>
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="IsEnabled" Value="False"/>
+                                                        <Setter Property="Opacity" Value="0.7"/>
+                                                    </MultiDataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </CheckBox.Style>
+                                    </CheckBox>
+                                </Grid>
                             </Border>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -401,13 +487,13 @@
                               IsChecked="{Binding IsFloatingWindowEnabled, Mode=TwoWay}"/>
                     <!-- 连发开关 -->
                     <CheckBox Style="{StaticResource ModernSwitch}"
-                              Content="启动连发" 
+                              Content="连发开关" 
                               Height="32"
                               VerticalContentAlignment="Center"
                               HorizontalAlignment="Left"
                               Margin="0,0,0,0"
                               Padding="0,0,0,0"
-                              IsChecked="{Binding IsHoldModeEnabled, Mode=TwoWay}"/>
+                              IsChecked="{Binding KeyboardLayoutViewModel.IsRapidFireEnabled, Mode=TwoWay}"/>
                 </StackPanel>
             </StackPanel>
         </Grid>

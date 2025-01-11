@@ -8,11 +8,27 @@ namespace WpfApp.Services.Models
     {
         public LyKeysCode Code { get; set; }
         public bool IsSelected { get; set; }
+        public bool IsKeyBurst { get; set; }
 
-        public KeyConfig(LyKeysCode code, bool isSelected = true)
+        public KeyConfig(LyKeysCode code, bool isSelected = true, bool isKeyBurst = false)
         {
             Code = code;
             IsSelected = isSelected;
+            IsKeyBurst = isKeyBurst;
+        }
+    }
+
+    public class KeyBurstConfig
+    {
+        public LyKeysCode Code { get; set; }
+        public int RapidFireDelay { get; set; }
+        public int PressTime { get; set; }
+
+        public KeyBurstConfig(LyKeysCode code, int rapidFireDelay = 10, int pressTime = 5)
+        {
+            Code = code;
+            RapidFireDelay = rapidFireDelay;
+            PressTime = pressTime;
         }
     }
 
@@ -30,6 +46,8 @@ namespace WpfApp.Services.Models
         public LyKeysCode? stopKey { get; set; }
         public ModifierKeys stopMods { get; set; }
         public List<KeyConfig> keys { get; set; } = new List<KeyConfig>();
+        public List<KeyBurstConfig> KeyBurst { get; set; } = new List<KeyBurstConfig>();
+        public bool IsRapidFire { get; set; }
         public int keyMode { get; set; }
         public int interval { get; set; } = 10;
         public bool? soundEnabled { get; set; }
