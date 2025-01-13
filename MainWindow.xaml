@@ -188,7 +188,8 @@
                                        GroupName="NavGroup"
                                        Style="{StaticResource NavButtonStyle}"
                                        Command="{Binding NavigateCommand}"
-                                       CommandParameter="Settings"/>
+                                       CommandParameter="Settings"
+                                       Click="NavButton_Click"/>
                             
                             <!-- 导航菜单 -->
                             <StackPanel>
