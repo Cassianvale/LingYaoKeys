@@ -1,19 +1,27 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- <OutputType>WinExe</OutputType> -->
+    <!-- 项目信息配置 -->
+    <Version>1.3.0</Version>
+    <Product>LingYaoKeys</Product>
+    <Authors>慕长秋</Authors>
+    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
+    <Copyright>Copyright © 2025 Cassianvale</Copyright>
+    <Description>灵曜按键 (LingYao Keys)</Description>
+
+    <!-- 输出类型为WinExe -->
+    <OutputType>WinExe</OutputType>
 
     <!-- 修改输出类型为控制台应用 -->
-    <OutputType>Exe</OutputType>
+    <!-- <OutputType>Exe</OutputType> -->
     
     <!-- 启用本机代码调试 -->
-    <EnableNativeCodeDebugging>true</EnableNativeCodeDebugging>
+    <!-- <EnableNativeCodeDebugging>true</EnableNativeCodeDebugging> -->
     
     <!-- 如果需要同时保留窗口程序功能,添加以下配置 -->
-    <DisableWinExeOutputInference>true</DisableWinExeOutputInference>
-    <DebugType>full</DebugType>
+    <!-- <DisableWinExeOutputInference>true</DisableWinExeOutputInference>
+    <DebugType>full</DebugType> -->
 
-    
     <TargetFramework>net8.0-windows</TargetFramework>
     <AssemblyName>LingYaoKeys</AssemblyName>
     <Nullable>enable</Nullable>
@@ -26,13 +34,7 @@
     <ConsoleOutputRedirection>true</ConsoleOutputRedirection>
     <ApplicationIcon>Resource\icon\app.ico</ApplicationIcon>
     
-    <!-- 项目信息配置 -->
-    <Version>1.3.0</Version>
-    <Product>LingYaoKeys</Product>
-    <Authors>慕长秋</Authors>
-    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
-    <Copyright>Copyright © 2025 Cassianvale</Copyright>
-    <Description>灵曜按键 (LingYao Keys)</Description>
+
     
     <!-- 发布相关配置 -->
     <PublishSingleFile>true</PublishSingleFile>
@@ -84,33 +86,10 @@
 
     <!-- 音频文件配置为嵌入式资源 -->
     <EmbeddedResource Include="Resource\sound\**">
+      <LogicalName>WpfApp.Resource.sound.%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
   </ItemGroup>
-
-  <!-- 新增：驱动文件提取目标 -->
-  <Target Name="ExtractEmbeddedDriverFiles" AfterTargets="Build">
-    <PropertyGroup>
-      <DriverTempPath>$(OutputPath)Resource\lykeysdll</DriverTempPath>
-    </PropertyGroup>
-    <ItemGroup>
-      <DriverFiles Include="Resource\lykeysdll\**\*.*" />
-    </ItemGroup>
-    <MakeDir Directories="$(DriverTempPath)" />
-    <Copy SourceFiles="@(DriverFiles)" DestinationFiles="@(DriverFiles->'$(DriverTempPath)\%(RecursiveDir)%(Filename)%(Extension)')" />
-  </Target>
-
-  <!-- 新增：发布时的驱动文件处理 -->
-  <Target Name="ProcessDriverFilesOnPublish" BeforeTargets="Publish">
-    <PropertyGroup>
-      <DriverPublishPath>$(PublishDir)Resource\lykeysdll</DriverPublishPath>
-    </PropertyGroup>
-    <ItemGroup>
-      <DriverPublishFiles Include="Resource\lykeysdll\**\*.*" />
-    </ItemGroup>
-    <MakeDir Directories="$(DriverPublishPath)" />
-    <Copy SourceFiles="@(DriverPublishFiles)" DestinationFiles="@(DriverPublishFiles->'$(DriverPublishPath)\%(RecursiveDir)%(Filename)%(Extension)')" />
-  </Target>
 
   <!-- 新增：配置程序集依赖项 -->
   <ItemGroup>

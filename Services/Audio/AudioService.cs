@@ -29,35 +29,78 @@ namespace WpfApp.Services
                 ".lykeys",
                 "sound"
             );
-            Directory.CreateDirectory(userDataPath);
-
-            _startSoundPath = Path.Combine(userDataPath, "start.mp3");
-            _stopSoundPath = Path.Combine(userDataPath, "stop.mp3");
-
-            // 确保音频文件存在
-            EnsureAudioFileExists("start.mp3", _startSoundPath);
-            EnsureAudioFileExists("stop.mp3", _stopSoundPath);
             
-            _logger.Debug($"加载Audio音频资源: {userDataPath}");
+            try
+            {
+                Directory.CreateDirectory(userDataPath);
+                _logger.Debug($"创建音频文件目录: {userDataPath}");
+
+                _startSoundPath = Path.Combine(userDataPath, "start.mp3");
+                _stopSoundPath = Path.Combine(userDataPath, "stop.mp3");
+
+                // 确保音频文件存在
+                EnsureAudioFileExists("start.mp3", _startSoundPath);
+                EnsureAudioFileExists("stop.mp3", _stopSoundPath);
+                
+                _logger.Debug($"音频文件初始化完成:");
+                _logger.Debug($"- 开始音效: {_startSoundPath}");
+                _logger.Debug($"- 结束音效: {_stopSoundPath}");
+
+                // 验证音频文件
+                if (!File.Exists(_startSoundPath) || !File.Exists(_stopSoundPath))
+                {
+                    _logger.Error("音频文件初始化失败，文件不存在");
+                    throw new FileNotFoundException("音频文件初始化失败，文件不存在");
+                }
+
+                // 验证音频文件可访问性
+                using (var testReader = new MediaFoundationReader(_startSoundPath))
+                using (var testDevice = new WaveOutEvent())
+                {
+                    testDevice.Init(testReader);
+                    _logger.Debug("音频设备初始化测试成功");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("音频服务初始化失败", ex);
+                throw;
+            }
         }
 
         private void EnsureAudioFileExists(string fileName, string targetPath)
         {
-            if (!File.Exists(targetPath))
+            try
             {
-                string resourceName = $"WpfApp.Resource.sound.{fileName}";
-                Stream? stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
-                if (stream is null)
+                if (!File.Exists(targetPath))
                 {
-                    _logger.Error($"找不到Audio音频资源：{resourceName}");
-                    return;
-                }
+                    _logger.Debug($"开始提取音频文件: {fileName}");
+                    string resourceName = $"WpfApp.Resource.sound.{fileName}";
+                    
+                    using (Stream? stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                    {
+                        if (stream is null)
+                        {
+                            _logger.Error($"找不到音频资源：{resourceName}");
+                            throw new FileNotFoundException($"找不到音频资源：{resourceName}");
+                        }
 
-                using (stream)
-                {
-                    using FileStream fileStream = File.Create(targetPath);
-                    stream.CopyTo(fileStream);
+                        using (FileStream fileStream = File.Create(targetPath))
+                        {
+                            stream.CopyTo(fileStream);
+                            _logger.Debug($"音频文件提取成功: {targetPath}");
+                        }
+                    }
                 }
+                else
+                {
+                    _logger.Debug($"音频文件已存在: {targetPath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"提取音频文件失败: {fileName}", ex);
+                throw;
             }
         }
 

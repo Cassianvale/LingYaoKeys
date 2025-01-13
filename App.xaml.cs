@@ -476,15 +476,14 @@ namespace WpfApp
                     return;
                 }
 
+                // 初始化音频服务
+                _logger.Debug("初始化音频服务");
+                AudioService = new AudioService();
 
                 // 创建并显示主窗口
                 _logger.Debug("创建主窗口...");
                 var mainWindow = new MainWindow();
                 mainWindow.Show();
-
-                // 初始化音频服务
-                AudioService = new AudioService();
-                _logger.Debug("初始化音频服务");
 
                 // 初始化热键服务
                 _logger.Debug("初始化热键服务");
