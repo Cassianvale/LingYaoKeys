@@ -4,12 +4,14 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:WpfApp.Views"
+      xmlns:viewModels="clr-namespace:WpfApp.ViewModels"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       Title="设置">
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
@@ -22,44 +24,60 @@
                           FontSize="14"/>
                 <StackPanel Orientation="Horizontal" 
                           Margin="0,10,0,0">
-                    <Button Content="导入配置" 
-                            Style="{StaticResource RoundedShadowButton}"
+                    <Button Style="{StaticResource RoundedShadowButton}"
                             Width="120"
                             Height="35"
                             Margin="0,0,15,0"
-                            Click="ImportConfig_Click">
-                        <Button.ContentTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE8E5;" 
-                                             FontFamily="Segoe MDL2 Assets"
-                                             FontSize="16"
-                                             Margin="0,0,8,0"
-                                             VerticalAlignment="Center"/>
-                                    <TextBlock Text="导入配置" 
-                                             VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </Button.ContentTemplate>
+                            Command="{Binding ImportConfigCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8E5;" 
+                                     FontFamily="Segoe MDL2 Assets"
+                                     FontSize="16"
+                                     Margin="0,0,8,0"
+                                     VerticalAlignment="Center"/>
+                            <TextBlock Text="导入配置" 
+                                     VerticalAlignment="Center"/>
+                        </StackPanel>
                     </Button>
-                    <Button Content="导出配置" 
-                            Style="{StaticResource RoundedShadowButton}"
+                    <Button Style="{StaticResource RoundedShadowButton}"
                             Width="120"
                             Height="35"
-                            Click="ExportConfig_Click">
-                        <Button.ContentTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE74E;" 
-                                             FontFamily="Segoe MDL2 Assets"
-                                             FontSize="16"
-                                             Margin="0,0,8,0"
-                                             VerticalAlignment="Center"/>
-                                    <TextBlock Text="导出配置" 
-                                             VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </Button.ContentTemplate>
+                            Command="{Binding ExportConfigCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE74E;" 
+                                     FontFamily="Segoe MDL2 Assets"
+                                     FontSize="16"
+                                     Margin="0,0,8,0"
+                                     VerticalAlignment="Center"/>
+                            <TextBlock Text="导出配置" 
+                                     VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- 更新管理 -->
+        <GroupBox Grid.Row="1" Header="更新管理" Margin="0,0,0,20">
+            <StackPanel Margin="10">
+                <TextBlock Text="检查软件更新" 
+                          Margin="0,0,0,10"
+                          FontSize="14"/>
+                <StackPanel Orientation="Horizontal" 
+                          Margin="0,10,0,0">
+                    <Button Style="{StaticResource RoundedShadowButton}"
+                            Width="120"
+                            Height="35"
+                            Command="{Binding CheckUpdateCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE777;" 
+                                     FontFamily="Segoe MDL2 Assets"
+                                     FontSize="16"
+                                     Margin="0,0,8,0"
+                                     VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding UpdateStatus}" 
+                                     VerticalAlignment="Center"/>
+                        </StackPanel>
                     </Button>
                 </StackPanel>
             </StackPanel>

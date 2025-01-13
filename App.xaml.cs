@@ -2,12 +2,14 @@
 using System.IO;
 using System.Threading.Tasks;
 using WpfApp.Services;
+using WpfApp.Services.Config;
 using System.Reflection;
 using System.Windows;
 using Forms = System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.ComponentModel;
 using System.Diagnostics;
+using Microsoft.Extensions.Configuration;
 
 namespace WpfApp
 {
@@ -15,8 +17,8 @@ namespace WpfApp
     {
         private readonly SerilogManager _logger = SerilogManager.Instance;
         public static LyKeysService LyKeysDriver { get; private set; }
-        public static ConfigService ConfigService { get; private set; } = new ConfigService();
-        public static AudioService AudioService { get; private set; } = new AudioService();
+        public static ConfigService ConfigService { get; private set; }
+        public static AudioService AudioService { get; private set; }
         private bool _isShuttingDown;
         private readonly string _userDataPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
@@ -38,21 +40,19 @@ namespace WpfApp
             CTRL_SHUTDOWN_EVENT = 6
         }
 
+        public static IConfiguration Configuration { get; private set; }
+
+        // 清理级别
+        // Normal 级别：基本资源清理（适用于正常应用退出）
+        // Complete 级别：完整清理（包括驱动服务，适用于进程强制终止）
+        private enum CleanupLevel
+        {
+            Normal,     // 普通清理
+            Complete    // 完整清理（包括驱动服务）
+        }
+
         public App()
         {
-            // 设置高DPI模式
-            if (Environment.OSVersion.Version >= new Version(6, 3))
-            {
-                try
-                {
-                    Forms.Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
-                }
-                catch (Exception ex)
-                {
-                    _logger?.Error("设置高DPI模式失败", ex);
-                }
-            }
-
             // 注册进程退出事件处理
             _handler += new EventHandler(Handler);
             SetConsoleCtrlHandler(_handler, true);
@@ -87,14 +87,26 @@ namespace WpfApp
             }
         }
 
-        private void CleanupServices()
+        private void Cleanup(CleanupLevel level = CleanupLevel.Normal)
         {
             if (_isShuttingDown) return;
             _isShuttingDown = true;
 
             try
             {
-                _logger.Debug("开始清理服务...");
+                _logger.Debug($"开始清理服务... 清理级别: {level}");
+
+                // 清理 WebView2 环境
+                try
+                {
+                    var webView2Service = Services.WebView2Service.Instance;
+                    webView2Service.Dispose();
+                    _logger.Debug("WebView2 服务已清理");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error("清理 WebView2 服务失败", ex);
+                }
 
                 // 确保所有服务都被释放
                 if (LyKeysDriver != null)
@@ -112,32 +124,36 @@ namespace WpfApp
                 // 清理配置服务
                 ConfigService = null;
 
-                // 尝试强制停止和删除驱动服务
-                try
+                // 如果是完整清理，则尝试停止和删除驱动服务
+                if (level == CleanupLevel.Complete)
                 {
-                    using (Process p = new Process())
+                    try
                     {
-                        p.StartInfo.FileName = "sc.exe";
-                        p.StartInfo.Arguments = "stop lykeys";
-                        p.StartInfo.UseShellExecute = false;
-                        p.StartInfo.CreateNoWindow = true;
-                        p.Start();
-                        p.WaitForExit(100);
-                    }
+                        using (Process p = new Process())
+                        {
+                            p.StartInfo.FileName = "sc.exe";
+                            p.StartInfo.Arguments = "stop lykeys";
+                            p.StartInfo.UseShellExecute = false;
+                            p.StartInfo.CreateNoWindow = true;
+                            p.Start();
+                            p.WaitForExit(100);
+                        }
 
-                    using (Process p = new Process())
-                    {
-                        p.StartInfo.FileName = "sc.exe";
-                        p.StartInfo.Arguments = "delete lykeys";
-                        p.StartInfo.UseShellExecute = false;
-                        p.StartInfo.CreateNoWindow = true;
-                        p.Start();
-                        p.WaitForExit(100);
+                        using (Process p = new Process())
+                        {
+                            p.StartInfo.FileName = "sc.exe";
+                            p.StartInfo.Arguments = "delete lykeys";
+                            p.StartInfo.UseShellExecute = false;
+                            p.StartInfo.CreateNoWindow = true;
+                            p.Start();
+                            p.WaitForExit(100);
+                        }
+                        _logger.Debug("驱动服务已停止并删除");
                     }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"清理驱动服务失败: {ex.Message}");
+                    catch (Exception ex)
+                    {
+                        _logger.Error("清理驱动服务失败", ex);
+                    }
                 }
 
                 // 最后释放日志服务
@@ -153,6 +169,11 @@ namespace WpfApp
             {
                 Environment.Exit(0);
             }
+        }
+
+        private void CleanupServices()
+        {
+            Cleanup(CleanupLevel.Complete);
         }
 
         private async Task<bool> CheckServiceExistsAsync(string serviceName)
@@ -300,6 +321,29 @@ namespace WpfApp
         {
             base.OnStartup(e);
 
+            try
+            {
+                // 在应用程序启动前设置高 DPI 模式
+                if (Environment.OSVersion.Version >= new Version(6, 3))
+                {
+                    Forms.Application.SetHighDpiMode(Forms.HighDpiMode.PerMonitorV2);
+                    _logger.Debug("已设置高DPI模式");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("设置高DPI模式失败", ex);
+            }
+
+            // 初始化配置
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .AddJsonFile($"appsettings.{GetEnvironment()}.json", optional: true, reloadOnChange: true)
+                .AddEnvironmentVariables();
+
+            Configuration = builder.Build();
+
             // 预初始化WebView2环境
             _ = Services.WebView2Service.Instance.GetEnvironmentAsync();
 
@@ -432,18 +476,19 @@ namespace WpfApp
                     return;
                 }
 
-                // 初始化音频服务
-                AudioService = new AudioService();
-                _logger.Debug("音频服务初始化完成");
 
                 // 创建并显示主窗口
                 _logger.Debug("创建主窗口...");
                 var mainWindow = new MainWindow();
                 mainWindow.Show();
-                _logger.Debug("主窗口已显示");
 
+                // 初始化音频服务
+                AudioService = new AudioService();
+                _logger.Debug("初始化音频服务");
+
+                // 初始化热键服务
+                _logger.Debug("初始化热键服务");
                 var hotkeyService = new HotkeyService(mainWindow, LyKeysDriver);
-                _logger.Debug("热键服务初始化完成");
 
                 // 注册应用程序退出事件
                 Exit += OnApplicationExit;
@@ -504,44 +549,16 @@ namespace WpfApp
 
         private void OnApplicationExit(object sender, ExitEventArgs e)
         {
-            if (_isShuttingDown) return;
-            _isShuttingDown = true;
+            Cleanup(CleanupLevel.Normal);
+        }
 
-            try
-            {
-                _logger.Debug("开始释放应用程序资源...");
-
-                // 确保所有服务都被释放
-                if (LyKeysDriver != null)
-                {
-                    LyKeysDriver.Dispose();
-                    LyKeysDriver = null;
-                }
-
-                if (AudioService != null)
-                {
-                    AudioService.Dispose();
-                    AudioService = null;
-                }
-
-                // 清理配置服务
-                ConfigService = null;
-
-                // 最后释放日志服务
-                _logger.Debug("应用程序资源已释放");
-                _logger.Debug("=================================================");
-                _logger.Dispose();
-            }
-            catch (Exception ex)
-            {
-                // 在这里我们只能尝试直接写入到调试输出，因为日志系统可能已经关闭
-                System.Diagnostics.Debug.WriteLine($"应用程序退出异常: {ex.Message}");
-            }
-            finally
-            {
-                // 确保进程退出
-                Environment.Exit(0);
-            }
+        private string GetEnvironment()
+        {
+            #if DEBUG
+                return "Development";
+            #else
+                return "Production";
+            #endif
         }
     }
 }

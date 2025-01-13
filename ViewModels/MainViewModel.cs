@@ -144,73 +144,154 @@ namespace WpfApp.ViewModels
         // 导航到指定页面
         private void Navigate(string? parameter)
         {
-            if (string.IsNullOrEmpty(parameter)) return;
-
-            // 如果当前页面是 KeyMappingView 并且正在执行按键操作，先停止它
-            if (CurrentPage?.DataContext is KeyMappingViewModel keyMappingVM && keyMappingVM.IsExecuting)
+            try
             {
-                _logger.Debug("检测到按键正在执行，正在停止...");
-                keyMappingVM.StopKeyMapping();
-            }
-
-            // 创建或获取页面
-            Page? newPage = GetOrCreatePage(parameter);
-
-            if (newPage != null)
-            {
-                var oldPage = CurrentPage;
-                
-                // 如果有旧页面，先播放淡出动画
-                if (oldPage != null && _fadeOutStoryboard != null)
+                if (string.IsNullOrEmpty(parameter))
                 {
-                    // 获取或创建动画
-                    var fadeOut = GetOrCreateFadeOutAnimation(parameter);
-                    var fadeIn = GetOrCreateFadeInAnimation(parameter);
+                    _logger.Debug("导航参数为空");
+                    return;
+                }
 
-                    fadeOut.Completed += (s, e) =>
+                _logger.Debug($"开始导航到页面: {parameter}");
+
+                // 如果当前页面是 KeyMappingView 并且正在执行按键操作，先停止它
+                if (CurrentPage?.DataContext is KeyMappingViewModel keyMappingVM && keyMappingVM.IsExecuting)
+                {
+                    _logger.Debug("检测到按键正在执行，正在停止...");
+                    keyMappingVM.StopKeyMapping();
+                }
+
+                // 创建或获取页面
+                Page? newPage = null;
+                try
+                {
+                    newPage = GetOrCreatePage(parameter);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"获取页面失败: {parameter}", ex);
+                    return;
+                }
+
+                if (newPage != null)
+                {
+                    _logger.Debug($"成功创建页面: {parameter}");
+                    var oldPage = CurrentPage;
+                    
+                    try
                     {
-                        // 动画完成后切换页面
-                        CurrentPage = newPage;
-                        // 播放淡入动画
-                        fadeIn.Begin(newPage);
-                    };
-                    fadeOut.Begin(oldPage);
+                        // 如果有旧页面，先播放淡出动画
+                        if (oldPage != null && _fadeOutStoryboard != null)
+                        {
+                            _logger.Debug("开始播放页面切换动画");
+                            // 获取或创建动画
+                            var fadeOut = GetOrCreateFadeOutAnimation(parameter);
+                            var fadeIn = GetOrCreateFadeInAnimation(parameter);
+
+                            fadeOut.Completed += (s, e) =>
+                            {
+                                try
+                                {
+                                    // 动画完成后切换页面
+                                    CurrentPage = newPage;
+                                    // 播放淡入动画
+                                    fadeIn.Begin(newPage);
+                                    _logger.Debug($"页面切换动画完成: {parameter}");
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.Error($"页面切换动画完成回调失败: {parameter}", ex);
+                                }
+                            };
+                            fadeOut.Begin(oldPage);
+                        }
+                        else
+                        {
+                            // 没有旧页面，直接切换并播放淡入动画
+                            _logger.Debug("直接切换页面（无动画）");
+                            CurrentPage = newPage;
+                            GetOrCreateFadeInAnimation(parameter).Begin(newPage);
+                        }
+
+                        _logger.Debug($"页面切换完成: {parameter}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error($"页面切换过程失败: {parameter}", ex);
+                        // 如果动画失败，尝试直接切换
+                        try
+                        {
+                            CurrentPage = newPage;
+                            _logger.Debug("已尝试直接切换页面（跳过动画）");
+                        }
+                        catch (Exception innerEx)
+                        {
+                            _logger.Error("直接切换页面也失败", innerEx);
+                        }
+                    }
                 }
                 else
                 {
-                    // 没有旧页面，直接切换并播放淡入动画
-                    CurrentPage = newPage;
-                    GetOrCreateFadeInAnimation(parameter).Begin(newPage);
+                    _logger.Error($"创建页面失败: {parameter}");
                 }
-
-                _logger.Debug($"页面切换到: {parameter}");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Navigate 方法执行失败: {parameter}", ex);
             }
         }
 
         private Page? GetOrCreatePage(string parameter)
         {
-            if (_pageCache.TryGetValue(parameter, out var page))
+            try
             {
-                return page;
+                _logger.Debug($"尝试获取或创建页面: {parameter}");
+
+                if (_pageCache.TryGetValue(parameter, out var page))
+                {
+                    _logger.Debug($"从缓存中获取页面: {parameter}");
+                    return page;
+                }
+
+                _logger.Debug($"创建新页面: {parameter}");
+                Page? newPage = null;
+                
+                try
+                {
+                    newPage = parameter switch
+                    {
+                        "FrontKeys" => new KeyMappingView { DataContext = _keyMappingViewModel },
+                        "Feedback" => new FeedbackView { DataContext = _feedbackViewModel },
+                        "About" => new AboutView { DataContext = _aboutViewModel },
+                        "QRCode" => new QRCodeView(),
+                        "Settings" => new SettingsView { DataContext = new SettingsViewModel(App.Configuration) },
+                        _ => null
+                    };
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"创建页面时发生异常: {parameter}", ex);
+                    throw;
+                }
+
+                if (newPage != null)
+                {
+                    _logger.Debug($"页面创建成功: {parameter}");
+                    newPage.Opacity = 0;
+                    _pageCache[parameter] = newPage;
+                }
+                else
+                {
+                    _logger.Error($"页面创建失败: {parameter}");
+                }
+
+                return newPage;
             }
-
-            Page? newPage = parameter switch
+            catch (Exception ex)
             {
-                "FrontKeys" => new KeyMappingView { DataContext = _keyMappingViewModel },
-                "Feedback" => new FeedbackView { DataContext = _feedbackViewModel },
-                "About" => new AboutView { DataContext = _aboutViewModel },
-                "QRCode" => new QRCodeView(),
-                "Settings" => PageCacheService.GetPage<SettingsView>(),
-                _ => null
-            };
-
-            if (newPage != null)
-            {
-                newPage.Opacity = 0;
-                _pageCache[parameter] = newPage;
+                _logger.Error($"GetOrCreatePage 方法执行失败: {parameter}", ex);
+                throw;
             }
-
-            return newPage;
         }
 
         private Storyboard GetOrCreateFadeInAnimation(string parameter)

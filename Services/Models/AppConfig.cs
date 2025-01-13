@@ -4,6 +4,31 @@ using System.Windows.Input;
 
 namespace WpfApp.Services.Models
 {
+
+    public class OssConfig
+    {
+        public string AccessKeyId { get; set; } = "";
+        public string AccessKeySecret { get; set; } = "";
+        public string Endpoint { get; set; } = "";
+        public string BucketName { get; set; } = "";
+        public string VersionFileKey { get; set; } = "";
+    }
+
+    public class UpdateInfo
+    {
+        public string CurrentVersion { get; set; } = "";
+        public string LatestVersion { get; set; } = "";
+        public string ReleaseNotes { get; set; } = "";
+        public string DownloadUrl { get; set; } = "";
+    }
+
+    public class VersionInfo
+    {
+        public string Version { get; set; } = "";
+        public string ReleaseNotes { get; set; } = "";
+        public string DownloadUrl { get; set; } = "";
+    }
+
     public class KeyConfig
     {
         public LyKeysCode Code { get; set; }

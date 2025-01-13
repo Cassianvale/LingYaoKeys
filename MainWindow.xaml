@@ -17,7 +17,7 @@
         SizeToContent="Manual"
         Height="650"
         MinHeight="490"
-        Width="960"
+        Width="970"
         MinWidth="600"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"

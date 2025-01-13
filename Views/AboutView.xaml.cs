@@ -6,6 +6,8 @@ using Microsoft.Web.WebView2.Core;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Threading;
+using System.Diagnostics;
+using Microsoft.Web.WebView2.Wpf;
 
 namespace WpfApp.Views
 {
@@ -14,6 +16,9 @@ namespace WpfApp.Views
         private readonly ViewModels.AboutViewModel _viewModel;
         private bool _isWebViewInitialized;
         private bool _disposedValue;
+        private WebView2 _webView;
+        private Border _loadingIndicator;
+        private Border _errorMessage;
 
         public AboutView()
         {
@@ -21,28 +26,62 @@ namespace WpfApp.Views
             _viewModel = new ViewModels.AboutViewModel();
             DataContext = _viewModel;
 
-            // 设置初始可见性
-            LoadingIndicator.Visibility = Visibility.Visible;
-            WebView.Visibility = Visibility.Collapsed;
-            ErrorMessage.Visibility = Visibility.Collapsed;
+            // 获取XAML中定义的控件引用
+            _webView = FindName("WebView") as WebView2;
+            _loadingIndicator = FindName("LoadingIndicator") as Border;
+            _errorMessage = FindName("ErrorMessage") as Border;
 
-            // 立即开始初始化
-            InitializeWebViewAsync().ContinueWith(task =>
+            if (_webView != null && _loadingIndicator != null && _errorMessage != null)
             {
-                if (task.IsFaulted)
+                // 设置初始可见性
+                _loadingIndicator.Visibility = Visibility.Visible;
+                _webView.Visibility = Visibility.Collapsed;
+                _errorMessage.Visibility = Visibility.Collapsed;
+
+                // 注册页面卸载事件
+                Unloaded += AboutView_Unloaded;
+
+                // 立即开始初始化
+                InitializeWebViewAsync().ContinueWith(task =>
                 {
-                    Dispatcher.InvokeAsync(() =>
+                    if (task.IsFaulted)
                     {
-                        LoadingIndicator.Visibility = Visibility.Collapsed;
-                        ErrorMessage.Visibility = Visibility.Visible;
-                    });
+                        Dispatcher.InvokeAsync(() =>
+                        {
+                            _loadingIndicator.Visibility = Visibility.Collapsed;
+                            _errorMessage.Visibility = Visibility.Visible;
+                        });
+                    }
+                }, TaskScheduler.Current);
+            }
+            else
+            {
+                Debug.WriteLine("无法获取必要的控件引用");
+            }
+        }
+
+        private void AboutView_Unloaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 在页面卸载时主动清理资源
+                if (_webView?.CoreWebView2 != null)
+                {
+                    _webView.CoreWebView2.NavigationCompleted -= CoreWebView2_NavigationCompleted;
+                    _webView.CoreWebView2.Stop();
+                    _webView.Source = null;
                 }
-            }, TaskScheduler.Current);
+                Dispose();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"页面卸载时清理资源发生错误: {ex.Message}");
+            }
         }
 
         private async Task InitializeWebViewAsync()
         {
-            if (_isWebViewInitialized) return;
+            if (_isWebViewInitialized || _webView == null) return;
 
             try
             {
@@ -50,10 +89,10 @@ namespace WpfApp.Views
                 var environment = await Services.WebView2Service.Instance.GetEnvironmentAsync();
                 
                 // 初始化WebView2
-                await WebView.EnsureCoreWebView2Async(environment);
+                await _webView.EnsureCoreWebView2Async(environment);
 
                 // 配置WebView2
-                var webView = WebView.CoreWebView2;
+                var webView = _webView.CoreWebView2;
                 webView.Settings.IsScriptEnabled = true;
                 webView.Settings.AreDefaultContextMenusEnabled = false;
                 webView.Settings.IsZoomControlEnabled = false;
@@ -64,8 +103,8 @@ namespace WpfApp.Views
                 webView.NavigationCompleted += CoreWebView2_NavigationCompleted;
 
                 // 显示WebView
-                WebView.Visibility = Visibility.Visible;
-                LoadingIndicator.Visibility = Visibility.Collapsed;
+                _webView.Visibility = Visibility.Visible;
+                _loadingIndicator.Visibility = Visibility.Collapsed;
 
                 // 初始化ViewModel并开始加载内容
                 _viewModel.Initialize(webView);
@@ -77,8 +116,11 @@ namespace WpfApp.Views
                 _viewModel.HandleWebViewError(ex);
                 await Dispatcher.InvokeAsync(() =>
                 {
-                    LoadingIndicator.Visibility = Visibility.Collapsed;
-                    ErrorMessage.Visibility = Visibility.Visible;
+                    if (_loadingIndicator != null && _errorMessage != null)
+                    {
+                        _loadingIndicator.Visibility = Visibility.Collapsed;
+                        _errorMessage.Visibility = Visibility.Visible;
+                    }
                 });
             }
         }
@@ -89,9 +131,12 @@ namespace WpfApp.Views
             {
                 Dispatcher.InvokeAsync(() =>
                 {
-                    WebView.Visibility = Visibility.Collapsed;
-                    ErrorMessage.Visibility = Visibility.Visible;
-                    _viewModel.HandleWebViewError(e.WebErrorStatus);
+                    if (_webView != null && _errorMessage != null)
+                    {
+                        _webView.Visibility = Visibility.Collapsed;
+                        _errorMessage.Visibility = Visibility.Visible;
+                        _viewModel.HandleWebViewError(e.WebErrorStatus);
+                    }
                 });
             }
         }
@@ -102,17 +147,36 @@ namespace WpfApp.Views
             {
                 if (disposing)
                 {
-                    // 清理事件订阅
-                    if (WebView?.CoreWebView2 != null)
+                    try
                     {
-                        WebView.CoreWebView2.NavigationCompleted -= CoreWebView2_NavigationCompleted;
-                        WebView.Source = null;
-                    }
+                        // 清理 WebView2 资源
+                        if (_webView != null)
+                        {
+                            if (_webView.CoreWebView2 != null)
+                            {
+                                _webView.CoreWebView2.NavigationCompleted -= CoreWebView2_NavigationCompleted;
+                                _webView.CoreWebView2.Stop();
+                                _webView.Source = null;
+                            }
+                            _webView = null;
+                        }
 
-                    // 释放ViewModel资源
-                    if (_viewModel is IDisposable disposableViewModel)
+                        // 释放ViewModel资源
+                        if (_viewModel is IDisposable disposableViewModel)
+                        {
+                            disposableViewModel.Dispose();
+                        }
+                        
+                        // 取消事件订阅
+                        Unloaded -= AboutView_Unloaded;
+
+                        // 清理控件引用
+                        _loadingIndicator = null;
+                        _errorMessage = null;
+                    }
+                    catch (Exception ex)
                     {
-                        disposableViewModel.Dispose();
+                        Debug.WriteLine($"清理 WebView2 资源时发生错误: {ex.Message}");
                     }
                 }
                 _disposedValue = true;

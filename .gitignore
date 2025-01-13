@@ -384,3 +384,11 @@ ASALocalRun/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# 配置文件
+appsettings.json
+appsettings.Development.json
+appsettings.Production.json
+
+# 但不忽略模板文件
+!appsettings.template.json
