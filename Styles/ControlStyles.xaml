@@ -40,7 +40,7 @@
                             <Setter Property="BorderBrush" Value="#90CAF9"/>
                         </Trigger>
                         <Trigger Property="IsFocused" Value="True">
-                            <Setter Property="BorderBrush" Value="#2196F3"/>
+                            <Setter Property="BorderBrush" Value="#FF0000"/>
                         </Trigger>
                         <MultiTrigger>
                             <MultiTrigger.Conditions>
