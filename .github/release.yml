@@ -1,0 +1,33 @@
+name: Release Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '新版本号'
+        required: true
+
+jobs:
+  update-version:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Update Version
+        run: .\update-version.ps1 -newVersion ${{ github.event.inputs.version }}
+        
+      - name: Setup Aliyun CLI
+        run: |
+          # 配置阿里云凭证
+          aliyun configure set --access-key-id ${{ secrets.OSS_ACCESS_KEY_ID }}
+          aliyun configure set --access-key-secret ${{ secrets.OSS_ACCESS_KEY_SECRET }}
+          
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          release_name: Release ${{ github.event.inputs.version }}
+          draft: false
+          prerelease: false 
