@@ -61,6 +61,11 @@
     <SelfContained>false</SelfContained>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <NoWarn>$(NoWarn);NETSDK1187</NoWarn>
+    
+    <!-- 发布优化配置 -->
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+    <UseAppHost>true</UseAppHost>
+
   </PropertyGroup>
 
   <!-- 发布配置 -->
@@ -120,6 +125,7 @@
       <FilesToDelete Include="$(PublishDir)*.xml" />
       <FilesToDelete Include="$(PublishDir)*.deps.json" />
       <FilesToDelete Include="$(PublishDir)*.dll" />
+      <FilesToDelete Include="$(PublishDir)*.runtimeconfig.json" />
       <FilesToDelete Include="$(PublishDir)runtimes\**\*.*" />
       <DirectoriesToDelete Include="$(PublishDir)runtimes" />
       <FilesToDelete Include="$(PublishDir)*.exe.WebView2\**\*.*" />
