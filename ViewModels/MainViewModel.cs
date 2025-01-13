@@ -23,7 +23,7 @@ namespace WpfApp.ViewModels
         private bool _isDisposed;
         private readonly object _disposeLock = new object();
         private Page? _currentPage;
-        private readonly LyKeysService _ddDriver;
+        private readonly LyKeysService _lyKeysService;
         private readonly Window _mainWindow;
         private readonly KeyMappingViewModel _keyMappingViewModel;
         private readonly FeedbackViewModel _feedbackViewModel;
@@ -99,10 +99,12 @@ namespace WpfApp.ViewModels
 
         public ICommand NavigateCommand { get; }
 
+        // 添加KeyMappingViewModel的公共属性
+        public KeyMappingViewModel KeyMappingViewModel => _keyMappingViewModel;
 
-        public MainViewModel(LyKeysService ddDriver, Window mainWindow)
+        public MainViewModel(LyKeysService lyKeysService, Window mainWindow)
         {
-            _ddDriver = ddDriver;
+            _lyKeysService = lyKeysService;
             _mainWindow = mainWindow;
 
             // 先获取动画资源
@@ -125,15 +127,15 @@ namespace WpfApp.ViewModels
             mainWindow.DataContext = this;
 
             // 其他初始化
-            _hotkeyService = new HotkeyService(mainWindow, ddDriver);
-            _keyMappingViewModel = new KeyMappingViewModel(_ddDriver, App.ConfigService, _hotkeyService, this, App.AudioService);
+            _hotkeyService = new HotkeyService(mainWindow, lyKeysService);
+            _keyMappingViewModel = new KeyMappingViewModel(_lyKeysService, App.ConfigService, _hotkeyService, this, App.AudioService);
             _feedbackViewModel = new FeedbackViewModel(this);
             _aboutViewModel = new AboutViewModel();
             
             NavigateCommand = new RelayCommand<string>(Navigate);
             
             // 订阅状态消息事件
-            _ddDriver.StatusMessageChanged += OnDriverStatusMessageChanged;
+            _lyKeysService.StatusMessageChanged += OnDriverStatusMessageChanged;
             
             // 最后设置默认页面
             Navigate("FrontKeys");

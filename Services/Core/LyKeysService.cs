@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
 using System.Linq;
+using WpfApp.Services.Models;
+using WpfApp.ViewModels;
 
 namespace WpfApp.Services
 {
@@ -30,6 +32,7 @@ namespace WpfApp.Services
         private bool _isDisposed;
         private CancellationTokenSource? _holdModeCts;
         private readonly Dictionary<int, LyKeysCode> _virtualKeyMap;
+        private bool _isRapidFireEnabled; // 连发开关状态
         #endregion
 
         #region 事件定义
@@ -166,6 +169,27 @@ namespace WpfApp.Services
                     if (wasEnabled)
                     {
                         IsEnabled = true;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取或设置连发功能是否启用
+        /// </summary>
+        public bool IsRapidFireEnabled
+        {
+            get => _isRapidFireEnabled;
+            set
+            {
+                if (_isRapidFireEnabled != value)
+                {
+                    _isRapidFireEnabled = value;
+                    // 当连发状态改变时，重新应用按键列表过滤
+                    if (_keyList.Any())
+                    {
+                        var currentKeys = new List<LyKeysCode>(_keyList);
+                        SetKeyList(currentKeys);
                     }
                 }
             }
@@ -358,7 +382,24 @@ namespace WpfApp.Services
                     return;
                 }
 
-                _keyList = new List<LyKeysCode>(keyList);
+                // 获取所有按键项
+                var keyItems = keyList.Select(k => new { Code = k, Item = GetKeyItem(k) }).ToList();
+
+                // 根据连发状态过滤按键
+                var filteredKeys = keyList;
+                if (_isRapidFireEnabled)
+                {
+                    // 过滤掉连发按键
+                    filteredKeys = keyItems
+                        .Where(k => k.Item == null || !k.Item.IsKeyBurst)
+                        .Select(k => k.Code)
+                        .ToList();
+
+                    _logger.Debug($"连发模式已启用，过滤后的按键数量: {filteredKeys.Count}, " +
+                                $"过滤掉的连发按键数量: {keyList.Count - filteredKeys.Count}");
+                }
+
+                _keyList = new List<LyKeysCode>(filteredKeys);
                 _logger.Debug($"按键列表已更新 - 按键数量: {_keyList.Count}");
             }
             catch (Exception ex)
@@ -367,6 +408,28 @@ namespace WpfApp.Services
                 _keyList.Clear();
                 IsEnabled = false;
             }
+        }
+
+        /// <summary>
+        /// 获取按键对应的KeyItem
+        /// </summary>
+        private KeyItem? GetKeyItem(LyKeysCode keyCode)
+        {
+            try
+            {
+                // 通过反射获取主窗口实例
+                var mainWindow = System.Windows.Application.Current.MainWindow;
+                if (mainWindow?.DataContext is MainViewModel mainViewModel)
+                {
+                    var keyMappingViewModel = mainViewModel.KeyMappingViewModel;
+                    return keyMappingViewModel.KeyList.FirstOrDefault(k => k.KeyCode == keyCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"获取KeyItem异常: {keyCode}", ex);
+            }
+            return null;
         }
 
         /// <summary>

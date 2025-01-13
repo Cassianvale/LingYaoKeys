@@ -585,6 +585,8 @@ namespace WpfApp.Services
         public void SetRapidFireEnabled(bool enabled)
         {
             _isRapidFireEnabled = enabled;
+            // 同步状态到LyKeysService
+            _lyKeysService.IsRapidFireEnabled = enabled;
             if (!enabled)
             {
                 // 当禁用连发时，清空连发按键列表
