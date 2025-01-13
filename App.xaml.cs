@@ -20,7 +20,7 @@ namespace WpfApp
         private bool _isShuttingDown;
         private readonly string _userDataPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".lingyao"
+            ".lykeys"
         );
 
         [DllImport("Kernel32")]
@@ -258,6 +258,35 @@ namespace WpfApp
                         // 等待服务完全删除
                         await Task.Delay(1000);
                     }
+
+                    // 尝试结束所有相关进程
+                    try
+                    {
+                        var processes = Process.GetProcessesByName("lykeys");
+                        foreach (var proc in processes)
+                        {
+                            try
+                            {
+                                proc.Kill();
+                                proc.WaitForExit(1000);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.Error($"结束进程失败: {ex.Message}", ex);
+                            }
+                            finally
+                            {
+                                proc.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error($"清理相关进程失败: {ex.Message}", ex);
+                    }
+
+                    // 等待一段时间，确保所有资源都被释放
+                    await Task.Delay(1000);
                 }
             }
             catch (Exception ex)
@@ -323,17 +352,42 @@ namespace WpfApp
                 string dllFile = Path.Combine(driverPath, "lykeysdll.dll");
                 string catFile = Path.Combine(driverPath, "lykeys.cat");
 
+                // 新增：清理已存在的服务
+                try
+                {
+                    await CleanupExistingServiceAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error("清理已存在的服务失败", ex);
+                    System.Windows.MessageBox.Show("清理已存在的服务失败，请手动停止并删除lykeys服务后重试", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Current.Shutdown();
+                    return;
+                }
+
                 try
                 {
                     // 确保驱动目录存在
                     Directory.CreateDirectory(driverPath);
 
-                    // 从嵌入式资源提取驱动文件
-                    ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeys.sys", driverFile);
-                    ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeysdll.dll", dllFile);
-                    ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeys.cat", catFile);
+                    // 检查驱动文件是否存在且完整
+                    bool needExtractFiles = !File.Exists(driverFile) || 
+                                          !File.Exists(dllFile) || 
+                                          !File.Exists(catFile);
 
-                    _logger.Debug($"驱动文件已提取到用户数据目录: {driverPath}");
+                    if (needExtractFiles)
+                    {
+                        _logger.Debug("驱动文件不存在或不完整，开始提取...");
+                        // 从嵌入式资源提取驱动文件
+                        ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeys.sys", driverFile);
+                        ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeysdll.dll", dllFile);
+                        ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeys.cat", catFile);
+                        _logger.Debug($"驱动文件已提取到用户数据目录: {driverPath}");
+                    }
+                    else
+                    {
+                        _logger.Debug("驱动文件已存在且完整，跳过提取步骤");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -355,19 +409,6 @@ namespace WpfApp
                 _logger.Debug($"驱动文件: {driverFile}");
                 _logger.Debug($"DLL文件: {dllFile}");
                 _logger.Debug($"CAT文件: {catFile}");
-
-                // 新增：清理已存在的服务
-                try
-                {
-                    await CleanupExistingServiceAsync();
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error("清理已存在的服务失败", ex);
-                    System.Windows.MessageBox.Show("清理已存在的服务失败，请手动停止并删除lykeys服务后重试", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    Current.Shutdown();
-                    return;
-                }
 
                 // 初始化驱动管理器
                 try
@@ -412,17 +453,11 @@ namespace WpfApp
                 {
                     try
                     {
-                        // 清理驱动文件
-                        string driverPath = Path.Combine(_userDataPath, "Resource", "lykeysdll");
-                        if (Directory.Exists(driverPath))
-                        {
-                            Directory.Delete(driverPath, true);
-                            _logger.Debug("驱动文件已清理");
-                        }
+                        _logger.Debug("程序正常退出");
                     }
                     catch (Exception ex)
                     {
-                        _logger.Error($"清理驱动文件失败: {ex.Message}", ex);
+                        _logger.Error($"程序退出时发生错误: {ex.Message}", ex);
                     }
                 };
             }
@@ -450,7 +485,12 @@ namespace WpfApp
                         throw new FileNotFoundException($"找不到嵌入式资源: {resourceName}");
                     }
 
-                    using (FileStream fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write))
+                    // 使用 FileShare.Delete 允许其他进程删除文件
+                    using (FileStream fileStream = new FileStream(
+                        outputPath, 
+                        FileMode.Create, 
+                        FileAccess.Write, 
+                        FileShare.Delete))
                     {
                         stream.CopyTo(fileStream);
                     }

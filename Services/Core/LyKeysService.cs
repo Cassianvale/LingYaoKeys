@@ -389,7 +389,7 @@ namespace WpfApp.Services
                 var filteredKeys = keyList;
                 if (_isRapidFireEnabled)
                 {
-                    // 过滤掉连发按键
+                    // 过滤掉连发按键，如果 KeyItem 为 null，则保留该按键
                     filteredKeys = keyItems
                         .Where(k => k.Item == null || !k.Item.IsKeyBurst)
                         .Select(k => k.Code)
@@ -418,18 +418,40 @@ namespace WpfApp.Services
             try
             {
                 // 通过反射获取主窗口实例
-                var mainWindow = System.Windows.Application.Current.MainWindow;
-                if (mainWindow?.DataContext is MainViewModel mainViewModel)
+                var mainWindow = System.Windows.Application.Current?.MainWindow;
+                if (mainWindow == null)
                 {
-                    var keyMappingViewModel = mainViewModel.KeyMappingViewModel;
-                    return keyMappingViewModel.KeyList.FirstOrDefault(k => k.KeyCode == keyCode);
+                    _logger.Debug($"主窗口未初始化，跳过获取KeyItem: {keyCode}");
+                    return null;
                 }
+
+                var mainViewModel = mainWindow.DataContext as MainViewModel;
+                if (mainViewModel == null)
+                {
+                    _logger.Debug($"MainViewModel未初始化，跳过获取KeyItem: {keyCode}");
+                    return null;
+                }
+
+                var keyMappingViewModel = mainViewModel.KeyMappingViewModel;
+                if (keyMappingViewModel == null)
+                {
+                    _logger.Debug($"KeyMappingViewModel未初始化，跳过获取KeyItem: {keyCode}");
+                    return null;
+                }
+
+                if (keyMappingViewModel.KeyList == null)
+                {
+                    _logger.Debug($"KeyList为空，跳过获取KeyItem: {keyCode}");
+                    return null;
+                }
+
+                return keyMappingViewModel.KeyList.FirstOrDefault(k => k?.KeyCode == keyCode);
             }
             catch (Exception ex)
             {
-                _logger.Error($"获取KeyItem异常: {keyCode}", ex);
+                _logger.Debug($"获取KeyItem时发生异常: {keyCode}, 错误: {ex.Message}");
+                return null;
             }
-            return null;
         }
 
         /// <summary>

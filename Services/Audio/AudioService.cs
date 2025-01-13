@@ -26,7 +26,7 @@ namespace WpfApp.Services
         {
             string userDataPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                ".lingyao",
+                ".lykeys",
                 "sound"
             );
             Directory.CreateDirectory(userDataPath);

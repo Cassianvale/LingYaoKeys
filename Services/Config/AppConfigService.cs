@@ -24,7 +24,7 @@ namespace WpfApp.Services
     {
         private static string _configPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".lingyao",
+            ".lykeys",
             "AppConfig.json"
         );
         private static AppConfig? _config;

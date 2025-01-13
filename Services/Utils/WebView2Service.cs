@@ -13,7 +13,7 @@ namespace WpfApp.Services
 
         private static readonly string UserDataFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".lingyao",
+            ".lykeys",
             "WebView2"
         );
 
