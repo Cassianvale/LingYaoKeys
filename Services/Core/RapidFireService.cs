@@ -90,14 +90,9 @@ namespace WpfApp.Services
             {
                 if (_activeKeys.TryRemove(keyCode, out var cts))
                 {
-                    _logger.Debug($"正在停止连发 - 按键: {keyCode}");
                     cts.Cancel();
-                    
-                    // 等待一小段时间确保取消生效
-                    Task.Delay(50).Wait();
-                    
                     cts.Dispose();
-                    _logger.Debug($"连发已停止 - 按键: {keyCode}");
+                    _logger.Debug($"停止连发 - 按键: {keyCode}");
                 }
             }
             catch (Exception ex)
@@ -117,42 +112,61 @@ namespace WpfApp.Services
 
         private async Task RunKeyBurstAsync(LyKeysCode keyCode, KeyBurstConfig config, CancellationToken cancellationToken)
         {
-
-            _logger.Debug($"开始连发循环 - 按键: {keyCode}, 延迟: {config.RapidFireDelay}ms, 按压时长: {config.PressTime}ms");
-
-            while (!cancellationToken.IsCancellationRequested)
+            try
             {
-                try
+                while (!cancellationToken.IsCancellationRequested)
                 {
                     // 设置标记，表示这是模拟按键
                     _lyKeysService.IsSimulatedInput = true;
-
-                    // 按下按键
-                    _lyKeysService.SendKeyDown(keyCode);
-                    
-                    // 等待按压时长
-                    await Task.Delay(config.PressTime, cancellationToken);
-                    
-                    // 检查是否已请求取消
-                    if (cancellationToken.IsCancellationRequested)
+                    try
                     {
-                        break;
+                        // 按下按键
+                        _lyKeysService.SendKeyDown(keyCode);
+                        
+                        // 等待按压时长
+                        await Task.Delay(config.PressTime, cancellationToken);
+                        
+                        // 释放按键
+                        _lyKeysService.SendKeyUp(keyCode);
                     }
-
-                    // 释放按键
-                    _lyKeysService.SendKeyUp(keyCode);
-
+                    finally
+                    {
+                        // 恢复标记
+                        _lyKeysService.IsSimulatedInput = false;
+                    }
+                    
                     // 等待连发间隔
                     await Task.Delay(config.RapidFireDelay, cancellationToken);
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // 正常取消，确保按键释放
+                _lyKeysService.IsSimulatedInput = true;
+                try
+                {
+                    _lyKeysService.SendKeyUp(keyCode);
+                }
                 finally
                 {
-                    // 恢复标记
+                    _lyKeysService.IsSimulatedInput = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"连发循环异常 - 按键: {keyCode}", ex);
+                // 确保按键释放
+                _lyKeysService.IsSimulatedInput = true;
+                try
+                {
+                    _lyKeysService.SendKeyUp(keyCode);
+                }
+                finally
+                {
                     _lyKeysService.IsSimulatedInput = false;
                 }
             }
         }
-
 
         public void Dispose()
         {
