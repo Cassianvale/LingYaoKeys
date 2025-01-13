@@ -225,16 +225,18 @@ namespace WpfApp.ViewModels
         {
             try
             {
-                var rapidFireKeys = new List<KeyBurstConfig>();
+                var rapidFireKeys = GetAllKeys()
+                    .Where(k => k.IsRapidFire)
+                    .Select(k => new KeyBurstConfig(k.KeyCode, k.RapidFireDelay, k.PressTime))
+                    .ToList();
+
                 foreach (var key in GetAllKeys())
                 {
                     if (key.IsRapidFire)
                     {
                         key.IsDisabled = IsRapidFireEnabled;
                         // 通知KeyMappingViewModel更新标记状态
-                        KeyBurstStateChanged?.Invoke(key.KeyCode, key.IsRapidFire);
-                        // 添加到连发配置列表
-                        rapidFireKeys.Add(new KeyBurstConfig(key.KeyCode, key.RapidFireDelay, key.PressTime));
+                        KeyBurstStateChanged?.Invoke(key.KeyCode, true);
                     }
                 }
 
@@ -282,6 +284,7 @@ namespace WpfApp.ViewModels
                 // 加载按键配置
                 if (config.KeyBurst != null)
                 {
+                    var rapidFireKeys = new List<KeyBurstConfig>();
                     foreach (var burstKey in config.KeyBurst)
                     {
                         var key = GetAllKeys().FirstOrDefault(k => k.KeyCode == burstKey.Code);
@@ -292,19 +295,15 @@ namespace WpfApp.ViewModels
                             key.PressTime = burstKey.PressTime;
                             key.IsDisabled = IsRapidFireEnabled;
                             
+                            // 添加到连发按键列表
+                            rapidFireKeys.Add(new KeyBurstConfig(burstKey.Code, burstKey.RapidFireDelay, burstKey.PressTime));
+                            
                             // 触发事件通知 KeyMappingViewModel
                             KeyBurstStateChanged?.Invoke(key.KeyCode, true);
                         }
                     }
 
                     // 同步连发按键配置到 HotkeyService
-                    var rapidFireKeys = GetAllKeys()
-                        .Where(k => k.IsRapidFire)
-                        .Select(k => new KeyBurstConfig(k.KeyCode)
-                        {
-                            RapidFireDelay = k.RapidFireDelay,
-                            PressTime = k.PressTime
-                        });
                     _hotkeyService.UpdateRapidFireKeys(rapidFireKeys);
                 }
             }
@@ -320,27 +319,19 @@ namespace WpfApp.ViewModels
             {
                 var config = AppConfigService.Config;
                 var existingKeys = config.keys?.ToList() ?? new List<KeyConfig>();
-                var rapidFireKeys = new List<KeyBurstConfig>();
 
                 // 收集所有连发按键的信息
-                var rapidFireKeyInfos = GetAllKeys()
+                var rapidFireKeys = GetAllKeys()
                     .Where(k => k.IsRapidFire)
-                    .Select(k => new { Code = k.KeyCode, Delay = k.RapidFireDelay, PressTime = k.PressTime })
+                    .Select(k => new KeyBurstConfig(k.KeyCode, k.RapidFireDelay, k.PressTime))
                     .ToList();
 
-                Console.WriteLine($"发现 {rapidFireKeyInfos.Count} 个连发按键");
-
-                // 保存所有连发按键到KeyBurst
-                foreach (var rapidFireInfo in rapidFireKeyInfos)
-                {
-                    Console.WriteLine($"添加连发按键: {rapidFireInfo.Code}，延迟值: {rapidFireInfo.Delay}ms，按压时间: {rapidFireInfo.PressTime}ms");
-                    rapidFireKeys.Add(new KeyBurstConfig(rapidFireInfo.Code, rapidFireInfo.Delay, rapidFireInfo.PressTime));
-                }
+                Console.WriteLine($"发现 {rapidFireKeys.Count} 个连发按键");
 
                 // 更新keys列表中按键的IsKeyBurst状态
                 foreach (var existingKey in existingKeys)
                 {
-                    var isRapidFire = rapidFireKeyInfos.Any(k => k.Code == existingKey.Code);
+                    var isRapidFire = rapidFireKeys.Any(k => k.Code == existingKey.Code);
                     existingKey.IsKeyBurst = isRapidFire;
                     Console.WriteLine($"更新已有按键 {existingKey.Code} 的连发状态为 {isRapidFire}");
                 }
@@ -352,6 +343,9 @@ namespace WpfApp.ViewModels
                     config.IsRapidFire = IsRapidFireEnabled;
                     config.IsRapidFireEnabled = IsRapidFireEnabled;  // 同时更新两个状态字段
                 });
+
+                // 同步到HotkeyService
+                _hotkeyService.UpdateRapidFireKeys(rapidFireKeys);
 
                 Console.WriteLine("配置保存成功");
             }
@@ -392,14 +386,16 @@ namespace WpfApp.ViewModels
 
                 // 立即同步连发状态和配置
                 _hotkeyService.SetRapidFireEnabled(_isRapidFireEnabled);
+                
                 var rapidFireKeys = GetAllKeys()
                     .Where(k => k.IsRapidFire)
-                    .Select(k => new KeyBurstConfig(k.KeyCode)
-                    {
-                        RapidFireDelay = k.RapidFireDelay,
-                        PressTime = k.PressTime
-                    });
+                    .Select(k => new KeyBurstConfig(k.KeyCode, k.RapidFireDelay, k.PressTime))
+                    .ToList();
+
                 _hotkeyService.UpdateRapidFireKeys(rapidFireKeys);
+                
+                // 更新UI状态
+                OnPropertyChanged(nameof(IsRapidFireEnabled));
             }
             catch (Exception ex)
             {
