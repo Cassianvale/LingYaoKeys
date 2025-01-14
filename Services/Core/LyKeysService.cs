@@ -33,6 +33,9 @@ namespace WpfApp.Services
         private CancellationTokenSource? _holdModeCts;
         private readonly Dictionary<int, LyKeysCode> _virtualKeyMap;
         private bool _isRapidFireEnabled; // 连发开关状态
+        private volatile bool _emergencyStop;
+        private const int EMERGENCY_STOP_THRESHOLD = 100; // 100ms内未能停止则强制停止
+        private readonly object _emergencyStopLock = new object();
         #endregion
 
         #region 事件定义
@@ -88,16 +91,10 @@ namespace WpfApp.Services
                     
                     if (_isEnabled)
                     {
-                        try
-                        {
-                            // 在启用服务时切换到英文输入法
-                            _inputMethodService.SwitchToEnglish();
-                            _logger.Debug("服务启用：已切换到英文输入法");
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.Error("切换输入法失败", ex);
-                        }
+                        // 启动前保存输入法状态
+                        _inputMethodService.StoreCurrentLayout();
+                        _inputMethodService.SwitchToEnglish();
+                        _logger.Debug("服务启用：已切换到英文输入法");
 
                         if (_isHoldMode)
                         {
@@ -119,16 +116,9 @@ namespace WpfApp.Services
                             StopKeySequence();
                         }
 
-                        try
-                        {
-                            // 在禁用服务时恢复原始输入法
-                            _inputMethodService.RestorePreviousLayout();
-                            _logger.Debug("服务禁用：已恢复原始输入法");
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.Error("恢复输入法失败", ex);
-                        }
+                        // 只在完全停止时恢复输入法
+                        RestoreIME();
+                        _logger.Debug("服务停用：已恢复输入法");
                     }
                 }
             }
@@ -678,7 +668,13 @@ namespace WpfApp.Services
                 if (!CheckInitialization()) return;
 
                 _logger.Debug("开始启动按键序列");
-                StopKeySequence();
+                
+                // 重置紧急停止标志
+                lock (_emergencyStopLock)
+                {
+                    _emergencyStop = false;
+                }
+                
                 _sequenceStopwatch.Restart();
 
                 if (_keyList.Count > 0)
@@ -706,6 +702,57 @@ namespace WpfApp.Services
             try
             {
                 _sequenceStopwatch.Stop();
+
+                // 确保释放所有可能按下的按键
+                foreach (var key in _keyList)
+                {
+                    SendKeyUp(key);
+                }
+
+                // 恢复输入法
+                RestoreIME();
+                _logger.Debug("按键序列已停止，输入法已恢复");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("停止按键序列异常", ex);
+                ForceStop();
+            }
+        }
+
+        // 新增：紧急停止方法，只在窗口切换时调用
+        public void EmergencyStop()
+        {
+            try
+            {
+                _logger.Debug("开始执行紧急停止");
+                
+                // 设置紧急停止标志
+                lock (_emergencyStopLock)
+                {
+                    _emergencyStop = true;
+                }
+
+                // 使用计时器确保在阈值时间内停止
+                var stopTimer = new System.Timers.Timer(EMERGENCY_STOP_THRESHOLD);
+                stopTimer.Elapsed += (s, e) =>
+                {
+                    try
+                    {
+                        if (_isEnabled)
+                        {
+                            _logger.Warning("检测到按键未能及时停止，强制停止");
+                            ForceStop();
+                        }
+                        ((System.Timers.Timer)s).Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error("紧急停止时发生异常", ex);
+                    }
+                };
+                stopTimer.Start();
+
                 // 确保释放所有可能按下的按键
                 foreach (var key in _keyList)
                 {
@@ -714,24 +761,74 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                _logger.Error("停止按键序列异常", ex);
+                _logger.Error("紧急停止异常", ex);
+                ForceStop();
             }
         }
 
         private void ExecuteKeySequence()
         {
             _logger.Debug("开始执行按键序列");
+            
+            var spinWait = new SpinWait();
+            var stopwatch = new Stopwatch();
 
             while (_isEnabled && !_isHoldMode)
             {
                 try
                 {
+                    // 检查紧急停止标志
+                    if (_emergencyStop)
+                    {
+                        _logger.Debug("检测到紧急停止标志，终止按键序列");
+                        break;
+                    }
+
                     foreach (var key in _keyList)
                     {
-                        if (!_isEnabled || _isHoldMode) break;
-                        
+                        if (!_isEnabled || _isHoldMode || _emergencyStop)
+                        {
+                            _logger.Debug("检测到停止信号，中断按键序列");
+                            return;
+                        }
+
+                        stopwatch.Restart();
                         SendKeyPress(key, _keyPressInterval);
-                        Thread.Sleep(_keyInterval);
+
+                        // 计算剩余等待时间
+                        var elapsedMs = stopwatch.ElapsedMilliseconds;
+                        var remainingDelay = Math.Max(0, _keyInterval - elapsedMs);
+
+                        if (remainingDelay > 0)
+                        {
+                            // 对于短延迟使用自旋等待
+                            if (remainingDelay <= 2)
+                            {
+                                while (stopwatch.ElapsedMilliseconds < _keyInterval)
+                                {
+                                    if (!_isEnabled || _isHoldMode || _emergencyStop)
+                                    {
+                                        return;
+                                    }
+                                    spinWait.SpinOnce();
+                                }
+                            }
+                            else
+                            {
+                                // 分段休眠，以提高响应性
+                                var segments = Math.Max(1, remainingDelay / 10);
+                                var segmentDelay = remainingDelay / segments;
+                                
+                                for (int i = 0; i < segments; i++)
+                                {
+                                    if (!_isEnabled || _isHoldMode || _emergencyStop)
+                                    {
+                                        return;
+                                    }
+                                    Thread.Sleep((int)segmentDelay);
+                                }
+                            }
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -751,6 +848,13 @@ namespace WpfApp.Services
 
                 StopHoldMode();
 
+                // 重置紧急停止标志
+                lock (_emergencyStopLock)
+                {
+                    _emergencyStop = false;
+                    _logger.Debug("已重置紧急停止标志");
+                }
+
                 lock (_stateLock)
                 {
                     if (_keyList.Count > 0)
@@ -758,6 +862,11 @@ namespace WpfApp.Services
                         _holdModeCts = new CancellationTokenSource();
                         // 在新线程中启动按压模式
                         Task.Run(ExecuteHoldMode, _holdModeCts.Token);
+                        _logger.Debug($"按压模式已启动，按键数量: {_keyList.Count}");
+                    }
+                    else
+                    {
+                        _logger.Warning("按键列表为空，无法启动按压模式");
                     }
                 }
             }
@@ -807,6 +916,7 @@ namespace WpfApp.Services
                         }
                     }
                 }
+
                 _logger.Debug("按压模式已停止");
             }
             catch (Exception ex)
@@ -820,7 +930,6 @@ namespace WpfApp.Services
             CancellationToken token;
             List<LyKeysCode> keyListSnapshot;
 
-            // 只在开始时获取一次token和按键列表
             lock (_stateLock)
             {
                 if (_holdModeCts == null) return;
@@ -836,7 +945,7 @@ namespace WpfApp.Services
 
             try
             {
-                _logger.Debug("开始执行按压模式循环");
+                _logger.Debug($"开始执行按压模式循环，按键数量: {keyListSnapshot.Count}");
 
                 int currentIndex = 0;
                 var stopwatch = new Stopwatch();
@@ -844,6 +953,16 @@ namespace WpfApp.Services
 
                 while (!token.IsCancellationRequested && _isEnabled && _isHoldMode)
                 {
+                    // 检查紧急停止标志
+                    lock (_emergencyStopLock)
+                    {
+                        if (_emergencyStop)
+                        {
+                            _logger.Debug("检测到紧急停止标志，终止按压模式循环");
+                            return;
+                        }
+                    }
+
                     if (currentIndex >= keyListSnapshot.Count)
                     {
                         currentIndex = 0;
@@ -856,6 +975,7 @@ namespace WpfApp.Services
                     {
                         // 执行按键操作
                         SendKeyPress(key, _keyPressInterval);
+                        _logger.Debug($"按压模式 - 执行按键: {key}, 按下时长: {_keyPressInterval}ms");
                         
                         // 计算剩余等待时间
                         var elapsedMs = stopwatch.ElapsedMilliseconds;
@@ -863,7 +983,7 @@ namespace WpfApp.Services
                         
                         if (remainingDelay > 0)
                         {
-                            // 对于较短的延迟使用自旋等待
+                            // 对于短延迟使用自旋等待
                             if (remainingDelay <= 2)
                             {
                                 while (stopwatch.ElapsedMilliseconds < _keyInterval)
@@ -877,22 +997,19 @@ namespace WpfApp.Services
                             }
                             else
                             {
-                                // 对于较长的延迟使用Task.Delay
-                                try
+                                // 分段休眠，以提高响应性
+                                var segments = Math.Max(1, remainingDelay / 10);
+                                var segmentDelay = remainingDelay / segments;
+                                
+                                for (int i = 0; i < segments; i++)
                                 {
-                                    await Task.Delay((int)remainingDelay, token);
-                                }
-                                catch (OperationCanceledException)
-                                {
-                                    return;
+                                    if (token.IsCancellationRequested || !_isEnabled || !_isHoldMode)
+                                    {
+                                        return;
+                                    }
+                                    await Task.Delay((int)segmentDelay, token);
                                 }
                             }
-                        }
-                        
-                        // 如果被取消了，立即退出
-                        if (token.IsCancellationRequested || !_isEnabled || !_isHoldMode)
-                        {
-                            break;
                         }
                         
                         currentIndex = (currentIndex + 1) % keyListSnapshot.Count;
@@ -948,6 +1065,44 @@ namespace WpfApp.Services
                 _logger.Error(message);
             else
                 _logger.Debug(message);
+        }
+
+        private void ForceStop()
+        {
+            try
+            {
+                _isEnabled = false;
+                _isHoldMode = false;
+                
+                // 确保所有按键都被释放
+                if (_keyList != null)
+                {
+                    foreach (var key in _keyList)
+                    {
+                        try
+                        {
+                            SendKeyUp(key);
+                            Thread.Sleep(1); // 给予系统短暂时间处理按键释放
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error($"强制释放按键时发生异常: {key}", ex);
+                        }
+                    }
+                }
+
+                // 重置所有状态
+                _emergencyStop = false;
+                EnableStatusChanged?.Invoke(this, false);
+                
+                // 恢复输入法
+                RestoreIME();
+                _logger.Debug("已强制停止所有按键操作，输入法已恢复");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("强制停止时发生异常", ex);
+            }
         }
         #endregion
 

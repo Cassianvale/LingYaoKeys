@@ -53,6 +53,9 @@ namespace WpfApp.ViewModels
         private string _selectedWindowProcessName = string.Empty;
         private System.Timers.Timer? _windowCheckTimer;
         private readonly object _windowCheckLock = new object();
+        private bool _isTargetWindowActive;
+        private readonly System.Timers.Timer _activeWindowCheckTimer;
+        private const int ACTIVE_WINDOW_CHECK_INTERVAL = 50; // 50ms检查一次活动窗口
 
         // 选中的窗口标题
         public string SelectedWindowTitle
@@ -88,6 +91,9 @@ namespace WpfApp.ViewModels
             SelectedWindowProcessName = processName;
             SelectedWindowTitle = $"{title} (句柄: {handle.ToInt64()})";
 
+            // 同步句柄到 HotkeyService
+            _hotkeyService.TargetWindowHandle = handle;
+
             // 保存到配置
             AppConfigService.UpdateConfig(config =>
             {
@@ -109,6 +115,10 @@ namespace WpfApp.ViewModels
             SelectedWindowTitle = "未选择窗口";
             SelectedWindowClassName = string.Empty;
             SelectedWindowProcessName = string.Empty;
+
+            // 同步到 HotkeyService
+            _hotkeyService.TargetWindowHandle = IntPtr.Zero;
+            _hotkeyService.IsTargetWindowActive = false;
 
             // 清除配置
             AppConfigService.UpdateConfig(config =>
@@ -407,9 +417,52 @@ namespace WpfApp.ViewModels
         {
             if (_floatingViewModel != null)
             {
-                _floatingViewModel.StatusText = IsExecuting ? "运行中" : "已停止";
+                // 根据执行状态和窗口活动状态来决定显示的文本
+                string statusText;
+                if (IsExecuting)
+                {
+                    statusText = IsTargetWindowActive ? "运行中" : "已暂停";
+                    _logger.Debug($"当前执行状态: {IsExecuting}, 窗口活动状态: {IsTargetWindowActive}");
+                }
+                else
+                {
+                    statusText = "已停止";
+                }
+                _floatingViewModel.StatusText = statusText;
+                _logger.Debug($"更新浮窗状态: {statusText}");
             }
         }
+
+        public bool IsTargetWindowActive
+        {
+            get => _isTargetWindowActive;
+            private set
+            {
+                if (_isTargetWindowActive != value)
+                {
+                    _isTargetWindowActive = value;
+                    OnPropertyChanged();
+                    
+                    // 只在窗口变为非活动状态时停止按键映射
+                    if (!value && IsExecuting)
+                    {
+                        _lyKeysService.EmergencyStop(); // 使用紧急停止
+                        StopKeyMapping();
+                        UpdateFloatingStatus(); // 更新浮窗状态
+                        _logger.Debug("目标窗口切换为非活动状态，停止按键映射，已更新浮窗状态");
+                    }
+                    else if (value && IsExecuting)
+                    {
+                        // 如果窗口重新激活，且之前在执行中，更新浮窗状态
+                        UpdateFloatingStatus();
+                        _logger.Debug("目标窗口重新激活，更新浮窗状态");
+                    }
+                }
+            }
+        }
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
 
         public KeyMappingViewModel(LyKeysService lyKeysService, ConfigService configService,
             HotkeyService hotkeyService, MainViewModel mainViewModel, AudioService audioService)
@@ -461,6 +514,11 @@ namespace WpfApp.ViewModels
 
             // 加载窗口配置
             LoadWindowConfig();
+
+            // 初始化活动窗口检查定时器
+            _activeWindowCheckTimer = new System.Timers.Timer(ACTIVE_WINDOW_CHECK_INTERVAL);
+            _activeWindowCheckTimer.Elapsed += ActiveWindowCheckTimer_Elapsed;
+            _activeWindowCheckTimer.Start();
         }
 
         private void SyncConfigToServices()
@@ -983,6 +1041,16 @@ namespace WpfApp.ViewModels
                 {
                     _logger.Debug("开始启动按键映射");
                     
+                    // 检查是否选择了目标窗口
+                    if (SelectedWindowHandle == IntPtr.Zero)
+                    {
+                        _logger.Warning("未选择目标窗口");
+                        _mainViewModel.UpdateStatusMessage("请先选择目标窗口", true);
+                        IsHotkeyEnabled = false;
+                        IsExecuting = false;
+                        return;
+                    }
+
                     // 只获取勾选的按键
                     var keys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
                     if (keys.Count == 0)
@@ -1040,34 +1108,32 @@ namespace WpfApp.ViewModels
         // 停止按键映射
         public void StopKeyMapping()
         {
-            if (IsExecuting)
+            try
             {
+                if (_lyKeysService == null) return;
+
+                _logger.Debug($"开始停止按键映射，当前模式: {(SelectedKeyMode == 1 ? "按压模式" : "顺序模式")}");
+
+                // 先停止热键服务
+                _hotkeyService?.StopSequence();
+
+                // 然后停止驱动服务
+                _lyKeysService.IsEnabled = false;
+                _lyKeysService.IsHoldMode = false;
+
+                // 最后更新UI状态
+                IsHotkeyEnabled = false;
                 IsExecuting = false;
-                try
-                {
-                    if (_lyKeysService == null) return;
+                UpdateFloatingStatus();
 
-                    _logger.Debug("开始停止按键映射");
-
-                    // 先停止热键服务
-                    _hotkeyService?.StopSequence();
-
-                    // 然后停止驱动服务
-                    _lyKeysService.IsEnabled = false;
-                    _lyKeysService.IsHoldMode = false;
-
-                    // 最后更新UI状态
-                    IsHotkeyEnabled = false;
-                    IsExecuting = false;
-
-                    _logger.Debug("按键映射已停止");
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error("停止按键映射失败", ex);
-                    IsHotkeyEnabled = false;
-                    IsExecuting = false;
-                }
+                _logger.Debug("按键映射已停止");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("停止按键映射失败", ex);
+                IsHotkeyEnabled = false;
+                IsExecuting = false;
+                UpdateFloatingStatus();
             }
         }
 
@@ -1122,12 +1188,14 @@ namespace WpfApp.ViewModels
                     _lyKeysService.IsEnabled = true;    // 启用服务
                 }
                 IsHotkeyEnabled = true;  // 按键是否启用
+                UpdateFloatingStatus();   // 更新浮窗状态
             }
             catch (Exception ex)
             {
                 _logger.Error("启动按键映射异常", ex);
                 IsHotkeyEnabled = false;
                 IsExecuting = false;
+                UpdateFloatingStatus();
             }
         }
 
@@ -1470,6 +1538,31 @@ namespace WpfApp.ViewModels
         ~KeyMappingViewModel()
         {
             _windowCheckTimer?.Dispose();
+            _activeWindowCheckTimer?.Dispose();
+        }
+
+        // 添加活动窗口检查方法
+        private void ActiveWindowCheckTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            try
+            {
+                if (SelectedWindowHandle != IntPtr.Zero)
+                {
+                    var activeWindow = GetForegroundWindow();
+                    bool isActive = activeWindow == SelectedWindowHandle;
+                    
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        IsTargetWindowActive = isActive;
+                        // 同步状态到 HotkeyService
+                        _hotkeyService.IsTargetWindowActive = isActive;
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("检查活动窗口状态时发生异常", ex);
+            }
         }
     }
 }

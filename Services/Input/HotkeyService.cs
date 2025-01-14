@@ -85,6 +85,9 @@ namespace WpfApp.Services
         private bool _isRapidFireEnabled;
         private List<KeyBurstConfig> _rapidFireKeys = new();
 
+        private IntPtr _targetWindowHandle;
+        private bool _isTargetWindowActive;
+
         // 构造函数
         public HotkeyService(Window mainWindow, LyKeysService lyKeysService)
         {
@@ -217,6 +220,16 @@ namespace WpfApp.Services
             {
                 _logger.Debug("开始启动按键序列");
                 
+                // 检查目标窗口是否激活
+                IntPtr activeWindow = GetForegroundWindow();
+                bool isTargetWindowActive = _targetWindowHandle != IntPtr.Zero && activeWindow == _targetWindowHandle;
+                
+                if (!isTargetWindowActive)
+                {
+                    _logger.Warning("目标窗口未激活，无法启动序列");
+                    return;
+                }
+
                 if (_keyList.Count == 0)
                 {
                     _logger.Warning("按键列表为空，无法启动序列");
@@ -275,15 +288,33 @@ namespace WpfApp.Services
             {
                 try
                 {
+                    // 获取当前活动窗口
+                    IntPtr activeWindow = GetForegroundWindow();
+                    bool isTargetWindowActive = _targetWindowHandle != IntPtr.Zero && activeWindow == _targetWindowHandle;
+
                     var hookStruct = (KBDLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT))!;
                     bool isStartKey = hookStruct.vkCode == _startVirtualKey;
                     bool isStopKey = hookStruct.vkCode == _stopVirtualKey;
+
+                    // 如果是热键且窗口未激活，直接返回
+                    if ((isStartKey || isStopKey) && !isTargetWindowActive)
+                    {
+                        return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);
+                    }
+
+                    // 如果目标窗口未激活，停止当前执行
+                    if (!isTargetWindowActive && _isSequenceRunning)
+                    {
+                        _lyKeysService.EmergencyStop(); // 使用紧急停止
+                        StopSequence();
+                        return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);
+                    }
 
                     if (isStartKey || isStopKey)
                     {
                         if (_lyKeysService.IsHoldMode)
                         {
-                            // 按压模式：阻止原始按键信号
+                            // 按压模式处理逻辑
                             if (isStartKey)
                             {
                                 switch ((int)wParam)
@@ -312,7 +343,7 @@ namespace WpfApp.Services
                         }
                         else
                         {
-                            // 顺序模式：允许原始按键信号
+                            // 顺序模式处理逻辑
                             switch ((int)wParam)
                             {
                                 case WM_KEYDOWN:
@@ -367,8 +398,28 @@ namespace WpfApp.Services
             {
                 try
                 {
+                    // 获取当前活动窗口
+                    IntPtr activeWindow = GetForegroundWindow();
+                    bool isTargetWindowActive = _targetWindowHandle != IntPtr.Zero && activeWindow == _targetWindowHandle;
+
+                    // 如果目标窗口未激活，停止当前执行
+                    if (!isTargetWindowActive && _isSequenceRunning)
+                    {
+                        _lyKeysService.EmergencyStop(); // 使用紧急停止
+                        StopSequence();
+                        return CallNextHookEx(_mouseHookHandle, nCode, wParam, lParam);
+                    }
+
                     var hookStruct = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT))!;
                     int wParamInt = (int)wParam;
+
+                    // 如果是鼠标热键且窗口未激活，直接返回
+                    if ((wParamInt == WM_XBUTTONDOWN || wParamInt == WM_MBUTTONDOWN || 
+                         wParamInt == WM_XBUTTONUP || wParamInt == WM_MBUTTONUP || 
+                         wParamInt == WM_MOUSEWHEEL) && !isTargetWindowActive)
+                    {
+                        return CallNextHookEx(_mouseHookHandle, nCode, wParam, lParam);
+                    }
 
                     switch (wParamInt)
                     {
@@ -691,5 +742,20 @@ namespace WpfApp.Services
 
         // 获取连发功能启用状态
         public bool IsRapidFireEnabled => _isRapidFireEnabled;
+
+        public IntPtr TargetWindowHandle
+        {
+            get => _targetWindowHandle;
+            set => _targetWindowHandle = value;
+        }
+
+        public bool IsTargetWindowActive
+        {
+            get => _isTargetWindowActive;
+            set => _isTargetWindowActive = value;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
     }
 }
