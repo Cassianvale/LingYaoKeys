@@ -302,6 +302,7 @@ namespace WpfApp.Services
                                         if (_isKeyHeld)
                                         {
                                             _isKeyHeld = false;
+                                            StopHotkeyPressed?.Invoke();
                                             StopSequence();
                                         }
                                         return new IntPtr(1);
@@ -441,6 +442,7 @@ namespace WpfApp.Services
                 if (isStartKey && _isKeyHeld)
                 {
                     _isKeyHeld = false;
+                    StopHotkeyPressed?.Invoke();
                     StopSequence();
                 }
             }
