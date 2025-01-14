@@ -130,10 +130,11 @@ namespace WpfApp.Services
         {
             return new AppConfig
             {
-                Logging = new LoggingConfig
+                Debug = new DebugConfig
                 {
-                    Enabled = false,
-                    LogLevel = "Debug",
+                    IsDebugMode = false,    // 调试模式总开关
+                    EnableLogging = false,  // 日志记录开关
+                    LogLevel = "Debug",    // 日志级别
                     FileSettings = new LogFileSettings
                     {
                         MaxFileSize = 10,
@@ -160,22 +161,13 @@ namespace WpfApp.Services
                     // 排除一些不太重要的类的日志
                     ExcludedSources = new List<string>{
                         "*.xaml*",
-                        "ControlStyles.xaml",
-                        "App.xaml",
-                        "MainWindow.xaml"
+                        "ControlStyles.xaml"
                     },
                     // 排除一些常见的方法日志
                     ExcludedMethods = new List<string>{},
                     // 排除一些常见的消息模式
                     ExcludedPatterns = new List<string>{
-                        "窗口初始化完成*",
-                        "已获取*实例",
-                        "鼠标点击元素: *",
-                        "*获取句柄*",
-                        "*_DataContextChanged*",
-                        "*触发: *",
-                        "控件加载完成: *",
-                        "页面切换到: *"
+                        "窗口初始化完成*"
                     }
                 },
                 startKey = LyKeysCode.VK_F9,    

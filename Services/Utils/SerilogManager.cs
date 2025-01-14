@@ -20,14 +20,20 @@ namespace WpfApp.Services
 
         public static SerilogManager Instance => _instance.Value;
 
-        public void Initialize(LoggingConfig loggingConfig)
+        public void Initialize(DebugConfig debugConfig)
         {
             if (_initialized) return;
 
             try
             {
+                // 如果调试模式未启用且日志未启用，则不初始化日志系统
+                if (!debugConfig.IsDebugMode && !debugConfig.EnableLogging)
+                {
+                    return;
+                }
+
                 // 1. 设置日志级别
-                var logLevel = loggingConfig.LogLevel.ToLower() switch
+                var logLevel = debugConfig.LogLevel.ToLower() switch
                 {
                     "debug" => LogEventLevel.Debug,
                     "information" => LogEventLevel.Information,
@@ -55,17 +61,17 @@ namespace WpfApp.Services
                             : string.Empty;
 
                         // 1. 检查是否在排除的源上下文列表中
-                        if (loggingConfig.ExcludedSources?.Any(source => 
+                        if (debugConfig.ExcludedSources?.Any(source => 
                             sourceContext.Contains(source, StringComparison.OrdinalIgnoreCase)) == true)
                             return false;
 
                         // 2. 检查是否在排除的方法列表中
-                        if (loggingConfig.ExcludedMethods?.Any(method => 
+                        if (debugConfig.ExcludedMethods?.Any(method => 
                             callerMember.Equals(method, StringComparison.OrdinalIgnoreCase)) == true)
                             return false;
 
                         // 3. 检查是否匹配排除的消息模式
-                        if (loggingConfig.ExcludedPatterns?.Any(pattern =>
+                        if (debugConfig.ExcludedPatterns?.Any(pattern =>
                         {
                             // 将通配符模式转换为正则表达式
                             var regex = new System.Text.RegularExpressions.Regex(
@@ -77,7 +83,7 @@ namespace WpfApp.Services
                             return false;
 
                         // 4. 检查是否在排除的标签列表中
-                        if (loggingConfig.ExcludedTags?.Any(tag => 
+                        if (debugConfig.ExcludedTags?.Any(tag => 
                             messageTemplate.Contains($"[{tag}]", StringComparison.OrdinalIgnoreCase)) == true)
                             return false;
 
@@ -85,7 +91,7 @@ namespace WpfApp.Services
                     });
 
                 // 4. 添加输出目标
-                if (loggingConfig.Enabled)
+                if (debugConfig.EnableLogging)
                 {
                     const string outputTemplate = 
                         "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{SourceContext}.{CallerMember}:{LineNumber}] {Message}{NewLine}{Exception}";
@@ -108,11 +114,11 @@ namespace WpfApp.Services
                             Directory.CreateDirectory(logDir);
 
                         // 清理旧日志
-                        if (loggingConfig.FileSettings.RetainDays > 0)
+                        if (debugConfig.FileSettings.RetainDays > 0)
                         {
                             try
                             {
-                                var cutoff = DateTime.Now.AddDays(-loggingConfig.FileSettings.RetainDays);
+                                var cutoff = DateTime.Now.AddDays(-debugConfig.FileSettings.RetainDays);
                                 if (Directory.Exists(logDir))
                                 {
                                     foreach (var file in Directory.GetFiles(logDir, "app*.log"))
@@ -144,8 +150,8 @@ namespace WpfApp.Services
                         loggerConfig = loggerConfig.WriteTo.File(
                             logPath,
                             rollingInterval: RollingInterval.Day,
-                            retainedFileCountLimit: loggingConfig.FileSettings.MaxFileCount,
-                            fileSizeLimitBytes: loggingConfig.FileSettings.MaxFileSize * 1024 * 1024,
+                            retainedFileCountLimit: debugConfig.FileSettings.MaxFileCount,
+                            fileSizeLimitBytes: debugConfig.FileSettings.MaxFileSize * 1024 * 1024,
                             rollOnFileSizeLimit: true,
                             outputTemplate: fileOutputTemplate);
                     }
@@ -167,12 +173,12 @@ namespace WpfApp.Services
             _baseDirectory = path;
         }
 
-        public void UpdateLoggerConfig(LoggingConfig loggingConfig)
+        public void UpdateLoggerConfig(DebugConfig debugConfig)
         {
             lock (_lock)
             {
                 if (_disposed) return;
-                Initialize(loggingConfig);
+                Initialize(debugConfig);
             }
         }
 

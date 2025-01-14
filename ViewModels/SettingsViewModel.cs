@@ -6,6 +6,8 @@ using Microsoft.Extensions.Configuration;
 using WpfApp.Services;
 using WpfApp.Services.Config;
 using WpfApp.Services.Utils;
+using MessageBox = System.Windows.MessageBox;
+using Application = System.Windows.Application;
 
 namespace WpfApp.ViewModels
 {
@@ -16,6 +18,7 @@ namespace WpfApp.ViewModels
         private readonly ConfigService _configService;
         private bool _isCheckingUpdate;
         private string _updateStatus = "检查更新";
+        private string _debugModeStatus = "调试模式关闭";
 
         public string UpdateStatus
         {
@@ -23,9 +26,16 @@ namespace WpfApp.ViewModels
             set => SetProperty(ref _updateStatus, value);
         }
 
+        public string DebugModeStatus
+        {
+            get => _debugModeStatus;
+            set => SetProperty(ref _debugModeStatus, value);
+        }
+
         public ICommand CheckUpdateCommand { get; }
         public ICommand ImportConfigCommand { get; }
         public ICommand ExportConfigCommand { get; }
+        public ICommand ToggleDebugModeCommand { get; }
 
         public SettingsViewModel(IConfiguration configuration)
         {
@@ -43,6 +53,70 @@ namespace WpfApp.ViewModels
             CheckUpdateCommand = new RelayCommand(async () => await CheckForUpdateAsync(), () => !_isCheckingUpdate);
             ImportConfigCommand = new RelayCommand(ImportConfig);
             ExportConfigCommand = new RelayCommand(ExportConfig);
+            ToggleDebugModeCommand = new RelayCommand(ToggleDebugMode);
+
+            // 初始化调试模式状态
+            UpdateDebugModeStatus();
+        }
+
+        private void UpdateDebugModeStatus()
+        {
+            var config = AppConfigService.Config;
+            _debugModeStatus = config.Debug.IsDebugMode ? "🟢 调试模式：已开启" : "⭕ 调试模式：已关闭";
+        }
+
+        private void ToggleDebugMode()
+        {
+            try
+            {
+                AppConfigService.UpdateConfig(config =>
+                {
+                    config.Debug.IsDebugMode = !config.Debug.IsDebugMode;
+                    config.Debug.UpdateDebugState();
+                });
+
+                UpdateDebugModeStatus();
+
+                var result = MessageBox.Show(
+                    "调试模式设置已更改，需要重启程序才能生效。是否立即重启？",
+                    "重启提示",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    RestartApplication();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("切换调试模式失败", ex);
+                MessageBox.Show($"切换调试模式失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void RestartApplication()
+        {
+            try
+            {
+                string appPath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName 
+                    ?? throw new InvalidOperationException("无法获取应用程序路径");
+
+                var startInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = appPath,
+                    UseShellExecute = true,
+                    Verb = "runas"
+                };
+
+                System.Diagnostics.Process.Start(startInfo);
+                Application.Current.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("重启应用程序失败", ex);
+                MessageBox.Show($"重启应用程序失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private async Task CheckForUpdateAsync()

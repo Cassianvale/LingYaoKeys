@@ -1,6 +1,9 @@
 {
-  "Logging": {
-    "Enabled": false,
+  "Debug": {
+    "IsDebugMode": false,
+    "EnableLogging": false,
+    "ShowDebugInfo": false,
+    "EnablePerformanceMonitoring": false,
     "LogLevel": "Debug",
     "FileSettings": {
       "MaxFileSize": 10,
@@ -15,14 +18,7 @@
     ],
     "ExcludedMethods": [],
     "ExcludedPatterns": [
-      "窗口初始化完成*",
-      "已获取*实例",
-      "鼠标点击元素: *",
-      "*获取句柄*",
-      "*_DataContextChanged*",
-      "*触发: *",
-      "控件加载完成: *",
-      "页面切换到: *"
+      "窗口初始化完成*"
     ]
   },
   "startKey": 120,

@@ -357,14 +357,14 @@ namespace WpfApp
 
                 // 2. 然后初始化日志系统
                 _logger.SetBaseDirectory(_userDataPath);
-                _logger.Initialize(AppConfigService.Config.Logging);
+                _logger.Initialize(AppConfigService.Config.Debug);
 
                 // 3. 设置配置变更监听
                 AppConfigService.ConfigChanged += (sender, args) =>
                 {
-                    if (args.Section == "Logging")
+                    if (args.Section == "Debug")
                     {
-                        _logger.UpdateLoggerConfig(args.Config.Logging);
+                        _logger.UpdateLoggerConfig(args.Config.Debug);
                     }
                 };
 
@@ -387,7 +387,7 @@ namespace WpfApp
                     args.SetObserved();
                 };
 
-                _logger.Debug($"日志系统初始化完成, 配置: Level={AppConfigService.Config.Logging.LogLevel}, MaxSize={AppConfigService.Config.Logging.FileSettings.MaxFileSize}MB");
+                _logger.Debug($"日志系统初始化完成, 配置: Level={AppConfigService.Config.Debug.LogLevel}, MaxSize={AppConfigService.Config.Debug.FileSettings.MaxFileSize}MB");
                 _logger.Debug("应用程序启动...");
 
                 // 获取用户目录路径

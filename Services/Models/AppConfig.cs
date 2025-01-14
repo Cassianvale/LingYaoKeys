@@ -5,6 +5,41 @@ using System.Windows.Input;
 namespace WpfApp.Services.Models
 {
 
+    public class LogFileSettings
+    {
+        public int MaxFileSize { get; set; } = 10;
+        public int MaxFileCount { get; set; } = 10;
+        public string RollingInterval { get; set; } = "Day";
+        public int RetainDays { get; set; } = 7;
+    }
+
+    public class DebugConfig
+    {
+        public bool IsDebugMode { get; set; } = false;
+        public bool EnableLogging { get; set; } = false;
+        public string LogLevel { get; set; } = "Debug";
+        public LogFileSettings FileSettings { get; set; } = new();
+        public List<string> ExcludedTags { get; set; } = new();
+        public List<string> ExcludedSources { get; set; } = new();
+        public List<string> ExcludedMethods { get; set; } = new();
+        public List<string> ExcludedPatterns { get; set; } = new();
+
+        // 当调试模式开启或关闭时，更新所有调试功能的状态
+        public void UpdateDebugState()
+        {
+            if (IsDebugMode)
+            {
+                EnableLogging = true;
+                LogLevel = "Debug";
+            }
+            else
+            {
+                EnableLogging = false;
+                LogLevel = "Information";
+            }
+        }
+    }
+
     public class OssConfig
     {
         public string AccessKeyId { get; set; } = "";
@@ -63,7 +98,7 @@ namespace WpfApp.Services.Models
         public AppInfo AppInfo { get; set; } = new AppInfo();
         [JsonIgnore]
         public UIConfig UI { get; set; } = new UIConfig();
-        public LoggingConfig Logging { get; set; } = new LoggingConfig();
+        public DebugConfig Debug { get; set; } = new DebugConfig();
         
         // 按键配置相关属性
         public LyKeysCode? startKey { get; set; }
@@ -122,34 +157,5 @@ namespace WpfApp.Services.Models
         public int DefaultWidth { get; set; } = 510;
         [JsonIgnore]
         public int DefaultHeight { get; set; } = 450;
-    }
-
-    public class LogFileSettings
-    {
-        public int MaxFileSize { get; set; } = 10;
-        public int MaxFileCount { get; set; } = 10;
-        public string RollingInterval { get; set; } = "Day";
-        public int RetainDays { get; set; } = 7;
-    }
-
-    public class LoggingConfig
-    {
-        public bool Enabled { get; set; }
-        public string LogLevel { get; set; } = "Debug";
-
-        // 日志：文件配置
-        public LogFileSettings FileSettings { get; set; } = new();
-
-        // 日志：排除特定标签
-        public List<string> ExcludedTags { get; set; } = new();
-        
-        // 日志：排除特定源上下文日志（类名）
-        public List<string> ExcludedSources { get; set; } = new();
-        
-        // 日志：排除特定方法名
-        public List<string> ExcludedMethods { get; set; } = new();
-        
-        // 日志：排除特定消息模式（支持通配符 * ）
-        public List<string> ExcludedPatterns { get; set; } = new();
     }
 } 

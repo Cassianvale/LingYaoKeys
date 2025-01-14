@@ -55,6 +55,9 @@
         </Setter>
     </Style>
 
+    <!-- Emoji 字体设置 -->
+    <FontFamily x:Key="EmojiFont">Segoe UI Emoji</FontFamily>
+
     <!-- 通用下拉框样式 -->
     <Style x:Key="ModernComboBox" TargetType="ComboBox">
         <Setter Property="behaviors:FocusManagerBehavior.EnableFocusManagement" Value="True"/>

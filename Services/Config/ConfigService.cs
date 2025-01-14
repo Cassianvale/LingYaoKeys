@@ -42,7 +42,7 @@ namespace WpfApp.Services.Config
 
         public T GetSetting<T>(string key, T defaultValue)
         {
-            if (_settings.TryGetValue(key, out object value))
+            if (_settings.TryGetValue(key, out object? value))
             {
                 try
                 {
