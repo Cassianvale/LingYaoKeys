@@ -34,7 +34,8 @@
     <ConsoleOutputRedirection>true</ConsoleOutputRedirection>
     <ApplicationIcon>Resource\icon\app.ico</ApplicationIcon>
     
-
+    <!-- 高 DPI 设置 -->
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     
     <!-- 发布相关配置 -->
     <PublishSingleFile>true</PublishSingleFile>
