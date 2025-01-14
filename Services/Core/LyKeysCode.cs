@@ -17,6 +17,10 @@ namespace WpfApp.Services
         VK_XBUTTON1 = 0x05,
         [Description("XButton2")]
         VK_XBUTTON2 = 0x06,
+        [Description("滚轮向上")]
+        VK_WHEELUP = 0x0A,
+        [Description("滚轮向下")]
+        VK_WHEELDOWN = 0x0B,
 
         // 控制键
         [Description("Backspace")]

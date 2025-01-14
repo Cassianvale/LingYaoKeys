@@ -546,7 +546,9 @@ namespace WpfApp.Services
                    keyCode == LyKeysCode.VK_RBUTTON ||
                    keyCode == LyKeysCode.VK_MBUTTON ||
                    keyCode == LyKeysCode.VK_XBUTTON1 ||
-                   keyCode == LyKeysCode.VK_XBUTTON2;
+                   keyCode == LyKeysCode.VK_XBUTTON2 ||
+                   keyCode == LyKeysCode.VK_WHEELUP ||
+                   keyCode == LyKeysCode.VK_WHEELDOWN;
         }
 
         private LyKeys.MouseButtonType ConvertToMouseButtonType(LyKeysCode keyCode)
@@ -558,6 +560,8 @@ namespace WpfApp.Services
                 LyKeysCode.VK_MBUTTON => LyKeys.MouseButtonType.Middle,
                 LyKeysCode.VK_XBUTTON1 => LyKeys.MouseButtonType.XButton1,
                 LyKeysCode.VK_XBUTTON2 => LyKeys.MouseButtonType.XButton2,
+                LyKeysCode.VK_WHEELUP => LyKeys.MouseButtonType.WheelUp,
+                LyKeysCode.VK_WHEELDOWN => LyKeys.MouseButtonType.WheelDown,
                 _ => throw new ArgumentException($"非法的鼠标按键类型: {keyCode}")
             };
         }
@@ -964,6 +968,24 @@ namespace WpfApp.Services
             catch (Exception ex)
             {
                 _logger.Error("释放资源异常", ex);
+            }
+        }
+        #endregion
+
+        #region 输入法管理
+        /// <summary>
+        /// 恢复输入法到之前的状态
+        /// </summary>
+        public void RestoreIME()
+        {
+            try
+            {
+                _inputMethodService.RestorePreviousLayout();
+                _logger.Debug("已恢复原始输入法");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("恢复输入法失败", ex);
             }
         }
         #endregion

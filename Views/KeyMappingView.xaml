@@ -323,6 +323,7 @@
                              KeyDown="StartHotkeyInput_KeyDown"
                              PreviewMouseDown="StartHotkeyInput_PreviewMouseDown"
                              PreviewMouseUp="StartHotkeyInput_PreviewMouseUp"
+                             PreviewMouseWheel="StartHotkeyInput_PreviewMouseWheel"
                              MouseDown="StartHotkeyInput_MouseDown"
                              GotFocus="HotkeyInputBox_GotFocus"
                              LostFocus="HotkeyInputBox_LostFocus"/>
@@ -342,6 +343,7 @@
                              TextAlignment="Center"
                              PreviewKeyDown="StopHotkeyInput_PreviewKeyDown"
                              PreviewMouseDown="StopHotkeyInput_PreviewMouseDown"
+                             PreviewMouseWheel="StopHotkeyInput_PreviewMouseWheel"
                              GotFocus="HotkeyInputBox_GotFocus"
                              LostFocus="HotkeyInputBox_LostFocus"/>
                 </DockPanel>

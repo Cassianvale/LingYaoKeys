@@ -49,6 +49,7 @@ namespace WpfApp.Services
         private const int WM_XBUTTONUP = 0x020C;
         private const int WM_MBUTTONDOWN = 0x0207;
         private const int WM_MBUTTONUP = 0x0208;
+        private const int WM_MOUSEWHEEL = 0x020A;
 
         // 事件
         public event Action? StartHotkeyPressed;  // 启动热键按下事件
@@ -380,6 +381,10 @@ namespace WpfApp.Services
                         case WM_MBUTTONUP:
                             HandleMouseButtonUp(wParamInt, hookStruct);
                             break;
+
+                        case WM_MOUSEWHEEL:
+                            HandleMouseWheel(hookStruct);
+                            break;
                     }
                 }
                 catch (Exception ex)
@@ -459,11 +464,78 @@ namespace WpfApp.Services
             }
         }
 
+        private void HandleMouseWheel(MSLLHOOKSTRUCT hookStruct)
+        {
+            // 获取滚轮方向（向上为正，向下为负）
+            short wheelDelta = (short)((hookStruct.mouseData >> 16) & 0xFFFF);
+            LyKeysCode buttonCode = wheelDelta > 0 ? LyKeysCode.VK_WHEELUP : LyKeysCode.VK_WHEELDOWN;
+
+            bool isStartKey = buttonCode == _pendingStartKey;
+            bool isStopKey = buttonCode == _pendingStopKey;
+
+            if (isStartKey || isStopKey)
+            {
+                if (_lyKeysService.IsHoldMode)
+                {
+                    if (isStartKey)
+                    {
+                        if (_isSequenceRunning)
+                        {
+                            _isKeyHeld = false;
+                            StopHotkeyPressed?.Invoke();
+                            StopSequence();
+                        }
+                        else if (!_isKeyHeld)
+                        {
+                            _isKeyHeld = true;
+                            StartHotkeyPressed?.Invoke();
+                            StartSequence();
+                        }
+                    }
+                }
+                else
+                {
+                    if (!_isKeyHeld)
+                    {
+                        _isKeyHeld = true;
+                        if (_isSequenceRunning)
+                        {
+                            if (isStopKey || (_pendingStartKey == _pendingStopKey && isStartKey))
+                            {
+                                StopHotkeyPressed?.Invoke();
+                                StopSequence();
+                            }
+                        }
+                        else if (isStartKey)
+                        {
+                            StartHotkeyPressed?.Invoke();
+                            StartSequence();
+                        }
+                    }
+                }
+            }
+
+            // 重置按键状态（因为滚轮事件是即时的）
+            if (_isKeyHeld)
+            {
+                _isKeyHeld = false;
+                if (isStartKey)
+                {
+                    StartHotkeyReleased?.Invoke();
+                }
+            }
+        }
+
         private LyKeysCode GetMouseButtonCode(int wParam, MSLLHOOKSTRUCT hookStruct)
         {
             if (wParam == WM_MBUTTONDOWN || wParam == WM_MBUTTONUP)
             {
                 return LyKeysCode.VK_MBUTTON;
+            }
+            else if (wParam == WM_MOUSEWHEEL)
+            {
+                short wheelDelta = (short)((hookStruct.mouseData >> 16) & 0xFFFF);
+                return wheelDelta > 0 ? LyKeysCode.VK_WHEELUP : LyKeysCode.VK_WHEELDOWN;
             }
 
             int xButton = (int)((hookStruct.mouseData >> 16) & 0xFFFF);

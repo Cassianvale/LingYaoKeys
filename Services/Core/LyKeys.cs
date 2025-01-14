@@ -462,7 +462,9 @@ namespace WpfApp.Services
             Right,
             Middle,
             XButton1,
-            XButton2
+            XButton2,
+            WheelUp,
+            WheelDown
         }
 
         /// <summary>
@@ -550,6 +552,12 @@ namespace WpfApp.Services
                     case MouseButtonType.XButton2:
                         if (isDown) MouseXButton2Down();
                         else MouseXButton2Up();
+                        break;
+                    case MouseButtonType.WheelUp:
+                        if (isDown) MouseWheelUp(120);
+                        break;
+                    case MouseButtonType.WheelDown:
+                        if (isDown) MouseWheelDown(120);
                         break;
                     default:
                         return false;

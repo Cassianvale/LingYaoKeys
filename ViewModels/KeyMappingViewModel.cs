@@ -192,7 +192,21 @@ namespace WpfApp.ViewModels
             {
                 if (SetProperty(ref _selectedKeyMode, value))
                 {
+                    // 如果正在执行，先停止当前循环
+                    if (IsExecuting)
+                    {
+                        StopKeyMapping();
+                    }
+
                     IsSequenceMode = value == 0; // 0 表示顺序模式
+
+                    // 恢复输入法
+                    if (_lyKeysService != null)
+                    {
+                        _lyKeysService.RestoreIME();
+                    }
+
+                    _logger.Debug($"按键模式已切换为: {(value == 0 ? "顺序模式" : "按压模式")}");
                 }
             }
         }

@@ -350,6 +350,29 @@ namespace WpfApp.Views
             StartHotkeyInput_PreviewMouseDown(sender, e);
         }
 
+        // 添加滚轮事件处理
+        private void StartHotkeyInput_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (sender is System.Windows.Controls.TextBox textBox)
+            {
+                e.Handled = true;
+                LyKeysCode keyCode = e.Delta > 0 ? LyKeysCode.VK_WHEELUP : LyKeysCode.VK_WHEELDOWN;
+                _logger.Debug($"检测到滚轮事件: {keyCode}, Delta: {e.Delta}");
+                HandleHotkeyInput(textBox, keyCode, Keyboard.Modifiers, true);
+            }
+        }
+
+        private void StopHotkeyInput_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (sender is System.Windows.Controls.TextBox textBox)
+            {
+                e.Handled = true;
+                LyKeysCode keyCode = e.Delta > 0 ? LyKeysCode.VK_WHEELUP : LyKeysCode.VK_WHEELDOWN;
+                _logger.Debug($"检测到滚轮事件: {keyCode}, Delta: {e.Delta}");
+                HandleHotkeyInput(textBox, keyCode, Keyboard.Modifiers, false);
+            }
+        }
+
         // 处理开始热键的鼠标释放
         private void StartHotkeyInput_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
