@@ -22,7 +22,7 @@
                             <TextBlock x:Name="icon" 
                                      Grid.Column="0"
                                      Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
-                                     FontFamily="Segoe MDL2 Assets"
+                                     FontFamily="Segoe UI"
                                      FontSize="16"
                                      HorizontalAlignment="Center"
                                      VerticalAlignment="Center"/>

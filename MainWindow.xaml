@@ -184,7 +184,7 @@
                             <!-- 设置按钮 -->
                             <RadioButton DockPanel.Dock="Bottom"
                                        Content="设置" 
-                                       Tag="&#xE713;"
+                                       Tag="&#x2699;"
                                        GroupName="NavGroup"
                                        Style="{StaticResource NavButtonStyle}"
                                        Command="{Binding NavigateCommand}"
@@ -194,7 +194,7 @@
                             <!-- 导航菜单 -->
                             <StackPanel>
                                 <RadioButton Content="前台按键" 
-                                            Tag="&#xE7C3;"
+                                            Tag="🎮"
                                             GroupName="NavGroup"
                                             IsChecked="True"
                                             Style="{StaticResource NavButtonStyle}"
@@ -202,14 +202,14 @@
                                             CommandParameter="FrontKeys"
                                             Click="NavButton_Click"/>
                                 <RadioButton Content="问题反馈" 
-                                            Tag="&#xE90A;"
+                                            Tag="💬"
                                             GroupName="NavGroup"
                                             Style="{StaticResource NavButtonStyle}"
                                             Command="{Binding NavigateCommand}"
                                             CommandParameter="Feedback"
                                             Click="NavButton_Click"/>
                                 <RadioButton Content="关于" 
-                                            Tag="&#xE946;"
+                                            Tag="ℹ️"
                                             GroupName="NavGroup"
                                             Style="{StaticResource NavButtonStyle}"
                                             Command="{Binding NavigateCommand}"
