@@ -809,5 +809,46 @@ namespace WpfApp.Views
             MainContent.Visibility = Visibility.Visible;
         }
 
+        private void GetWindowHandle_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 创建一个新的窗口来显示所有可见窗口的句柄
+                var windowHandleDialog = new WindowHandleDialog();
+                windowHandleDialog.Owner = Window.GetWindow(this);
+                windowHandleDialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                
+                if (windowHandleDialog.ShowDialog() == true)
+                {
+                    // 获取选中的窗口信息
+                    var handle = windowHandleDialog.SelectedHandle;
+                    var title = windowHandleDialog.SelectedTitle;
+                    var className = windowHandleDialog.SelectedClassName;
+                    var processName = windowHandleDialog.SelectedProcessName;
+                    
+                    // 更新ViewModel中的窗口信息
+                    ViewModel.UpdateSelectedWindow(handle, title, className, processName);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("获取窗口句柄时发生异常", ex);
+                ShowError("获取窗口句柄失败，请查看日志");
+            }
+        }
+
+        private void ClearWindowHandle_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                ViewModel.ClearSelectedWindow();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("清除窗口句柄时发生异常", ex);
+                ShowError("清除窗口句柄失败，请查看日志");
+            }
+        }
+
     }
 } 

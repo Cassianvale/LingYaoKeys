@@ -57,5 +57,9 @@
   "KeyPressInterval": 5,
   "FloatingWindowLeft": 1938.0,
   "FloatingWindowTop": 1054.0,
-  "IsFloatingWindowEnabled": true
+  "IsFloatingWindowEnabled": true,
+  "IsRapidFireEnabled": false,
+  "TargetWindowClassName": null,
+  "TargetWindowProcessName": null,
+  "TargetWindowTitle": null
 }

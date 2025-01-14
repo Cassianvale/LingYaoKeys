@@ -10,6 +10,8 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Windows;
 using WpfApp.Views;
+using System.Runtime.InteropServices;
+using System.Timers;
 
 
 // 按键映射核心业务逻辑层
@@ -45,6 +47,82 @@ namespace WpfApp.ViewModels
         private FloatingStatusViewModel _floatingViewModel;
         private KeyItem? _selectedKeyItem;
         private KeyboardLayoutViewModel _keyboardLayoutViewModel;
+        private string _selectedWindowTitle = "未选择窗口";
+        private IntPtr _selectedWindowHandle = IntPtr.Zero;
+        private string _selectedWindowClassName = string.Empty;
+        private string _selectedWindowProcessName = string.Empty;
+        private System.Timers.Timer? _windowCheckTimer;
+        private readonly object _windowCheckLock = new object();
+
+        // 选中的窗口标题
+        public string SelectedWindowTitle
+        {
+            get => _selectedWindowTitle;
+            set => SetProperty(ref _selectedWindowTitle, value);
+        }
+
+        // 选中的窗口句柄
+        public IntPtr SelectedWindowHandle
+        {
+            get => _selectedWindowHandle;
+            private set => SetProperty(ref _selectedWindowHandle, value);
+        }
+
+        private string SelectedWindowClassName
+        {
+            get => _selectedWindowClassName;
+            set => SetProperty(ref _selectedWindowClassName, value);
+        }
+
+        private string SelectedWindowProcessName
+        {
+            get => _selectedWindowProcessName;
+            set => SetProperty(ref _selectedWindowProcessName, value);
+        }
+
+        // 更新选中的窗口句柄信息
+        public void UpdateSelectedWindow(IntPtr handle, string title, string className, string processName)
+        {
+            SelectedWindowHandle = handle;
+            SelectedWindowClassName = className;
+            SelectedWindowProcessName = processName;
+            SelectedWindowTitle = $"{title} (句柄: {handle.ToInt64()})";
+
+            // 保存到配置
+            AppConfigService.UpdateConfig(config =>
+            {
+                config.TargetWindowClassName = className;
+                config.TargetWindowProcessName = processName;
+                config.TargetWindowTitle = title;
+            });
+
+            // 启动定时检查
+            StartWindowCheck();
+
+            _logger.Info($"已选择窗口: {title}, 句柄: {handle.ToInt64()}, 类名: {className}, 进程名: {processName}");
+        }
+
+        // 清除选中的窗口句柄
+        public void ClearSelectedWindow()
+        {
+            SelectedWindowHandle = IntPtr.Zero;
+            SelectedWindowTitle = "未选择窗口";
+            SelectedWindowClassName = string.Empty;
+            SelectedWindowProcessName = string.Empty;
+
+            // 清除配置
+            AppConfigService.UpdateConfig(config =>
+            {
+                config.TargetWindowClassName = null;
+                config.TargetWindowProcessName = null;
+                config.TargetWindowTitle = null;
+            });
+
+            // 停止定时检查
+            StopWindowCheck();
+
+            _logger.Info("已清除选中的窗口");
+        }
 
         // 按键列表
         public ObservableCollection<KeyItem> KeyList
@@ -366,6 +444,9 @@ namespace WpfApp.ViewModels
 
             // 初始化键盘布局视图模型
             KeyboardLayoutViewModel = new KeyboardLayoutViewModel(lyKeysService, hotkeyService);
+
+            // 加载窗口配置
+            LoadWindowConfig();
         }
 
         private void SyncConfigToServices()
@@ -1107,6 +1188,271 @@ namespace WpfApp.ViewModels
                 keyItem.SelectionChanged += (s, isSelected) => SaveConfig();
                 KeyList.Add(keyItem);
             }
+        }
+
+        private void OnKeyModeChanged()
+        {
+            // This method is called when the key mode changes
+        }
+
+        private void LoadWindowConfig()
+        {
+            var config = AppConfigService.Config;
+            if (!string.IsNullOrEmpty(config.TargetWindowProcessName) && !string.IsNullOrEmpty(config.TargetWindowTitle))
+            {
+                SelectedWindowProcessName = config.TargetWindowProcessName;
+                SelectedWindowClassName = config.TargetWindowClassName ?? string.Empty;
+                SelectedWindowTitle = config.TargetWindowTitle;
+                
+                _logger.Debug($"开始加载窗口配置 - 进程名: {SelectedWindowProcessName}, 标题: {SelectedWindowTitle}");
+
+                // 尝试查找匹配的进程窗口，直接使用目标标题
+                var windows = FindWindowsByProcessName(SelectedWindowProcessName, config.TargetWindowTitle);
+                if (windows.Any())
+                {
+                    // 由于FindWindowsByProcessName已经按标题过滤，这里直接取第一个
+                    var targetWindow = windows.First();
+                    
+                    // 在初始化时始终更新配置，确保类名等信息是最新的
+                    SelectedWindowHandle = targetWindow.Handle;
+                    SelectedWindowClassName = targetWindow.ClassName;
+                    SelectedWindowTitle = $"{targetWindow.Title} (句柄: {targetWindow.Handle.ToInt64()})";
+                    
+                    // 更新配置
+                    AppConfigService.UpdateConfig(config =>
+                    {
+                        config.TargetWindowClassName = targetWindow.ClassName;
+                        config.TargetWindowProcessName = targetWindow.ProcessName;
+                        config.TargetWindowTitle = targetWindow.Title;
+                    });
+
+                    _logger.Info($"已加载并更新窗口配置 - 句柄: {targetWindow.Handle.ToInt64()}, 类名: {targetWindow.ClassName}, 进程名: {targetWindow.ProcessName}, 标题: {targetWindow.Title}");
+                }
+                else
+                {
+                    SelectedWindowTitle = $"{SelectedWindowTitle} (进程未运行)";
+                    _logger.Warning($"未找到进程 {SelectedWindowProcessName} 的窗口");
+                }
+
+                // 只要配置中有窗口信息，就启动定时检查
+                StartWindowCheck();
+                _logger.Debug($"已启动定时检查 - 进程名: {SelectedWindowProcessName}, 标题: {SelectedWindowTitle}");
+            }
+        }
+
+        private class WindowInfo
+        {
+            public IntPtr Handle { get; set; }
+            public string Title { get; set; }
+            public string ClassName { get; set; }
+            public string ProcessName { get; set; }
+
+            public WindowInfo(IntPtr handle, string title, string className, string processName)
+            {
+                Handle = handle;
+                Title = title;
+                ClassName = className;
+                ProcessName = processName;
+            }
+        }
+
+        private List<WindowInfo> FindWindowsByProcessName(string processName, string targetTitle = null)
+        {
+            var windows = new List<WindowInfo>();
+            
+            try
+            {
+                // 获取所有指定进程名的进程
+                var processes = Process.GetProcessesByName(processName);
+                if (!processes.Any())
+                {
+                    _logger.Debug($"未找到进程: {processName}");
+                    return windows;
+                }
+
+                // 获取所有进程的ID
+                var processIds = processes.Select(p => p.Id).ToHashSet();
+
+                // 如果没有提供目标标题，则使用当前选中的窗口标题（移除所有状态信息）
+                if (targetTitle == null && !string.IsNullOrEmpty(SelectedWindowTitle))
+                {
+                    targetTitle = SelectedWindowTitle.Split(new[] { " (句柄:", " (进程未运行)", " (未找到匹配窗口)" }, StringSplitOptions.None)[0];
+                }
+
+                bool hasTargetTitle = !string.IsNullOrEmpty(targetTitle);
+                if (hasTargetTitle)
+                {
+                    _logger.Debug($"正在查找窗口 - 进程名: {processName}, 目标标题: {targetTitle}");
+                }
+
+                bool foundTarget = false;
+                // 枚举窗口并匹配进程ID
+                EnumWindows((hWnd, lParam) =>
+                {
+                    if (IsWindowVisible(hWnd))
+                    {
+                        uint windowProcessId;
+                        GetWindowThreadProcessId(hWnd, out windowProcessId);
+
+                        if (processIds.Contains((int)windowProcessId))
+                        {
+                            var title = GetWindowTitle(hWnd);
+                            var className = GetWindowClassName(hWnd);
+                            
+                            if (!string.IsNullOrWhiteSpace(title))
+                            {
+                                // 如果有目标标题，只添加匹配的窗口
+                                if (!hasTargetTitle || title.Equals(targetTitle, StringComparison.Ordinal))
+                                {
+                                    var windowInfo = new WindowInfo(hWnd, title, className, processName);
+                                    windows.Add(windowInfo);
+
+                                    if (hasTargetTitle && title.Equals(targetTitle, StringComparison.Ordinal))
+                                    {
+                                        foundTarget = true;
+                                        _logger.Debug($"找到目标窗口 - 进程: {processName}, 标题: {title}, 类名: {className}");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return true;
+                }, IntPtr.Zero);
+
+                if (hasTargetTitle && !foundTarget)
+                {
+                    _logger.Debug($"未找到目标窗口 - 进程: {processName}, 目标标题: {targetTitle}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"查找进程 {processName} 的窗口时发生异常", ex);
+            }
+
+            return windows;
+        }
+
+        private string GetWindowTitle(IntPtr hWnd)
+        {
+            StringBuilder title = new StringBuilder(256);
+            GetWindowText(hWnd, title, title.Capacity);
+            return title.ToString().Trim();
+        }
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
+
+        [DllImport("user32.dll")]
+        private static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsWindowVisible(IntPtr hWnd);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+        private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+        private string GetWindowClassName(IntPtr hWnd)
+        {
+            StringBuilder className = new StringBuilder(256);
+            GetClassName(hWnd, className, className.Capacity);
+            return className.ToString().Trim();
+        }
+
+        private void WindowCheckTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(SelectedWindowProcessName) || string.IsNullOrEmpty(SelectedWindowTitle))
+            {
+                return;
+            }
+
+            try
+            {
+                lock (_windowCheckLock)
+                {
+                    // 获取原始标题（移除状态信息）
+                    string originalTitle = SelectedWindowTitle.Split(new[] { " (句柄:", " (进程未运行)", " (未找到匹配窗口)" }, StringSplitOptions.None)[0];
+                    
+                    var windows = FindWindowsByProcessName(SelectedWindowProcessName, originalTitle);
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        if (windows.Any())
+                        {
+                            // 由于FindWindowsByProcessName已经按标题过滤，这里直接取第一个
+                            var targetWindow = windows.First();
+                            bool needsUpdate = false;
+
+                            // 检查句柄是否变化
+                            if (targetWindow.Handle != SelectedWindowHandle)
+                            {
+                                SelectedWindowHandle = targetWindow.Handle;
+                                needsUpdate = true;
+                            }
+
+                            // 检查类名是否变化
+                            if (targetWindow.ClassName != SelectedWindowClassName)
+                            {
+                                SelectedWindowClassName = targetWindow.ClassName;
+                                needsUpdate = true;
+                            }
+
+                            // 如果需要更新，则更新标题和配置
+                            if (needsUpdate)
+                            {
+                                SelectedWindowTitle = $"{targetWindow.Title} (句柄: {targetWindow.Handle.ToInt64()})";
+                                
+                                // 更新配置
+                                AppConfigService.UpdateConfig(config =>
+                                {
+                                    config.TargetWindowClassName = targetWindow.ClassName;
+                                    config.TargetWindowProcessName = targetWindow.ProcessName;
+                                    config.TargetWindowTitle = targetWindow.Title;
+                                });
+
+                                _logger.Info($"已更新窗口信息 - 句柄: {targetWindow.Handle.ToInt64()}, 类名: {targetWindow.ClassName}, 进程名: {targetWindow.ProcessName}, 标题: {targetWindow.Title}");
+                            }
+                        }
+                        else if (SelectedWindowHandle != IntPtr.Zero)
+                        {
+                            // 目标进程已关闭
+                            SelectedWindowHandle = IntPtr.Zero;
+                            SelectedWindowTitle = $"{originalTitle} (进程未运行)";
+                            _logger.Warning($"进程 {SelectedWindowProcessName} 已关闭");
+                        }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("检查窗口状态时发生异常", ex);
+            }
+        }
+
+        private void StartWindowCheck()
+        {
+            if (_windowCheckTimer == null)
+            {
+                _windowCheckTimer = new System.Timers.Timer(30000); // 30秒
+                _windowCheckTimer.Elapsed += WindowCheckTimer_Elapsed;
+            }
+            _windowCheckTimer.Start();
+            _logger.Debug("开始定时检查窗口状态");
+        }
+
+        private void StopWindowCheck()
+        {
+            _windowCheckTimer?.Stop();
+            _logger.Debug("停止定时检查窗口状态");
+        }
+
+        // 在析构函数或Dispose方法中清理定时器
+        ~KeyMappingViewModel()
+        {
+            _windowCheckTimer?.Dispose();
         }
     }
 }

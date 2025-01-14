@@ -264,20 +264,48 @@
                         Content="删除勾选" />
                 </DockPanel>
 
-                <!-- 状态显示 -->
-                <Border 
-                    Margin="0,0,0,10" 
-                    Padding="4,4" 
-                    CornerRadius="8"
-                    Height="30"
-                    Background="{Binding IsHotkeyEnabled, Converter={StaticResource BoolToColorConverter}}">
-                    <TextBlock 
-                        Text="{Binding HotkeyStatus}" 
-                        Foreground="White"
-                        FontWeight="Medium"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"/>
-                </Border>
+                <!-- 获取窗口句柄按钮 -->
+                <Button Style="{StaticResource RoundedShadowButtonSmall}"
+                        Name="btnGetWindowHandle"
+                        IsEnabled="{Binding IsNotExecuting}"
+                        Height="32"
+                        Margin="0,0,0,10"
+                        Click="GetWindowHandle_Click">
+                    <DockPanel>
+                        <Path Data="M13,9V3.5L18.5,9M6,2C4.89,2 4,2.89 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6Z"
+                              Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              Width="16" Height="16"
+                              Stretch="Uniform"
+                              Margin="0,0,8,0"/>
+                        <TextBlock Text="获取窗口句柄"
+                                 VerticalAlignment="Center"/>
+                    </DockPanel>
+                </Button>
+
+                <!-- 窗口句柄显示 -->
+                <DockPanel Margin="0,0,0,10">
+                    <TextBlock Text="句柄" 
+                              DockPanel.Dock="Left" 
+                              VerticalAlignment="Center"
+                              Margin="0,0,10,0"/>
+                    <Button Style="{StaticResource CircleButtonStyle}"
+                            DockPanel.Dock="Right"
+                            Width="24" Height="24"
+                            Margin="8,0,0,0"
+                            Click="ClearWindowHandle_Click"
+                            ToolTip="清除选择">
+                        <Path Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
+                              Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              Width="14" Height="14"
+                              Stretch="Uniform"/>
+                    </Button>
+                    <TextBox x:Name="txtWindowHandle"
+                            Style="{StaticResource ModernTextBox}"
+                            IsReadOnly="True"
+                            Text="{Binding SelectedWindowTitle, Mode=OneWay}"
+                            Tag="未选择窗口"
+                            ToolTip="{Binding SelectedWindowClassName}"/>
+                </DockPanel>
 
                 <!-- 按键设置区域 -->
                 <DockPanel Margin="0,0,0,10">

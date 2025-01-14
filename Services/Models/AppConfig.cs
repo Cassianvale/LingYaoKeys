@@ -120,6 +120,11 @@ namespace WpfApp.Services.Models
         // 连发功能是否启用
         public bool? IsRapidFireEnabled { get; set; }
 
+        // 窗口句柄相关信息
+        public string? TargetWindowClassName { get; set; }
+        public string? TargetWindowProcessName { get; set; }
+        public string? TargetWindowTitle { get; set; }
+
         [JsonIgnore]
         public string Author { get; set; } = "慕长秋";
     }
