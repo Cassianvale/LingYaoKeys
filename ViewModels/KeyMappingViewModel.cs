@@ -443,7 +443,7 @@ namespace WpfApp.ViewModels
             _isInitializing = false;
 
             // 初始化键盘布局视图模型
-            KeyboardLayoutViewModel = new KeyboardLayoutViewModel(lyKeysService, hotkeyService, _logger);
+            KeyboardLayoutViewModel = new KeyboardLayoutViewModel(lyKeysService, hotkeyService, _logger, _mainViewModel);
 
             // 加载窗口配置
             LoadWindowConfig();

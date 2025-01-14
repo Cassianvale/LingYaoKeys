@@ -8,18 +8,10 @@ namespace WpfApp.Services.Models
     public class KeyboardLayoutKey : INotifyPropertyChanged
     {
         private bool _isRapidFire;
-        private int _rapidFireDelay;
+        private int _rapidFireDelay = 10;
         private bool _isDisabled;
-        private int _pressTime;
+        private int _pressTime = 5;
 
-        public KeyboardLayoutKey()
-        {
-            // 在构造函数中设置默认值
-            _rapidFireDelay = 10;
-            _pressTime = 5;
-            _isRapidFire = false;
-            _isDisabled = false;
-        }
 
         public LyKeysCode KeyCode { get; set; }
         public string DisplayName { get; set; }
@@ -34,12 +26,6 @@ namespace WpfApp.Services.Models
                 {
                     _isRapidFire = value;
                     OnPropertyChanged();
-                    // 当连发状态改变时，可能需要更新其他相关属性
-                    if (value)
-                    {
-                        OnPropertyChanged(nameof(RapidFireDelay));
-                        OnPropertyChanged(nameof(PressTime));
-                    }
                 }
             }
         }

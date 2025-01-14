@@ -33,7 +33,7 @@
 
                                 <!-- 状态信息区域 -->
                                 <StackPanel Grid.Row="0" 
-                                          Visibility="{Binding IsRapidFireEnabled, Converter={StaticResource BoolToVisibilityConverter}}"
+                                          Visibility="{Binding IsRapidFire, Converter={StaticResource BoolToVisibilityConverter}}"
                                           Margin="0,0,0,0">
                                     <!-- 延迟值 -->
                                     <TextBlock Text="{Binding RapidFireDelay, StringFormat='{}{0}ms'}"
@@ -61,7 +61,7 @@
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter Property="Background" Value="#BBDEFB"/>
                             </Trigger>
-                            <DataTrigger Binding="{Binding IsRapidFireEnabled}" Value="True">
+                            <DataTrigger Binding="{Binding IsRapidFire}" Value="True">
                                 <Setter Property="Background" Value="#90EE90"/>
                             </DataTrigger>
                         </ControlTemplate.Triggers>

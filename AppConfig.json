@@ -55,6 +55,7 @@
   "FloatingWindowLeft": 1938.0,
   "FloatingWindowTop": 1054.0,
   "IsFloatingWindowEnabled": true,
+  "IsRapidFire": false,
   "IsRapidFireEnabled": false,
   "TargetWindowClassName": null,
   "TargetWindowProcessName": null,

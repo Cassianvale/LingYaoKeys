@@ -4,7 +4,6 @@ using System.Windows.Input;
 using WpfApp.Services;
 using WpfApp.Services.Models;
 using WpfApp.Services.Utils;
-using Serilog;
 
 namespace WpfApp.ViewModels
 {
@@ -19,7 +18,8 @@ namespace WpfApp.ViewModels
         private int _pressTime = 5; // 默认按压时间
         private readonly HotkeyService _hotkeyService;
         private bool _isInitializing = true;
-        private readonly ILogger _logger;
+        private readonly SerilogManager _logger = SerilogManager.Instance;
+        private readonly MainViewModel _mainViewModel;
 
         public KeyboardLayoutConfig KeyboardConfig
         {
@@ -39,6 +39,13 @@ namespace WpfApp.ViewModels
             get => _isRapidFireEnabled;
             set
             {
+                if (value == true)
+                {
+                    _logger.Debug("尝试开启连发功能");
+                    _mainViewModel.UpdateStatusMessage("连发功能未开发完成，敬请期待！", true);
+                    return;
+                }
+
                 if (SetProperty(ref _isRapidFireEnabled, value))
                 {
                     // 更新连发状态
@@ -123,10 +130,11 @@ namespace WpfApp.ViewModels
         // 添加事件用于通知按键连发状态变化
         public event Action<LyKeysCode, bool> KeyBurstStateChanged;
 
-        public KeyboardLayoutViewModel(LyKeysService lyKeysService, HotkeyService hotkeyService, ILogger logger)
+        public KeyboardLayoutViewModel(LyKeysService lyKeysService, HotkeyService hotkeyService, SerilogManager logger, MainViewModel mainViewModel)
         {
             _lyKeysService = lyKeysService ?? throw new ArgumentNullException(nameof(lyKeysService));
             _hotkeyService = hotkeyService ?? throw new ArgumentNullException(nameof(hotkeyService));
+            _mainViewModel = mainViewModel ?? throw new ArgumentNullException(nameof(mainViewModel));
             _keyboardConfig = new KeyboardLayoutConfig(_lyKeysService);
             _conflictKeys = new List<LyKeysCode>();
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -197,10 +205,10 @@ namespace WpfApp.ViewModels
                     return;
                 }
 
-                // 设置连发状态和延迟值
+                // 设置连发状态，默认值会在 IsRapidFire 的 setter 中自动设置
                 keyConfig.IsRapidFire = true;
-                keyConfig.RapidFireDelay = RapidFireDelay;
-                keyConfig.PressTime = PressTime;
+                
+                // 如果全局连发开关已启用，则禁用该按键
                 if (IsRapidFireEnabled)
                 {
                     keyConfig.IsDisabled = true;

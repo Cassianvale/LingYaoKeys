@@ -192,6 +192,7 @@ namespace WpfApp.Services
                 FloatingWindowLeft = SystemParameters.WorkArea.Right - 100 - 10,
                 FloatingWindowTop = SystemParameters.WorkArea.Bottom - 40 - 10,
                 IsFloatingWindowEnabled = true,
+                IsRapidFire = false,
                 IsRapidFireEnabled = false,
                 TargetWindowClassName = null,
                 TargetWindowProcessName = null,
