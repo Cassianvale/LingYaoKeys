@@ -16,7 +16,7 @@
         Icon="/Resource/icon/app.ico"
         SizeToContent="Manual"
         Height="650"
-        MinHeight="490"
+        MinHeight="530"
         Width="970"
         MinWidth="600"
         WindowStartupLocation="CenterScreen"
