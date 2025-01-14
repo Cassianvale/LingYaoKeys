@@ -53,8 +53,6 @@ namespace WpfApp.ViewModels
         private string _selectedWindowProcessName = string.Empty;
         private System.Timers.Timer? _windowCheckTimer;
         private readonly object _windowCheckLock = new object();
-        private readonly WindowFocusService _windowFocusService;
-        private bool _isTargetWindowActive;
 
         // 选中的窗口标题
         public string SelectedWindowTitle
@@ -90,9 +88,6 @@ namespace WpfApp.ViewModels
             SelectedWindowProcessName = processName;
             SelectedWindowTitle = $"{title} (句柄: {handle.ToInt64()})";
 
-            // 更新窗口焦点服务
-            _windowFocusService.SetTargetWindow(handle, title, className, processName);
-
             // 保存到配置
             AppConfigService.UpdateConfig(config =>
             {
@@ -114,9 +109,6 @@ namespace WpfApp.ViewModels
             SelectedWindowTitle = "未选择窗口";
             SelectedWindowClassName = string.Empty;
             SelectedWindowProcessName = string.Empty;
-
-            // 清除窗口焦点服务
-            _windowFocusService.ClearTargetWindow();
 
             // 清除配置
             AppConfigService.UpdateConfig(config =>
@@ -405,12 +397,6 @@ namespace WpfApp.ViewModels
             }
         }
 
-        public bool IsTargetWindowActive
-        {
-            get => _isTargetWindowActive;
-            private set => SetProperty(ref _isTargetWindowActive, value);
-        }
-
         public KeyMappingViewModel(LyKeysService lyKeysService, ConfigService configService,
             HotkeyService hotkeyService, MainViewModel mainViewModel, AudioService audioService)
         {
@@ -421,13 +407,9 @@ namespace WpfApp.ViewModels
             _audioService = audioService;
             _hotkeyStatus = "初始化中...";
             _isInitializing = true;
-            _windowFocusService = WindowFocusService.Instance;
 
             // 初始化按键列表
             _keyList = new ObservableCollection<KeyItem>();
-
-            // 订阅窗口焦点变化事件
-            _windowFocusService.TargetWindowActiveChanged += OnTargetWindowActiveChanged;
 
             // 订阅驱动服务的状态变化
             _lyKeysService.EnableStatusChanged += (s, enabled) =>
@@ -987,16 +969,6 @@ namespace WpfApp.ViewModels
                 {
                     _logger.Debug("开始启动按键映射");
                     
-                    // 检查目标窗口是否激活
-                    if (SelectedWindowHandle != IntPtr.Zero && !IsTargetWindowActive)
-                    {
-                        _logger.Warning("目标窗口未激活，无法启动按键映射");
-                        _mainViewModel.UpdateStatusMessage("请切换到目标窗口后再启动", true);
-                        IsHotkeyEnabled = false;
-                        IsExecuting = false;
-                        return;
-                    }
-
                     // 只获取勾选的按键
                     var keys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
                     if (keys.Count == 0)
@@ -1111,7 +1083,7 @@ namespace WpfApp.ViewModels
                     _logger.Warning("没有选中任何按键，无法启动");
                     _mainViewModel.UpdateStatusMessage("请至少选择一个按键", true);
                     IsHotkeyEnabled = false;
-                    IsExecuting = false;  // 确保状态正确
+                    IsExecuting = false;
                     return;
                 }
 
@@ -1120,7 +1092,7 @@ namespace WpfApp.ViewModels
                 _hotkeyService.SetKeySequence(keys, KeyInterval);  // 重要: 重置按键列表
                 _lyKeysService.IsHoldMode = SelectedKeyMode == 1;
                 _lyKeysService.KeyInterval = KeyInterval;
-
+                
                 // 设置执行状态
                 IsExecuting = true;
 
@@ -1141,7 +1113,7 @@ namespace WpfApp.ViewModels
             {
                 _logger.Error("启动按键映射异常", ex);
                 IsHotkeyEnabled = false;
-                IsExecuting = false;  // 确保异常时状态正确
+                IsExecuting = false;
             }
         }
 
@@ -1249,10 +1221,6 @@ namespace WpfApp.ViewModels
                     SelectedWindowClassName = targetWindow.ClassName;
                     SelectedWindowTitle = $"{targetWindow.Title} (句柄: {targetWindow.Handle.ToInt64()})";
                     
-                    // 更新窗口焦点服务
-                    _windowFocusService.SetTargetWindow(targetWindow.Handle, targetWindow.Title, 
-                        targetWindow.ClassName, targetWindow.ProcessName);
-
                     // 更新配置
                     AppConfigService.UpdateConfig(config =>
                     {
@@ -1484,33 +1452,10 @@ namespace WpfApp.ViewModels
             _logger.Debug("停止定时检查窗口状态");
         }
 
-        private void OnTargetWindowActiveChanged(object sender, bool isActive)
-        {
-            try
-            {
-                IsTargetWindowActive = isActive;
-                
-                // 如果窗口失去焦点，立即停止按键映射
-                if (!isActive && IsExecuting)
-                {
-                    _logger.Debug("目标窗口失去焦点，停止按键映射");
-                    StopKeyMapping();
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("处理窗口焦点变化时发生异常", ex);
-            }
-        }
-
-        // 在析构函数中取消订阅事件
+        // 在析构函数或Dispose方法中清理定时器
         ~KeyMappingViewModel()
         {
             _windowCheckTimer?.Dispose();
-            if (_windowFocusService != null)
-            {
-                _windowFocusService.TargetWindowActiveChanged -= OnTargetWindowActiveChanged;
-            }
         }
     }
 }
