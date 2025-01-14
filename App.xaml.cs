@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using WpfApp.Services;
 using WpfApp.Services.Config;
+using WpfApp.Services.Utils;
 using System.Reflection;
 using System.Windows;
 using Forms = System.Windows.Forms;
@@ -159,15 +160,36 @@ namespace WpfApp
                 // 最后释放日志服务
                 _logger.Debug("服务清理完成");
                 _logger.Debug("=================================================");
+
+                // 先释放控制台（如果在调试模式）
+                if (AppConfigService.Config.Debug.IsDebugMode)
+                {
+                    try
+                    {
+                        ConsoleManager.Release();
+                        System.Threading.Thread.Sleep(100); // 给一点时间让控制台完全释放
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"释放控制台失败: {ex.Message}");
+                    }
+                }
+
+                // 最后释放日志服务
                 _logger.Dispose();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"清理服务异常: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"清理服务异常: {ex.Message}");
             }
             finally
             {
-                Environment.Exit(0);
+                // 确保程序退出
+                Task.Run(() =>
+                {
+                    System.Threading.Thread.Sleep(500); // 给清理过程一些时间
+                    Environment.Exit(0);
+                });
             }
         }
 

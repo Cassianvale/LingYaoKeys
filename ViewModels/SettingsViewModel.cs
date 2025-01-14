@@ -69,11 +69,23 @@ namespace WpfApp.ViewModels
         {
             try
             {
+                var currentDebugMode = AppConfigService.Config.Debug.IsDebugMode;
+                
                 AppConfigService.UpdateConfig(config =>
                 {
-                    config.Debug.IsDebugMode = !config.Debug.IsDebugMode;
+                    config.Debug.IsDebugMode = !currentDebugMode;
                     config.Debug.UpdateDebugState();
                 });
+
+                // 更新控制台显示状态
+                if (AppConfigService.Config.Debug.IsDebugMode)
+                {
+                    ConsoleManager.Show();
+                }
+                else
+                {
+                    ConsoleManager.Hide();
+                }
 
                 UpdateDebugModeStatus();
 

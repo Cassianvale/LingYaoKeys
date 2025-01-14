@@ -5,6 +5,8 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using WpfApp.Services.Utils;
 using WpfApp.Services.Models;
 
 namespace WpfApp.Services
@@ -32,6 +34,12 @@ namespace WpfApp.Services
                     return;
                 }
 
+                // 如果是调试模式，显示控制台窗口
+                if (debugConfig.IsDebugMode)
+                {
+                    ConsoleManager.Show();
+                }
+
                 // 1. 设置日志级别
                 var logLevel = debugConfig.LogLevel.ToLower() switch
                 {
@@ -39,7 +47,7 @@ namespace WpfApp.Services
                     "information" => LogEventLevel.Information,
                     "warning" => LogEventLevel.Warning,
                     "error" => LogEventLevel.Error,
-                    _ => LogEventLevel.Information
+                    _ => LogEventLevel.Debug // 默认使用 Debug 级别
                 };
 
                 // 2. 创建日志过滤器
@@ -49,6 +57,7 @@ namespace WpfApp.Services
                 var loggerConfig = new LoggerConfiguration()
                     .MinimumLevel.ControlledBy(logFilter)
                     .Enrich.WithThreadId()
+                    .Enrich.FromLogContext()
                     .Filter.ByIncludingOnly(evt =>
                     {
                         // 获取源上下文和消息模板
@@ -59,6 +68,10 @@ namespace WpfApp.Services
                         var callerMember = evt.Properties.ContainsKey("CallerMember")
                             ? evt.Properties["CallerMember"].ToString()
                             : string.Empty;
+
+                        // 如果是调试模式，不过滤任何日志
+                        if (debugConfig.IsDebugMode)
+                            return true;
 
                         // 1. 检查是否在排除的源上下文列表中
                         if (debugConfig.ExcludedSources?.Any(source => 
@@ -91,16 +104,31 @@ namespace WpfApp.Services
                     });
 
                 // 4. 添加输出目标
+                const string outputTemplate = 
+                    "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{ThreadId}] [{SourceContext}.{CallerMember}:{LineNumber}] {Message}{NewLine}{Exception}";
+
+                // 调试模式下始终输出到控制台
+                if (debugConfig.IsDebugMode)
+                {
+                    loggerConfig = loggerConfig
+                        .WriteTo.Console(
+                            outputTemplate: outputTemplate,
+                            theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Code,
+                            restrictedToMinimumLevel: LogEventLevel.Debug
+                        );
+                    
+                    // 输出一条测试日志
+                    Console.WriteLine("Serilog 控制台输出已初始化");
+                }
+
+                // 如果启用了日志记录，添加其他输出目标
                 if (debugConfig.EnableLogging)
                 {
-                    const string outputTemplate = 
-                        "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{SourceContext}.{CallerMember}:{LineNumber}] {Message}{NewLine}{Exception}";
-
                     // Debug输出
-                    loggerConfig = loggerConfig.WriteTo.Debug(outputTemplate: outputTemplate);
-
-                    // 控制台输出
-                    loggerConfig = loggerConfig.WriteTo.Console(outputTemplate: outputTemplate);
+                    loggerConfig = loggerConfig.WriteTo.Debug(
+                        outputTemplate: outputTemplate,
+                        restrictedToMinimumLevel: LogEventLevel.Debug
+                    );
 
                     // 文件输出
                     if (!string.IsNullOrEmpty(_baseDirectory))
@@ -160,6 +188,13 @@ namespace WpfApp.Services
                 // 5. 创建日志实例
                 _logger = loggerConfig.CreateLogger();
                 _initialized = true;
+
+                // 输出初始化成功日志
+                if (debugConfig.IsDebugMode)
+                {
+                    _logger.Debug("Serilog 日志系统初始化成功");
+                    _logger.Debug($"日志级别: {logLevel}, 调试模式: {debugConfig.IsDebugMode}, 日志记录: {debugConfig.EnableLogging}");
+                }
             }
             catch (Exception ex)
             {
