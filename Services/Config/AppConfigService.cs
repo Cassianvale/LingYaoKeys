@@ -184,7 +184,6 @@ namespace WpfApp.Services
                 {
                     new KeyBurstConfig(LyKeysCode.VK_F, 10, 5)
                 },
-                IsRapidFire = false,
                 keyMode = 0,
                 interval = 5,
                 soundEnabled = true,
@@ -193,6 +192,10 @@ namespace WpfApp.Services
                 FloatingWindowLeft = SystemParameters.WorkArea.Right - 100 - 10,
                 FloatingWindowTop = SystemParameters.WorkArea.Bottom - 40 - 10,
                 IsFloatingWindowEnabled = true,
+                IsRapidFireEnabled = false,
+                TargetWindowClassName = null,
+                TargetWindowProcessName = null,
+                TargetWindowTitle = null
             };
         }
 

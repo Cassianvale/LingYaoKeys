@@ -12,29 +12,9 @@
                     <Border x:Name="border" 
                             Background="{TemplateBinding Background}"
                             BorderThickness="0">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="45"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <!-- 图标 -->
-                            <TextBlock x:Name="icon" 
-                                     Grid.Column="0"
-                                     Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
-                                     FontFamily="Segoe UI"
-                                     FontSize="16"
-                                     HorizontalAlignment="Center"
-                                     VerticalAlignment="Center"/>
-                            
-                            <!-- 文本 -->
-                            <TextBlock x:Name="text"
-                                     Grid.Column="1"
-                                     Text="{TemplateBinding Content}"
-                                     FontSize="13"
-                                     Margin="5,0,0,0"
-                                     VerticalAlignment="Center"/>
-                        </Grid>
+                        <ContentPresenter HorizontalAlignment="Left" 
+                                        VerticalAlignment="Center"
+                                        Margin="12,0,0,0"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">

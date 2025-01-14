@@ -4,6 +4,7 @@ using System.Windows.Input;
 using WpfApp.Services;
 using WpfApp.Services.Models;
 using WpfApp.Services.Utils;
+using Serilog;
 
 namespace WpfApp.ViewModels
 {
@@ -18,6 +19,7 @@ namespace WpfApp.ViewModels
         private int _pressTime = 5; // 默认按压时间
         private readonly HotkeyService _hotkeyService;
         private bool _isInitializing = true;
+        private readonly ILogger _logger;
 
         public KeyboardLayoutConfig KeyboardConfig
         {
@@ -121,12 +123,13 @@ namespace WpfApp.ViewModels
         // 添加事件用于通知按键连发状态变化
         public event Action<LyKeysCode, bool> KeyBurstStateChanged;
 
-        public KeyboardLayoutViewModel(LyKeysService lyKeysService, HotkeyService hotkeyService)
+        public KeyboardLayoutViewModel(LyKeysService lyKeysService, HotkeyService hotkeyService, ILogger logger)
         {
             _lyKeysService = lyKeysService ?? throw new ArgumentNullException(nameof(lyKeysService));
             _hotkeyService = hotkeyService ?? throw new ArgumentNullException(nameof(hotkeyService));
             _keyboardConfig = new KeyboardLayoutConfig(_lyKeysService);
             _conflictKeys = new List<LyKeysCode>();
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             // 初始化命令
             KeyClickCommand = new RelayCommand<KeyboardLayoutKey>(OnKeyClick);
@@ -275,9 +278,11 @@ namespace WpfApp.ViewModels
                 var config = AppConfigService.Config;
                 
                 // 加载连发状态
-                _isRapidFireEnabled = config.IsRapidFire;
+                _isRapidFireEnabled = config.IsRapidFireEnabled ?? false;
                 OnPropertyChanged(nameof(IsRapidFireEnabled));
                 
+                _logger.Debug($"加载连发状态: {_isRapidFireEnabled}");
+
                 // 立即同步连发状态到服务
                 _hotkeyService.SetRapidFireEnabled(_isRapidFireEnabled);
 
@@ -300,16 +305,20 @@ namespace WpfApp.ViewModels
                             
                             // 触发事件通知 KeyMappingViewModel
                             KeyBurstStateChanged?.Invoke(key.KeyCode, true);
+                            
+                            _logger.Debug($"加载连发按键: {key.KeyCode}, 延迟: {key.RapidFireDelay}ms, 按压时间: {key.PressTime}ms");
                         }
                     }
 
                     // 同步连发按键配置到 HotkeyService
                     _hotkeyService.UpdateRapidFireKeys(rapidFireKeys);
+                    _logger.Debug($"已同步 {rapidFireKeys.Count} 个连发按键到HotkeyService");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"加载连发配置失败: {ex.Message}");
+                _logger.Error("加载连发配置失败", ex);
+                throw new InvalidOperationException("加载连发配置失败，请检查日志获取详细信息", ex);
             }
         }
 
@@ -326,33 +335,32 @@ namespace WpfApp.ViewModels
                     .Select(k => new KeyBurstConfig(k.KeyCode, k.RapidFireDelay, k.PressTime))
                     .ToList();
 
-                Console.WriteLine($"发现 {rapidFireKeys.Count} 个连发按键");
+                _logger.Debug($"发现 {rapidFireKeys.Count} 个连发按键");
 
                 // 更新keys列表中按键的IsKeyBurst状态
                 foreach (var existingKey in existingKeys)
                 {
                     var isRapidFire = rapidFireKeys.Any(k => k.Code == existingKey.Code);
                     existingKey.IsKeyBurst = isRapidFire;
-                    Console.WriteLine($"更新已有按键 {existingKey.Code} 的连发状态为 {isRapidFire}");
+                    _logger.Debug($"更新已有按键 {existingKey.Code} 的连发状态为 {isRapidFire}");
                 }
 
                 AppConfigService.UpdateConfig(config =>
                 {
                     config.KeyBurst = rapidFireKeys;
                     config.keys = existingKeys;
-                    config.IsRapidFire = IsRapidFireEnabled;
-                    config.IsRapidFireEnabled = IsRapidFireEnabled;  // 同时更新两个状态字段
+                    config.IsRapidFireEnabled = IsRapidFireEnabled;
                 });
 
                 // 同步到HotkeyService
                 _hotkeyService.UpdateRapidFireKeys(rapidFireKeys);
 
-                Console.WriteLine("配置保存成功");
+                _logger.Debug("配置保存成功");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"保存连发配置失败: {ex.Message}");
-                throw;
+                _logger.Error("保存连发配置失败", ex);
+                throw new InvalidOperationException("保存连发配置失败，请检查日志获取详细信息", ex);
             }
         }
 
@@ -396,11 +404,15 @@ namespace WpfApp.ViewModels
                 
                 // 更新UI状态
                 OnPropertyChanged(nameof(IsRapidFireEnabled));
+                
+                _logger.Debug($"初始化连发功能完成 - 状态: {_isRapidFireEnabled}, 连发按键数: {rapidFireKeys.Count}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"初始化连发功能失败: {ex.Message}");
+                _logger.Error("初始化连发功能失败", ex);
                 _isRapidFireEnabled = false;
+                OnPropertyChanged(nameof(IsRapidFireEnabled));
+                throw new InvalidOperationException("初始化连发功能失败，请检查日志获取详细信息", ex);
             }
         }
     }

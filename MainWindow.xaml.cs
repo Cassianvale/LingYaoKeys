@@ -834,7 +834,7 @@ namespace WpfApp
                     }
                     else
                     {
-                        widthAnimation.To = 45; // 收起后只显示图标的宽度
+                        widthAnimation.To = 40; // 收起后只显示图标的宽度
                         shadowAnimation.To = 0; // 隐藏阴影
                         toggleButton.Content = "\uE701"; // 展开图标
                     }

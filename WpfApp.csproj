@@ -84,6 +84,7 @@
     <!-- 所有资源文件配置为Resource -->
     <Resource Include="Resource\img\**" />
     <Resource Include="Resource\icon\**" />
+    <Resource Include="Resource\svg\**" />
     
     <!-- 驱动文件配置为嵌入式资源 -->
     <EmbeddedResource Include="Resource\lykeysdll\**">
@@ -109,7 +110,7 @@
     <PackageReference Include="NAudio" Version="2.2.1" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" PrivateAssets="all" />
     <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" PrivateAssets="all" />
-    <PackageReference Include="WPF-UI" Version="3.0.5" />
+    <PackageReference Include="SharpVectors" Version="1.8.4" />
   </ItemGroup>
 
   <ItemGroup>

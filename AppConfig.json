@@ -2,8 +2,6 @@
   "Debug": {
     "IsDebugMode": false,
     "EnableLogging": false,
-    "ShowDebugInfo": false,
-    "EnablePerformanceMonitoring": false,
     "LogLevel": "Debug",
     "FileSettings": {
       "MaxFileSize": 10,
@@ -49,7 +47,6 @@
       "PressTime": 5
     }
   ],
-  "IsRapidFire": false,
   "keyMode": 0,
   "interval": 10,
   "soundEnabled": true,
