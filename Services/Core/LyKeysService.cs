@@ -832,6 +832,18 @@ namespace WpfApp.Services
             try
             {
                 _logger.Debug("开始执行按压模式循环");
+                
+                // 在按压模式开始时切换到英文输入法
+                try
+                {
+                    _inputMethodService.SwitchToEnglish();
+                    _logger.Debug("按压模式：已切换到英文输入法");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error("按压模式：切换输入法失败", ex);
+                }
+
                 int currentIndex = 0;
                 var stopwatch = new Stopwatch();
                 var spinWait = new SpinWait();
@@ -913,6 +925,10 @@ namespace WpfApp.Services
             {
                 try
                 {
+                    // 在按压模式结束时恢复原始输入法
+                    _inputMethodService.RestorePreviousLayout();
+                    _logger.Debug("按压模式：已恢复原始输入法");
+
                     // 确保释放所有按键
                     foreach (var key in keyListSnapshot)
                     {
@@ -928,7 +944,7 @@ namespace WpfApp.Services
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error("释放按键异常", ex);
+                    _logger.Error("按压模式：恢复输入法或释放按键时发生异常", ex);
                 }
                 _logger.Debug("按压模式循环已结束");
             }
