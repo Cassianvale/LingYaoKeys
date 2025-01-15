@@ -14,24 +14,25 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    
+    env:
+      Solution_Name: WpfApp.sln
+      Project_Path: WpfApp.csproj
+      Configuration: Release
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          dotnet-version: |
-            7.0.x
-            8.0.x
+          fetch-depth: 0
+
+      - name: Install .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
 
       - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v1.1
-
-      - name: Setup NuGet
-        uses: NuGet/setup-nuget@v1
-        with:
-          nuget-version: '6.x'
+        uses: microsoft/setup-msbuild@v2
 
       - name: Setup Aliyun CLI
         run: |
@@ -46,50 +47,40 @@ jobs:
 
       - name: Update Version
         run: |
-          # 获取当前工作目录
-          $workDir = Get-Location
-          Write-Host "Current working directory: $workDir"
-          
-          # 1. 更新 csproj 文件版本号
-          $csprojPath = Join-Path $workDir "WpfApp.csproj"
-          Write-Host "Updating csproj file: $csprojPath"
+          $csprojPath = Join-Path $env:GITHUB_WORKSPACE $env:Project_Path
+          Write-Host "Updating version in: $csprojPath"
           
           if (Test-Path $csprojPath) {
               $content = Get-Content $csprojPath
               $content = $content -replace '<Version>.*</Version>', "<Version>${{ github.event.inputs.version }}</Version>"
               Set-Content -Path $csprojPath -Value $content -Encoding UTF8
-              Write-Host "Updated version in csproj file"
+              Write-Host "Updated version to: ${{ github.event.inputs.version }}"
           } else {
-              Write-Error "csproj file not found: $csprojPath"
+              Write-Error "Project file not found: $csprojPath"
               exit 1
           }
         shell: pwsh
 
-      - name: Restore packages
+      - name: Restore Dependencies
         run: |
-          nuget restore WpfApp.csproj
-          dotnet restore WpfApp.csproj
-        
-      - name: Build and Publish
+          msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration
+          dotnet restore $env:Project_Path --verbosity normal
+
+      - name: Build
         run: |
-          # 清理
-          msbuild WpfApp.csproj /t:Clean /p:Configuration=Release
+          msbuild $env:Project_Path /p:Configuration=$env:Configuration /p:Platform=x64 /p:RestorePackages=false
+
+      - name: Publish
+        run: |
+          dotnet publish $env:Project_Path --configuration $env:Configuration --no-restore --output publish
           
-          # 构建
-          msbuild WpfApp.csproj /t:Rebuild /p:Configuration=Release
-          
-          # 发布
-          dotnet publish WpfApp.csproj -c Release
-          
-          # 验证发布的文件
-          $publishDir = "bin/Release/publish"
-          $exePath = Join-Path $publishDir "LingYaoKeys.exe"
-          
+          # 验证发布文件
+          $exePath = "publish\LingYaoKeys.exe"
           if (Test-Path $exePath) {
               $fileInfo = Get-Item $exePath
               Write-Host "Published file size: $($fileInfo.Length) bytes"
               Write-Host "Published file path: $exePath"
-              Get-ChildItem $publishDir -Recurse | ForEach-Object {
+              Get-ChildItem publish -Recurse | ForEach-Object {
                   Write-Host $_.FullName
               }
           } else {
@@ -97,7 +88,7 @@ jobs:
               exit 1
           }
         shell: pwsh
-        
+
       - name: Create version.json
         run: |
           $versionJson = @{
@@ -107,7 +98,6 @@ jobs:
           } | ConvertTo-Json
           Set-Content -Path "version.json" -Value $versionJson -Encoding UTF8
           
-          # 上传到阿里云 OSS
           Write-Host "Uploading to OSS..."
           aliyun oss cp version.json oss://lykeys-remote/version.json --force
         shell: pwsh
@@ -120,7 +110,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            bin/Release/publish/LingYaoKeys.exe
+            publish/LingYaoKeys.exe
             version.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
