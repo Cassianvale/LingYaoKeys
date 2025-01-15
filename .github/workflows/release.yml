@@ -9,8 +9,8 @@ on:
         type: string
       releaseNotes:
         description: '版本更新内容 (支持 Markdown 格式)'
-        required: true
-        type: string
+        required: false
+        type: text
 
 permissions:
   contents: write
