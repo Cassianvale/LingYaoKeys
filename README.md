@@ -29,23 +29,23 @@
 ## ✨ 主要功能
 
 ### 🎮 基础功能
-- [x] 支持全局热键，**支持侧键触发**  
+- [x] 支持全局热键，**支持侧键滚轮触发**  
+- [x] 支持窗口句柄嗅探  
 - [x] 支持顺序/按压模式触发按键  
 - [x] 支持开启/停止语音提醒  
 - [x] 支持正常/游戏模式切换  
 - [x] 支持自定义开启/停止音频  
 - [x] 支持按键列表拖拽排序  
-- [x] 支持浮窗置顶显示按键启动状态
-- [ ] 离线驱动实装中
+- [x] 支持浮窗置顶显示按键启动状态  
 
 ### 🚀 驱动特性
-- [x] 支持离线运行
-- [x] 基于DeviceIoControl内核级驱动实现
-- [x] 完善的反Hook和内存保护机制
-- [x] 支持32位/64位系统架构
-- [x] 支持USB/PS2键鼠设备
-- [x] 兼容Win7/Win10/Win11系统
-- [x] 支持驱动热插拔，无需重启系统
+- [x] 基于DeviceIoControl内核级驱动实现  
+- [x] 支持离线运行  
+- [x] 完善的反Hook和内存保护机制  
+- [x] 支持32位/64位系统架构  
+- [x] 支持USB/PS2键鼠设备  
+- [x] 兼容Win7/Win10/Win11系统  
+- [x] 支持驱动热插拔，程序退出无痕卸载  
   
 ## 🌏 直接下载  
 
@@ -71,6 +71,8 @@
 ## 🖼️ 项目展示  
 
 <img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/home.png" width="500px"/>  
+<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/about.png" width="500px"/>  
+<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/keys.png" width="700px"/>  
 
 ## 🎙 关于与建议  
 - 该项目是本人利用工作之余首次尝试使用`C#`和`WPF`以及`Cursor AI`技术栈进行开发的实践项目  

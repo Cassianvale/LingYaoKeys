@@ -41,6 +41,14 @@
                 <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
                 <Setter Property="UseLayoutRounding" Value="True"/>
             </Style>
+
+            <!-- 全局阴影效果 -->
+            <DropShadowEffect x:Key="DropShadowEffect"
+                              Direction="0"
+                              ShadowDepth="0"
+                              BlurRadius="10"
+                              Opacity="0.3"
+                              Color="Black"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

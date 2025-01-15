@@ -17,9 +17,6 @@ output/
 logs/
 packages/
 DvlErrLog.txt
-lykeys.sys
-lykeysdll.dll
-lykeys.cat
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -48,11 +45,17 @@ bld/
 *.userprefs
 *.dll
 *.pdb
+
+# XML files
 *.xml
+!FodyWeavers.xml
+!FodyWeavers.xsd
+
+# Cache and config files
 *.cache
 *.json
-!AppConfig.json  # 排除应用配置文件
-!package.json    # 排除包配置文件
+!AppConfig.json
+!package.json
 
 # Build and publish files
 publish/
@@ -392,3 +395,8 @@ appsettings.Production.json
 
 # 但不忽略模板文件
 !appsettings.template.json
+
+# 驱动文件
+!lykeys.sys
+!lykeysdll.dll
+!lykeys.cat

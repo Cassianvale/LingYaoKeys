@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:WpfApp.ViewModels"
         xmlns:converters="clr-namespace:WpfApp.Converters"
+        xmlns:behaviors="clr-namespace:WpfApp.Behaviors"
         mc:Ignorable="d"
         Title="浮动状态窗口" 
         Height="40" 
@@ -19,16 +20,13 @@
         MouseLeftButtonUp="Window_MouseLeftButtonUp"
         MouseRightButtonDown="Window_MouseRightButtonDown"
         ResizeMode="NoResize"
-        Closing="FloatingStatusWindow_Closing">
+        Closing="FloatingStatusWindow_Closing"
+        behaviors:FocusManagerBehavior.AutoClearFocusOnClick="False">
     
     <Window.Resources>
         <converters:StatusToColorConverter x:Key="StatusToColorConverter"/>
     </Window.Resources>
     
-    <Window.DataContext>
-        <vm:FloatingStatusViewModel/>
-    </Window.DataContext>
-
     <Border Background="{Binding StatusText, Converter={StaticResource StatusToColorConverter}}"
             CornerRadius="4">
         <TextBlock Text="{Binding StatusText}"

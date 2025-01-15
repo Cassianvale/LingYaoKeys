@@ -265,7 +265,7 @@ namespace WpfApp.ViewModels
                         "Feedback" => new FeedbackView { DataContext = _feedbackViewModel },
                         "About" => new AboutView { DataContext = _aboutViewModel },
                         "QRCode" => new QRCodeView(),
-                        "Settings" => new SettingsView { DataContext = new SettingsViewModel(App.Configuration) },
+                        "Settings" => new SettingsView { DataContext = new SettingsViewModel() },
                         _ => null
                     };
                 }
