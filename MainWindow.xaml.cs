@@ -14,6 +14,8 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
 using WpfApp.Services.Config;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace WpfApp
 {
@@ -29,6 +31,8 @@ namespace WpfApp
         private Forms.NotifyIcon _trayIcon;
         internal ContextMenu _trayContextMenu;
         private bool _isNavExpanded = false;
+        private readonly SemaphoreSlim _cleanupSemaphore = new SemaphoreSlim(1, 1);
+        private CancellationTokenSource _cleanupCts;
 
         // 窗口调整大小相关
         private bool _isResizing;
@@ -119,8 +123,11 @@ namespace WpfApp
                 // 注册窗口状态改变事件
                 StateChanged += MainWindow_StateChanged;
 
-                // 注册窗口大小改变事件
-                SizeChanged += MainWindow_SizeChanged;
+                // 设置 MainWindow 引用到 KeyMappingViewModel
+                if (_viewModel.KeyMappingViewModel != null)
+                {
+                    _viewModel.KeyMappingViewModel.SetMainWindow(this);
+                }
                 
                 _logger.Debug($"窗口初始化完成 - 尺寸: {Width}x{Height}");
             }
@@ -142,7 +149,7 @@ namespace WpfApp
                     Style = System.Windows.Application.Current.FindResource("TrayContextMenuStyle") as Style,
                     Placement = PlacementMode.Custom,
                     CustomPopupPlacementCallback = new CustomPopupPlacementCallback(MenuCustomPlacementCallback),
-                    StaysOpen = true  // 改为true，由我们自己控制关闭
+                    StaysOpen = false  // 默认不保持打开
                 };
 
                 // 添加菜单打开和关闭事件处理
@@ -162,6 +169,7 @@ namespace WpfApp
                 {
                     RemoveMouseHook();  // 移除鼠标钩子
                     Keyboard.ClearFocus();
+                    _trayContextMenu.StaysOpen = false; // 确保重置 StaysOpen
                 };
 
                 var showMenuItem = new MenuItem
@@ -439,50 +447,100 @@ namespace WpfApp
             }
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private async void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             if (_isClosing) return;
-            _isClosing = true;
-            
-            _logger.Debug("正在关闭应用程序");
 
-            try 
+            try
             {
-                _logger.Debug("开始清理窗口资源...");
-
-                // 保存窗口大小到配置
-                if (WindowState == WindowState.Normal)
+                // 防止重入
+                if (!await _cleanupSemaphore.WaitAsync(0))
                 {
-                    _logger.Debug($"保存窗口大小: {ActualWidth}x{ActualHeight}");
-                    AppConfigService.UpdateConfig(config =>
+                    e.Cancel = true;
+                    return;
+                }
+
+                _isClosing = true;
+                _logger.Debug("正在关闭应用程序");
+
+                // 创建取消令牌，设置3秒超时
+                _cleanupCts = new CancellationTokenSource();
+                _cleanupCts.CancelAfter(TimeSpan.FromSeconds(3));
+
+                try
+                {
+                    // 1. 立即禁用UI交互
+                    IsEnabled = false;
+                    
+                    // 2. 异步执行清理操作
+                    await Task.Run(async () =>
                     {
-                        config.UI.MainWindow.Width = ActualWidth;
-                        config.UI.MainWindow.Height = ActualHeight;
+                        try
+                        {
+                            _logger.Debug("开始清理窗口资源...");
+
+                            // 保存窗口大小到配置
+                            await Dispatcher.InvokeAsync(() =>
+                            {
+                                if (WindowState == WindowState.Normal)
+                                {
+                                    _logger.Debug($"保存窗口大小: {ActualWidth}x{ActualHeight}");
+                                    AppConfigService.UpdateConfig(config =>
+                                    {
+                                        config.UI.MainWindow.Width = ActualWidth;
+                                        config.UI.MainWindow.Height = ActualHeight;
+                                    });
+                                }
+                            });
+
+                            // 停止ViewModel操作
+                            if (_viewModel is IDisposable disposableViewModel)
+                            {
+                                await Task.Run(() => disposableViewModel.Dispose(), _cleanupCts.Token);
+                            }
+
+                            // 清理托盘图标
+                            await Dispatcher.InvokeAsync(() =>
+                            {
+                                if (_trayIcon != null)
+                                {
+                                    _trayIcon.Visible = false;
+                                    _trayIcon.Dispose();
+                                    _trayIcon = null;
+                                }
+                            });
+
+                            // 清理托盘菜单
+                            await Dispatcher.InvokeAsync(() =>
+                            {
+                                if (_trayContextMenu != null)
+                                {
+                                    _trayContextMenu.Items.Clear();
+                                    _trayContextMenu = null;
+                                }
+                            });
+
+                            _logger.Debug("窗口资源清理完成");
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            _logger.Warning("清理操作已超时取消");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error("清理过程中发生错误", ex);
+                        }
+                    }, _cleanupCts.Token);
+                }
+                finally
+                {
+                    // 设置关闭模式并关闭应用程序
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        System.Windows.Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                        System.Windows.Application.Current.Shutdown();
                     });
                 }
-                
-                // 先停止所有操作
-                if (_viewModel is IDisposable disposableViewModel)
-                {
-                    disposableViewModel.Dispose();
-                }
-
-                // 确保移除托盘图标
-                if (_trayIcon != null)
-                {
-                    _trayIcon.Visible = false;  // 先隐藏托盘图标
-                    _trayIcon.Dispose();
-                    _trayIcon = null;
-                }
-
-                // 移除事件处理
-                if (_trayContextMenu != null)
-                {
-                    _trayContextMenu.Items.Clear();
-                    _trayContextMenu = null;
-                }
-                
-                _logger.Debug("窗口资源清理完成");
             }
             catch (Exception ex)
             {
@@ -490,10 +548,39 @@ namespace WpfApp
             }
             finally
             {
-                // 设置关闭模式并关闭应用程序
-                System.Windows.Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-                System.Windows.Application.Current.Shutdown();
+                _cleanupSemaphore.Release();
+                _cleanupCts?.Dispose();
             }
+        }
+
+        protected override async void OnClosed(EventArgs e)
+        {
+            try
+            {
+                // 确保钩子被移除
+                await Dispatcher.InvokeAsync(() => RemoveMouseHook());
+                
+                // 清理页面缓存
+                await Task.Run(() => Services.PageCacheService.ClearCache());
+                
+                if (_isClosing) return;
+                _isClosing = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("OnClosed 事件处理异常", ex);
+            }
+            finally
+            {
+                base.OnClosed(e);
+            }
+        }
+
+        // 在类的末尾添加析构函数
+        ~MainWindow()
+        {
+            _cleanupSemaphore?.Dispose();
+            _cleanupCts?.Dispose();
         }
 
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -561,18 +648,6 @@ namespace WpfApp
                     maximizeButton.ToolTip = "最大化";
                 }
             }
-        }
-
-        protected override void OnClosed(EventArgs e)
-        {
-            RemoveMouseHook();  // 确保钩子被移除
-            
-            // 清理页面缓存
-            Services.PageCacheService.ClearCache();
-            
-            if (_isClosing) return;
-            _isClosing = true;
-            base.OnClosed(e);
         }
 
         #region 窗口大小调整
@@ -927,10 +1002,5 @@ namespace WpfApp
             }
         }
 
-        private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            // 仅在窗口关闭时保存
-            _logger.Debug($"窗口大小已更改: {ActualWidth}x{ActualHeight}");
-        }
     }
 }

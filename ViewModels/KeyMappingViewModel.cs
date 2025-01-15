@@ -37,7 +37,7 @@ namespace WpfApp.ViewModels
         private bool _isSequenceMode = true; // 默认为顺序模式
         private readonly SerilogManager _logger = SerilogManager.Instance;
         private readonly MainViewModel _mainViewModel;
-        private readonly MainWindow _mainWindow;
+        private MainWindow? _mainWindow;
         private bool _isSoundEnabled = true;
         private readonly AudioService _audioService;
         private bool _isGameMode = true; // 默认开启
@@ -57,6 +57,11 @@ namespace WpfApp.ViewModels
         private bool _isTargetWindowActive;
         private readonly System.Timers.Timer _activeWindowCheckTimer;
         private const int ACTIVE_WINDOW_CHECK_INTERVAL = 50; // 50ms检查一次活动窗口
+
+        /// <summary>
+        /// 获取当前是否处于初始化状态
+        /// </summary>
+        public bool IsInitializing => _isInitializing;
 
         // 选中的窗口标题
         public string SelectedWindowTitle
@@ -439,12 +444,36 @@ namespace WpfApp.ViewModels
 
         private void ShowFloatingWindow()
         {
-            if (_floatingWindow == null)
+            try
             {
-                _floatingWindow = new FloatingStatusWindow(_mainWindow);
+                if (_mainWindow == null)
+                {
+                    _logger.Warning("MainWindow 引用为空，无法创建浮窗");
+                    return;
+                }
+
+                if (_floatingWindow == null)
+                {
+                    // 先创建 ViewModel
+                    _floatingViewModel = new FloatingStatusViewModel();
+                    
+                    // 创建浮窗并设置 DataContext
+                    _floatingWindow = new FloatingStatusWindow(_mainWindow)
+                    {
+                        DataContext = _floatingViewModel
+                    };
+                    
+                    _logger.Debug("浮窗已创建并设置 DataContext");
+                }
+                
+                _floatingWindow.Show();
+                UpdateFloatingStatus(); // 确保显示后立即更新状态
+                _logger.Debug("浮窗已显示并更新状态");
             }
-            _floatingWindow.Show();
-            UpdateFloatingStatus(); // 确保显示后立即更新状态
+            catch (Exception ex)
+            {
+                _logger.Error("创建或显示浮窗时发生错误", ex);
+            }
         }
 
         private void HideFloatingWindow()
@@ -490,22 +519,47 @@ namespace WpfApp.ViewModels
         [DllImport("user32.dll")]
         private static extern IntPtr GetForegroundWindow();
 
+        public void SetMainWindow(MainWindow mainWindow)
+        {
+            if (mainWindow == null)
+            {
+                _logger.Warning("传入的 MainWindow 为空");
+                return;
+            }
+
+            _mainWindow = mainWindow;
+            _logger.Debug("已设置 MainWindow 引用");
+            
+            // 如果浮窗已启用，则创建浮窗
+            if (IsFloatingWindowEnabled && _floatingWindow == null)
+            {
+                ShowFloatingWindow();
+            }
+        }
+
         public KeyMappingViewModel(LyKeysService lyKeysService, ConfigService configService,
             HotkeyService hotkeyService, MainViewModel mainViewModel, AudioService audioService)
         {
+            _isInitializing = true;
             _lyKeysService = lyKeysService;
             _configService = configService;
             _hotkeyService = hotkeyService;
             _mainViewModel = mainViewModel;
             _audioService = audioService;
-            _mainWindow = System.Windows.Application.Current.MainWindow as MainWindow;
             _hotkeyStatus = "初始化中...";
-            _isInitializing = true;
 
-            // 初始化按键列表
+            // 1. 初始化基础组件
             _keyList = new ObservableCollection<KeyItem>();
+            InitializeCommands();
+            InitializeHotkeyStatus();
 
-            // 订阅驱动服务的状态变化
+            // 2. 初始化键盘布局视图模型
+            KeyboardLayoutViewModel = new KeyboardLayoutViewModel(lyKeysService, hotkeyService, _logger, _mainViewModel);
+
+            // 3. 订阅事件
+            SubscribeToEvents();
+
+            // 4. 订阅驱动服务的状态变化
             _lyKeysService.EnableStatusChanged += (s, enabled) =>
             {
                 System.Windows.Application.Current.Dispatcher.Invoke(() =>
@@ -514,38 +568,26 @@ namespace WpfApp.ViewModels
                 });
             };
 
-            // 修改热键事件处理
+            // 5. 修改热键事件处理
             _hotkeyService.StartHotkeyPressed += OnStartHotkeyPressed;
             _hotkeyService.StopHotkeyPressed += OnStopHotkeyPressed;
 
-            // 初始化命令
-            InitializeCommands();
-
-            // 加载配置
+            // 6. 加载配置
             LoadConfiguration();
 
-            // 初始化热键状态
-            InitializeHotkeyStatus();
-
-            // 订阅事件
-            SubscribeToEvents();
-
-            // 确保配置同步到服务
+            // 7. 确保配置同步到服务
             SyncConfigToServices();
 
-            // 在所有初始化完成后
-            _isInitializing = false;
-
-            // 初始化键盘布局视图模型
-            KeyboardLayoutViewModel = new KeyboardLayoutViewModel(lyKeysService, hotkeyService, _logger, _mainViewModel);
-
-            // 加载窗口配置
+            // 8. 加载窗口配置
             LoadWindowConfig();
 
-            // 初始化活动窗口检查定时器
+            // 9. 初始化活动窗口检查定时器
             _activeWindowCheckTimer = new System.Timers.Timer(ACTIVE_WINDOW_CHECK_INTERVAL);
             _activeWindowCheckTimer.Elapsed += ActiveWindowCheckTimer_Elapsed;
             _activeWindowCheckTimer.Start();
+
+            // 最后标记初始化完成
+            _isInitializing = false;
         }
 
         private void SyncConfigToServices()

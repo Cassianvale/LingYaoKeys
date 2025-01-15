@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using WpfApp.Services.Models;
 using WpfApp.ViewModels;
+using WpfApp.Services.Config;
 
 namespace WpfApp.Services
 {
@@ -433,27 +434,28 @@ namespace WpfApp.Services
                 var mainWindow = System.Windows.Application.Current?.MainWindow;
                 if (mainWindow == null)
                 {
-                    _logger.Debug($"主窗口未初始化，跳过获取KeyItem: {keyCode}");
                     return null;
                 }
 
                 var mainViewModel = mainWindow.DataContext as MainViewModel;
                 if (mainViewModel == null)
                 {
-                    _logger.Debug($"MainViewModel未初始化，跳过获取KeyItem: {keyCode}");
                     return null;
                 }
 
                 var keyMappingViewModel = mainViewModel.KeyMappingViewModel;
-                if (keyMappingViewModel == null)
+                if (keyMappingViewModel == null || keyMappingViewModel.IsInitializing)
                 {
-                    _logger.Debug($"KeyMappingViewModel未初始化，跳过获取KeyItem: {keyCode}");
+                    // 只在调试模式下输出日志
+                    if (AppConfigService.Config.Debug.IsDebugMode)
+                    {
+                        _logger.Debug($"KeyMappingViewModel未初始化，跳过获取KeyItem: {keyCode}");
+                    }
                     return null;
                 }
 
                 if (keyMappingViewModel.KeyList == null)
                 {
-                    _logger.Debug($"KeyList为空，跳过获取KeyItem: {keyCode}");
                     return null;
                 }
 
@@ -461,8 +463,33 @@ namespace WpfApp.Services
             }
             catch (Exception ex)
             {
-                _logger.Debug($"获取KeyItem时发生异常: {keyCode}, 错误: {ex.Message}");
+                // 只记录非初始化阶段的异常
+                if (!IsInitializing())
+                {
+                    _logger.Debug($"获取KeyItem时发生异常: {keyCode}, 错误: {ex.Message}");
+                }
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// 检查是否处于初始化阶段
+        /// </summary>
+        private bool IsInitializing()
+        {
+            try
+            {
+                var mainWindow = System.Windows.Application.Current?.MainWindow;
+                if (mainWindow?.DataContext is MainViewModel mainViewModel &&
+                    mainViewModel.KeyMappingViewModel != null)
+                {
+                    return mainViewModel.KeyMappingViewModel.IsInitializing;
+                }
+                return true;
+            }
+            catch
+            {
+                return true;
             }
         }
 

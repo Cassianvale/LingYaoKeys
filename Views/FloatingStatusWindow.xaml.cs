@@ -7,6 +7,7 @@ using System.Windows.Interop;
 using System.Runtime.InteropServices;
 using WpfApp.Services.Models;
 using WpfApp.Services.Config;
+using WpfApp.Services;
 
 namespace WpfApp.Views
 {
@@ -19,12 +20,14 @@ namespace WpfApp.Views
         private MainWindow _mainWindow;
         private DateTime _lastClickTime;
         private const double DOUBLE_CLICK_THRESHOLD = 300; // 双击时间阈值（毫秒）
+        private readonly SerilogManager _logger = SerilogManager.Instance;
 
         public FloatingStatusWindow(MainWindow mainWindow)
         {
             InitializeComponent();
             _config = AppConfigService.Config;
             _mainWindow = mainWindow;
+            _logger.Debug("浮窗初始化完成");
             
             // 设置为工具窗口
             SourceInitialized += (s, e) =>
@@ -32,6 +35,7 @@ namespace WpfApp.Views
                 var hwnd = new WindowInteropHelper(this).Handle;
                 var extendedStyle = Win32.GetWindowLong(hwnd, Win32.GWL_EXSTYLE);
                 Win32.SetWindowLong(hwnd, Win32.GWL_EXSTYLE, extendedStyle | Win32.WS_EX_TOOLWINDOW);
+                _logger.Debug("浮窗工具窗口样式设置完成");
             };
             
             // 加载上次保存的位置
@@ -50,6 +54,7 @@ namespace WpfApp.Views
                     config.UI.FloatingWindow.Left = left;
                     config.UI.FloatingWindow.Top = top;
                 });
+                _logger.Debug($"浮窗位置初始化为右下角: Left={left}, Top={top}");
             }
             
             // 确保窗口在屏幕范围内
@@ -59,6 +64,7 @@ namespace WpfApp.Views
             {
                 Left = left;
                 Top = top;
+                _logger.Debug($"浮窗位置设置完成: Left={left}, Top={top}");
             }
             else
             {
@@ -72,6 +78,7 @@ namespace WpfApp.Views
                     config.UI.FloatingWindow.Left = Left;
                     config.UI.FloatingWindow.Top = Top;
                 });
+                _logger.Debug($"浮窗位置重置到右下角: Left={Left}, Top={Top}");
             }
         }
 
@@ -80,6 +87,7 @@ namespace WpfApp.Views
             _dragStartPoint = e.GetPosition(this);
             _isDragging = false;
             CaptureMouse();
+            _logger.Debug("浮窗开始拖拽");
         }
 
         private void Window_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
@@ -93,6 +101,7 @@ namespace WpfApp.Views
                 if (!_isDragging && (Math.Abs(diff.X) > DRAG_THRESHOLD || Math.Abs(diff.Y) > DRAG_THRESHOLD))
                 {
                     _isDragging = true;
+                    _logger.Debug("浮窗拖拽开始");
                 }
 
                 if (_isDragging)
@@ -108,54 +117,112 @@ namespace WpfApp.Views
         {
             ReleaseMouseCapture();
             
-            // 如果发生了拖拽，保存新位置
-            if (_isDragging)
+            try
             {
-                AppConfigService.UpdateConfig(config =>
+                // 如果发生了拖拽，保存新位置
+                if (_isDragging)
                 {
-                    config.UI.FloatingWindow.Left = Math.Round(Left, 2);
-                    config.UI.FloatingWindow.Top = Math.Round(Top, 2);
-                });
-            }
-            else
-            {
-                var currentTime = DateTime.Now;
-                var timeSinceLastClick = (currentTime - _lastClickTime).TotalMilliseconds;
+                    AppConfigService.UpdateConfig(config =>
+                    {
+                        config.UI.FloatingWindow.Left = Math.Round(Left, 2);
+                        config.UI.FloatingWindow.Top = Math.Round(Top, 2);
+                    });
+                    _logger.Debug($"保存浮窗位置: Left={Left}, Top={Top}");
+                }
+                else if (_mainWindow != null)
+                {
+                    var currentTime = DateTime.Now;
+                    var timeSinceLastClick = (currentTime - _lastClickTime).TotalMilliseconds;
 
-                if (timeSinceLastClick <= DOUBLE_CLICK_THRESHOLD)
-                {
-                    // 双击，显示主窗口
-                    _mainWindow.RestoreFromMinimized();
-                    _lastClickTime = DateTime.MinValue; // 重置点击时间
+                    if (timeSinceLastClick <= DOUBLE_CLICK_THRESHOLD)
+                    {
+                        _logger.Debug("检测到浮窗双击，准备显示主窗口");
+                        // 双击，显示主窗口
+                        _mainWindow.RestoreFromMinimized();
+                        _lastClickTime = DateTime.MinValue; // 重置点击时间
+                    }
+                    else
+                    {
+                        _logger.Debug("记录单击时间");
+                        _lastClickTime = currentTime;
+                    }
                 }
                 else
                 {
-                    _lastClickTime = currentTime;
+                    _logger.Warning("MainWindow 引用为空，无法处理点击事件");
                 }
             }
-            _isDragging = false;
+            catch (Exception ex)
+            {
+                _logger.Error("处理鼠标抬起事件时发生错误", ex);
+            }
+            finally
+            {
+                _isDragging = false;
+            }
         }
 
         private void Window_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // 显示托盘菜单
-            if (_mainWindow._trayContextMenu != null)
+            try
             {
-                _mainWindow._trayContextMenu.PlacementTarget = this;
-                _mainWindow._trayContextMenu.Placement = PlacementMode.MousePoint;
-                _mainWindow._trayContextMenu.IsOpen = true;
-                e.Handled = true;
+                _logger.Debug("浮窗接收到右键点击");
+                
+                // 确保窗口获得焦点
+                Focus();
+                
+                // 显示托盘菜单
+                if (_mainWindow?._trayContextMenu != null)
+                {
+                    _logger.Debug("准备显示托盘菜单");
+                    
+                    // 设置菜单位置和目标
+                    _mainWindow._trayContextMenu.PlacementTarget = this;
+                    _mainWindow._trayContextMenu.Placement = PlacementMode.MousePoint;
+                    
+                    // 确保菜单在显示时不会自动关闭
+                    _mainWindow._trayContextMenu.StaysOpen = true;
+                    _mainWindow._trayContextMenu.IsOpen = true;
+                    
+                    // 订阅菜单关闭事件，以便在关闭时重置 StaysOpen
+                    _mainWindow._trayContextMenu.Closed += (s, args) =>
+                    {
+                        if (_mainWindow?._trayContextMenu != null)
+                        {
+                            _mainWindow._trayContextMenu.StaysOpen = false;
+                        }
+                    };
+                    
+                    e.Handled = true;
+                    _logger.Debug("托盘菜单已显示");
+                }
+                else
+                {
+                    _logger.Warning("MainWindow 或托盘菜单为空，无法显示菜单");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("显示托盘菜单时发生错误", ex);
             }
         }
 
         private void FloatingStatusWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            // 保存窗口位置
-            AppConfigService.UpdateConfig(config =>
+            try
             {
-                config.UI.FloatingWindow.Left = Left;
-                config.UI.FloatingWindow.Top = Top;
-            });
+                // 保存窗口位置
+                AppConfigService.UpdateConfig(config =>
+                {
+                    config.UI.FloatingWindow.Left = Left;
+                    config.UI.FloatingWindow.Top = Top;
+                });
+                _logger.Debug($"保存浮窗关闭前位置: Left={Left}, Top={Top}");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("保存浮窗位置时发生错误", ex);
+            }
         }
 
         // 添加 Win32 API 定义

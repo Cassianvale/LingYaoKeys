@@ -133,17 +133,12 @@ namespace WpfApp.ViewModels
                 var updateInfo = await _updateService.CheckForUpdateAsync();
                 if (updateInfo != null)
                 {
-                    var message = $"发现新版本：{updateInfo.LatestVersion}\n" +
-                                 $"当前版本：{updateInfo.CurrentVersion}\n\n" +
-                                 $"是否立即更新？";
+                    var dialog = new Views.UpdateDialog(
+                        updateInfo.LatestVersion,
+                        updateInfo.CurrentVersion,
+                        updateInfo.DownloadUrl);
 
-                    var result = MessageBox.Show(
-                        message,
-                        "发现新版本",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Information);
-
-                    if (result == MessageBoxResult.Yes)
+                    if (dialog.ShowDialog() == true)
                     {
                         _updateService.OpenDownloadPage(updateInfo.DownloadUrl);
                     }
