@@ -16,12 +16,17 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: |
+            7.0.x
+            8.0.x
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v1.1
 
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v1
@@ -60,21 +65,21 @@ jobs:
           }
         shell: pwsh
 
-      - name: Restore NuGet packages
+      - name: Restore packages
         run: |
-          nuget restore WpfApp.csproj -Source https://api.nuget.org/v3/index.json
-          dotnet restore --verbosity normal
+          nuget restore WpfApp.csproj
+          dotnet restore WpfApp.csproj
         
       - name: Build and Publish
         run: |
           # 清理
-          dotnet clean -c Release
+          msbuild WpfApp.csproj /t:Clean /p:Configuration=Release
           
-          # 构建 Release 版本以触发 Fody
-          dotnet build -c Release
+          # 构建
+          msbuild WpfApp.csproj /t:Rebuild /p:Configuration=Release
           
-          # 发布 (框架依赖模式)
-          dotnet publish -c Release -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
+          # 发布
+          dotnet publish WpfApp.csproj -c Release
           
           # 验证发布的文件
           $publishDir = "bin/Release/publish"
