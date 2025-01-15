@@ -58,8 +58,30 @@ jobs:
       - name: Build and Publish
         run: |
           dotnet restore
+          
+          # 先执行Release构建，让Fody处理嵌入
           dotnet build -c Release
-          dotnet publish -c Release -r win-x64 -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:SelfContained=false
+          
+          # 然后执行发布，确保包含所有资源
+          dotnet publish -c Release -r win-x64 `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:SelfContained=false `
+            -p:EnableCompressionInSingleFile=true `
+            -p:DebugType=None `
+            -p:IncludeAllContentForSelfExtract=true `
+            -p:CopyOutputSymbolsToPublishDirectory=false
+          
+          # 验证发布的文件
+          $exePath = "bin/Release/publish/LingYaoKeys.exe"
+          if (Test-Path $exePath) {
+              $fileInfo = Get-Item $exePath
+              Write-Host "Published file size: $($fileInfo.Length) bytes"
+          } else {
+              Write-Error "Published file not found: $exePath"
+              exit 1
+          }
+        shell: pwsh
         
       - name: Create version.json
         run: |
