@@ -40,12 +40,6 @@ namespace WpfApp.Services.Models
             {
                 _isRunning = true;
                 _cts = new CancellationTokenSource();
-                
-                // 在开始序列前切换输入法
-                if (_driverService is LyKeysService lyKeysService)
-                {
-                    lyKeysService._inputMethodService.SwitchToEnglish();
-                }
 
                 LogModeStart();
 
@@ -128,18 +122,7 @@ namespace WpfApp.Services.Models
 
         public override void Stop()
         {
-            try
-            {
-                base.Stop();
-            }
-            finally
-            {
-                // 恢复输入法状态
-                if (_driverService is LyKeysService lyKeysService)
-                {
-                    lyKeysService._inputMethodService.RestorePreviousLayout();
-                }
-            }
+            base.Stop();
         }
 
         protected override void Dispose(bool disposing)

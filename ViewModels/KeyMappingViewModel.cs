@@ -1,14 +1,17 @@
 using System.Windows.Input;
 using System.Linq;
-using WpfApp.Services.Models;
 using WpfApp.Services;
-using WpfApp.Commands;
+using WpfApp.Services.Models;
+using WpfApp.Services.Utils;
+using WpfApp.Services.Config;
 using System.Text;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Windows;
 using WpfApp.Views;
+using System.Runtime.InteropServices;
+using System.Timers;
 
 
 // 按键映射核心业务逻辑层
@@ -34,6 +37,7 @@ namespace WpfApp.ViewModels
         private bool _isSequenceMode = true; // 默认为顺序模式
         private readonly SerilogManager _logger = SerilogManager.Instance;
         private readonly MainViewModel _mainViewModel;
+        private readonly MainWindow _mainWindow;
         private bool _isSoundEnabled = true;
         private readonly AudioService _audioService;
         private bool _isGameMode = true; // 默认开启
@@ -43,6 +47,101 @@ namespace WpfApp.ViewModels
         private FloatingStatusWindow _floatingWindow;
         private FloatingStatusViewModel _floatingViewModel;
         private KeyItem? _selectedKeyItem;
+        private KeyboardLayoutViewModel _keyboardLayoutViewModel;
+        private string _selectedWindowTitle = "未选择窗口";
+        private IntPtr _selectedWindowHandle = IntPtr.Zero;
+        private string _selectedWindowClassName = string.Empty;
+        private string _selectedWindowProcessName = string.Empty;
+        private System.Timers.Timer? _windowCheckTimer;
+        private readonly object _windowCheckLock = new object();
+        private bool _isTargetWindowActive;
+        private readonly System.Timers.Timer _activeWindowCheckTimer;
+        private const int ACTIVE_WINDOW_CHECK_INTERVAL = 50; // 50ms检查一次活动窗口
+
+        // 选中的窗口标题
+        public string SelectedWindowTitle
+        {
+            get => _selectedWindowTitle;
+            set => SetProperty(ref _selectedWindowTitle, value);
+        }
+
+        // 选中的窗口句柄
+        public IntPtr SelectedWindowHandle
+        {
+            get => _selectedWindowHandle;
+            private set => SetProperty(ref _selectedWindowHandle, value);
+        }
+
+        private string SelectedWindowClassName
+        {
+            get => _selectedWindowClassName;
+            set => SetProperty(ref _selectedWindowClassName, value);
+        }
+
+        private string SelectedWindowProcessName
+        {
+            get => _selectedWindowProcessName;
+            set => SetProperty(ref _selectedWindowProcessName, value);
+        }
+
+        // 更新选中的窗口句柄信息
+        public void UpdateSelectedWindow(IntPtr handle, string title, string className, string processName)
+        {
+            SelectedWindowHandle = handle;
+            SelectedWindowClassName = className;
+            SelectedWindowProcessName = processName;
+            SelectedWindowTitle = $"{title} (句柄: {handle.ToInt64()})";
+
+            // 同步句柄到 HotkeyService
+            _hotkeyService.TargetWindowHandle = handle;
+
+            // 保存到配置
+            AppConfigService.UpdateConfig(config =>
+            {
+                config.TargetWindowClassName = className;
+                config.TargetWindowProcessName = processName;
+                config.TargetWindowTitle = title;
+            });
+
+            // 启动定时检查
+            StartWindowCheck();
+
+            _logger.Info($"已选择窗口: {title}, 句柄: {handle.ToInt64()}, 类名: {className}, 进程名: {processName}");
+        }
+
+        // 清除选中的窗口句柄
+        public void ClearSelectedWindow()
+        {
+            try
+            {
+                // 停止窗口检查
+                StopWindowCheck();
+
+                // 清除窗口信息
+                _selectedWindowHandle = IntPtr.Zero;
+                _selectedWindowTitle = "未选择窗口";
+                _selectedWindowClassName = string.Empty;
+                _selectedWindowProcessName = string.Empty;
+
+                // 更新热键服务的目标窗口
+                if (_hotkeyService != null)
+                {
+                    _hotkeyService.TargetWindowHandle = IntPtr.Zero;
+                }
+
+                // 通知UI更新
+                OnPropertyChanged(nameof(SelectedWindowTitle));
+                
+                _logger.Debug("已清除窗口信息");
+
+                // 保存配置
+                SaveConfig();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("清除窗口信息时发生异常", ex);
+            }
+        }
 
         // 按键列表
         public ObservableCollection<KeyItem> KeyList
@@ -112,7 +211,21 @@ namespace WpfApp.ViewModels
             {
                 if (SetProperty(ref _selectedKeyMode, value))
                 {
+                    // 如果正在执行，先停止当前循环
+                    if (IsExecuting)
+                    {
+                        StopKeyMapping();
+                    }
+
                     IsSequenceMode = value == 0; // 0 表示顺序模式
+
+                    // 恢复输入法
+                    if (_lyKeysService != null)
+                    {
+                        _lyKeysService.RestoreIME();
+                    }
+
+                    _logger.Debug($"按键模式已切换为: {(value == 0 ? "顺序模式" : "按压模式")}");
                 }
             }
         }
@@ -231,16 +344,22 @@ namespace WpfApp.ViewModels
                 if (_isFloatingWindowEnabled != value)
                 {
                     _isFloatingWindowEnabled = value;
-                    OnPropertyChanged();
-                    UpdateFloatingWindow();
-
-                    // 保存到配置
-                    if (!_isInitializing)
+                    OnPropertyChanged(nameof(IsFloatingWindowEnabled));
+                    
+                    // 更新配置
+                    AppConfigService.UpdateConfig(config =>
                     {
-                        AppConfigService.UpdateConfig(config =>
-                        {
-                            config.IsFloatingWindowEnabled = value;
-                        });
+                        config.UI.FloatingWindow.IsEnabled = value;
+                    });
+                    
+                    // 更新浮窗显示状态
+                    if (_isFloatingWindowEnabled)
+                    {
+                        ShowFloatingWindow();
+                    }
+                    else
+                    {
+                        HideFloatingWindow();
                     }
                 }
             }
@@ -253,18 +372,54 @@ namespace WpfApp.ViewModels
             set => SetProperty(ref _selectedKeyItem, value);
         }
 
+        public KeyboardLayoutViewModel KeyboardLayoutViewModel
+        {
+            get => _keyboardLayoutViewModel;
+            private set
+            {
+                if (_keyboardLayoutViewModel != value)
+                {
+                    if (_keyboardLayoutViewModel != null)
+                    {
+                        // 取消订阅旧的事件
+                        _keyboardLayoutViewModel.KeyBurstStateChanged -= OnKeyBurstStateChanged;
+                    }
+                    
+                    _keyboardLayoutViewModel = value;
+                    
+                    if (_keyboardLayoutViewModel != null)
+                    {
+                        // 订阅新的事件
+                        _keyboardLayoutViewModel.KeyBurstStateChanged += OnKeyBurstStateChanged;
+                    }
+                    
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        // 处理连发状态变化
+        private void OnKeyBurstStateChanged(LyKeysCode keyCode, bool isBurst)
+        {
+            var keyItem = KeyList.FirstOrDefault(k => k.KeyCode == keyCode);
+            if (keyItem != null)
+            {
+                keyItem.IsKeyBurst = isBurst;
+                _logger.Debug($"更新按键 {keyCode} 的连发状态为: {isBurst}");
+            }
+        }
+
         private void UpdateFloatingWindow()
         {
-            if (IsFloatingWindowEnabled)
+            if (AppConfigService.Config.UI.FloatingWindow.IsEnabled)
             {
                 if (_floatingWindow == null)
                 {
-                    var mainWindow = System.Windows.Application.Current.MainWindow as MainWindow;
-                    _floatingWindow = new FloatingStatusWindow(mainWindow);
+                    _floatingWindow = new FloatingStatusWindow(_mainWindow);
                     _floatingViewModel = _floatingWindow.DataContext as FloatingStatusViewModel;
-                    UpdateFloatingStatus();
                 }
                 _floatingWindow.Show();
+                UpdateFloatingStatus(); // 确保显示后立即更新状态
             }
             else
             {
@@ -274,11 +429,66 @@ namespace WpfApp.ViewModels
 
         private void UpdateFloatingStatus()
         {
-            if (_floatingViewModel != null)
+            if (_floatingWindow?.DataContext is FloatingStatusViewModel viewModel)
             {
-                _floatingViewModel.StatusText = IsExecuting ? "运行中" : "已停止";
+                string statusText = IsExecuting ? "运行中" : "已停止";
+                viewModel.StatusText = statusText;
+                _logger.Debug($"更新浮窗状态: {statusText}");
             }
         }
+
+        private void ShowFloatingWindow()
+        {
+            if (_floatingWindow == null)
+            {
+                _floatingWindow = new FloatingStatusWindow(_mainWindow);
+            }
+            _floatingWindow.Show();
+            UpdateFloatingStatus(); // 确保显示后立即更新状态
+        }
+
+        private void HideFloatingWindow()
+        {
+            if (_floatingWindow != null)
+            {
+                _floatingWindow.Hide();
+                if (_floatingWindow.DataContext is FloatingStatusViewModel viewModel)
+                {
+                    viewModel.StatusText = "已停止";
+                }
+            }
+        }
+
+        public bool IsTargetWindowActive
+        {
+            get => _isTargetWindowActive;
+            private set
+            {
+                if (_isTargetWindowActive != value)
+                {
+                    _isTargetWindowActive = value;
+                    OnPropertyChanged();
+                    
+                    // 只在窗口变为非活动状态时停止按键映射
+                    if (!value && IsExecuting)
+                    {
+                        _lyKeysService.EmergencyStop(); // 使用紧急停止
+                        StopKeyMapping();
+                        UpdateFloatingStatus(); // 更新浮窗状态
+                        _logger.Debug("目标窗口切换为非活动状态，停止按键映射，已更新浮窗状态");
+                    }
+                    else if (value && IsExecuting)
+                    {
+                        // 如果窗口重新激活，且之前在执行中，更新浮窗状态
+                        UpdateFloatingStatus();
+                        _logger.Debug("目标窗口重新激活，更新浮窗状态");
+                    }
+                }
+            }
+        }
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
 
         public KeyMappingViewModel(LyKeysService lyKeysService, ConfigService configService,
             HotkeyService hotkeyService, MainViewModel mainViewModel, AudioService audioService)
@@ -288,6 +498,7 @@ namespace WpfApp.ViewModels
             _hotkeyService = hotkeyService;
             _mainViewModel = mainViewModel;
             _audioService = audioService;
+            _mainWindow = System.Windows.Application.Current.MainWindow as MainWindow;
             _hotkeyStatus = "初始化中...";
             _isInitializing = true;
 
@@ -324,6 +535,17 @@ namespace WpfApp.ViewModels
 
             // 在所有初始化完成后
             _isInitializing = false;
+
+            // 初始化键盘布局视图模型
+            KeyboardLayoutViewModel = new KeyboardLayoutViewModel(lyKeysService, hotkeyService, _logger, _mainViewModel);
+
+            // 加载窗口配置
+            LoadWindowConfig();
+
+            // 初始化活动窗口检查定时器
+            _activeWindowCheckTimer = new System.Timers.Timer(ACTIVE_WINDOW_CHECK_INTERVAL);
+            _activeWindowCheckTimer.Elapsed += ActiveWindowCheckTimer_Elapsed;
+            _activeWindowCheckTimer.Start();
         }
 
         private void SyncConfigToServices()
@@ -350,15 +572,27 @@ namespace WpfApp.ViewModels
             {
                 var appConfig = AppConfigService.Config;
 
+                // 加载窗口配置
+                if (!string.IsNullOrEmpty(appConfig.TargetWindowProcessName) && 
+                    !string.IsNullOrEmpty(appConfig.TargetWindowTitle))
+                {
+                    _selectedWindowProcessName = appConfig.TargetWindowProcessName;
+                    _selectedWindowClassName = appConfig.TargetWindowClassName ?? string.Empty;
+                    _selectedWindowTitle = appConfig.TargetWindowTitle;
+                    
+                    _logger.Debug($"从配置加载窗口信息 - 进程名: {_selectedWindowProcessName}, " +
+                                $"标题: {_selectedWindowTitle}, 类名: {_selectedWindowClassName}");
+                }
+
                 // 加载按键列表和选中状态
-                if (appConfig.keyList != null)
+                if (appConfig.keys != null)
                 {
                     KeyList.Clear();
-                    for (int i = 0; i < appConfig.keyList.Count; i++)
+                    foreach (var keyConfig in appConfig.keys)
                     {
-                        var keyItem = new KeyItem(appConfig.keyList[i], _lyKeysService);
-                        keyItem.IsSelected = i < appConfig.keySelections.Count ?
-                            appConfig.keySelections[i] : true;
+                        var keyItem = new KeyItem(keyConfig.Code, _lyKeysService);
+                        keyItem.IsSelected = keyConfig.IsSelected;
+                        keyItem.IsKeyBurst = keyConfig.IsKeyBurst; // 同步连发状态
                         keyItem.SelectionChanged += (s, isSelected) => SaveConfig();
                         KeyList.Add(keyItem);
                     }
@@ -389,7 +623,7 @@ namespace WpfApp.ViewModels
                 IsSequenceMode = appConfig.keyMode == 0;
                 IsSoundEnabled = appConfig.soundEnabled ?? true;
                 IsGameMode = appConfig.IsGameMode ?? true;
-                IsFloatingWindowEnabled = appConfig.IsFloatingWindowEnabled;
+                IsFloatingWindowEnabled = appConfig.UI.FloatingWindow.IsEnabled;
 
                 _logger.Debug($"配置加载完成 - 模式: {(IsSequenceMode ? "顺序模式" : "按压模式")}, 游戏模式: {IsGameMode}");
             }
@@ -658,8 +892,7 @@ namespace WpfApp.ViewModels
             {
                 AppConfigService.UpdateConfig(config =>
                 {
-                    config.keyList = KeyList.Select(k => k.KeyCode).ToList();
-                    config.keySelections = KeyList.Select(k => k.IsSelected).ToList();
+                    config.keys = KeyList.Select(k => new KeyConfig(k.KeyCode, k.IsSelected)).ToList();
                 });
             }
 
@@ -727,18 +960,20 @@ namespace WpfApp.ViewModels
         {
             try
             {
-                // 获取所有按键和它们的选中状态
-                var keyList = KeyList.Select(k => k.KeyCode).ToList();
-                var keySelections = KeyList.Select(k => k.IsSelected).ToList();
+                // 获取所有按键和它们的状态
+                var keyConfigs = KeyList.Select(k => new KeyConfig(k.KeyCode, k.IsSelected)
+                {
+                    IsKeyBurst = k.IsKeyBurst // 保存连发状态
+                }).ToList();
 
                 // 检查热键冲突
-                if (_startHotkey.HasValue && keyList.Contains(_startHotkey.Value))
+                if (_startHotkey.HasValue && keyConfigs.Any(k => k.Code == _startHotkey.Value))
                 {
                     _mainViewModel.UpdateStatusMessage("启动热键与按键列表存在冲突，请修改后再保存", true);
                     return;
                 }
 
-                if (_stopHotkey.HasValue && keyList.Contains(_stopHotkey.Value))
+                if (_stopHotkey.HasValue && keyConfigs.Any(k => k.Code == _stopHotkey.Value))
                 {
                     _mainViewModel.UpdateStatusMessage("停止热键与按键列表存在冲突，请修改后再保存", true);
                     return;
@@ -766,15 +1001,9 @@ namespace WpfApp.ViewModels
                 }
 
                 // 检查并更新按键列表
-                if (!Enumerable.SequenceEqual(config.keyList ?? new List<LyKeysCode>(), keyList))
+                if (!AreKeyConfigsEqual(config.keys, keyConfigs))
                 {
-                    config.keyList = keyList;
-                    configChanged = true;
-                }
-
-                if (!Enumerable.SequenceEqual(config.keySelections ?? new List<bool>(), keySelections))
-                {
-                    config.keySelections = keySelections;
+                    config.keys = keyConfigs;
                     configChanged = true;
                 }
 
@@ -803,9 +1032,9 @@ namespace WpfApp.ViewModels
                     configChanged = true;
                 }
 
-                if (config.IsFloatingWindowEnabled != IsFloatingWindowEnabled)
+                if (config.UI.FloatingWindow.IsEnabled != IsFloatingWindowEnabled)
                 {
-                    config.IsFloatingWindowEnabled = IsFloatingWindowEnabled;
+                    config.UI.FloatingWindow.IsEnabled = IsFloatingWindowEnabled;
                     configChanged = true;
                 }
 
@@ -823,6 +1052,25 @@ namespace WpfApp.ViewModels
             }
         }
 
+        private bool AreKeyConfigsEqual(List<KeyConfig> list1, List<KeyConfig> list2)
+        {
+            if (list1 == null || list2 == null)
+                return list1 == list2;
+
+            if (list1.Count != list2.Count)
+                return false;
+
+            for (int i = 0; i < list1.Count; i++)
+            {
+                if (list1[i].Code != list2[i].Code || 
+                    list1[i].IsSelected != list2[i].IsSelected ||
+                    list1[i].IsKeyBurst != list2[i].IsKeyBurst)
+                    return false;
+            }
+
+            return true;
+        }
+
         // 启动按键映射
         public void StartKeyMapping()
         {
@@ -832,6 +1080,16 @@ namespace WpfApp.ViewModels
                 {
                     _logger.Debug("开始启动按键映射");
                     
+                    // 检查是否选择了目标窗口
+                    if (SelectedWindowHandle == IntPtr.Zero)
+                    {
+                        _logger.Warning("未选择目标窗口");
+                        _mainViewModel.UpdateStatusMessage("请先选择目标窗口", true);
+                        IsHotkeyEnabled = false;
+                        IsExecuting = false;
+                        return;
+                    }
+
                     // 只获取勾选的按键
                     var keys = KeyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
                     if (keys.Count == 0)
@@ -889,34 +1147,32 @@ namespace WpfApp.ViewModels
         // 停止按键映射
         public void StopKeyMapping()
         {
-            if (IsExecuting)
+            try
             {
+                if (_lyKeysService == null) return;
+
+                _logger.Debug($"开始停止按键映射，当前模式: {(SelectedKeyMode == 1 ? "按压模式" : "顺序模式")}");
+
+                // 先停止热键服务
+                _hotkeyService?.StopSequence();
+
+                // 然后停止驱动服务
+                _lyKeysService.IsEnabled = false;
+                _lyKeysService.IsHoldMode = false;
+
+                // 最后更新UI状态
+                IsHotkeyEnabled = false;
                 IsExecuting = false;
-                try
-                {
-                    if (_lyKeysService == null) return;
+                UpdateFloatingStatus();
 
-                    _logger.Debug("开始停止按键映射");
-
-                    // 先停止热键服务
-                    _hotkeyService?.StopSequence();
-
-                    // 然后停止驱动服务
-                    _lyKeysService.IsEnabled = false;
-                    _lyKeysService.IsHoldMode = false;
-
-                    // 最后更新UI状态
-                    IsHotkeyEnabled = false;
-                    IsExecuting = false;
-
-                    _logger.Debug("按键映射已停止");
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error("停止按键映射失败", ex);
-                    IsHotkeyEnabled = false;
-                    IsExecuting = false;
-                }
+                _logger.Debug("按键映射已停止");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("停止按键映射失败", ex);
+                IsHotkeyEnabled = false;
+                IsExecuting = false;
+                UpdateFloatingStatus();
             }
         }
 
@@ -955,6 +1211,9 @@ namespace WpfApp.ViewModels
                 _hotkeyService.SetKeySequence(keys, KeyInterval);  // 重要: 重置按键列表
                 _lyKeysService.IsHoldMode = SelectedKeyMode == 1;
                 _lyKeysService.KeyInterval = KeyInterval;
+                
+                // 设置执行状态
+                IsExecuting = true;
 
                 if (SelectedKeyMode == 0)
                 {
@@ -968,12 +1227,14 @@ namespace WpfApp.ViewModels
                     _lyKeysService.IsEnabled = true;    // 启用服务
                 }
                 IsHotkeyEnabled = true;  // 按键是否启用
+                UpdateFloatingStatus();   // 更新浮窗状态
             }
             catch (Exception ex)
             {
                 _logger.Error("启动按键映射异常", ex);
                 IsHotkeyEnabled = false;
                 IsExecuting = false;
+                UpdateFloatingStatus();
             }
         }
 
@@ -1050,6 +1311,290 @@ namespace WpfApp.ViewModels
                 keyItem.IsSelected = i < keySelections.Count ? keySelections[i] : true;
                 keyItem.SelectionChanged += (s, isSelected) => SaveConfig();
                 KeyList.Add(keyItem);
+            }
+        }
+
+        private void OnKeyModeChanged()
+        {
+            // This method is called when the key mode changes
+        }
+
+        private void LoadWindowConfig()
+        {
+            try
+            {
+                _logger.Debug($"开始加载窗口配置 - 进程名: {_selectedWindowProcessName}, 标题: {_selectedWindowTitle}");
+
+                // 如果没有保存的窗口信息，直接返回
+                if (string.IsNullOrEmpty(_selectedWindowProcessName))
+                {
+                    _logger.Debug("没有保存的窗口进程信息，跳过加载");
+                    return;
+                }
+
+                var windows = FindWindowsByProcessName(_selectedWindowProcessName, _selectedWindowTitle);
+                if (windows != null && windows.Count > 0)
+                {
+                    // 找到匹配的窗口，使用第一个匹配的窗口
+                    var window = windows[0];
+                    UpdateSelectedWindow(window.Handle, window.Title, window.ClassName, window.ProcessName);
+                    _logger.Debug($"已找到并更新窗口信息 - 句柄: {window.Handle}, 标题: {window.Title}");
+                }
+                else
+                {
+                    _logger.Warning($"未找到进程 {_selectedWindowProcessName} 的窗口");
+                    
+                    // 保持原有的窗口信息，但更新显示状态
+                    SelectedWindowTitle = $"{_selectedWindowTitle} (进程未运行)";
+                    
+                    // 启动定时检查
+                    StartWindowCheck();
+                    _logger.Debug($"已启动定时检查 - 进程名: {_selectedWindowProcessName}, 标题: {_selectedWindowTitle} (进程未运行)");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("加载窗口配置时发生异常", ex);
+                ClearSelectedWindow();
+            }
+        }
+
+        private List<WindowInfo> FindWindowsByProcessName(string processName, string targetTitle = null)
+        {
+            var result = new List<WindowInfo>();
+            if (string.IsNullOrEmpty(processName) && string.IsNullOrEmpty(targetTitle))
+            {
+                return result;
+            }
+
+            _logger.Debug($"正在查找窗口 - 进程名: {processName}, 目标标题: {targetTitle}");
+
+            try
+            {
+                var processes = Process.GetProcessesByName(processName);
+                if (processes.Length == 0)
+                {
+                    _logger.Debug($"未找到进程: {processName}");
+                    return result;
+                }
+
+                foreach (var process in processes)
+                {
+                    try
+                    {
+                        if (process.MainWindowHandle != IntPtr.Zero)
+                        {
+                            var title = GetWindowTitle(process.MainWindowHandle);
+                            var className = GetWindowClassName(process.MainWindowHandle);
+
+                            // 如果指定了目标标题，则进行匹配
+                            if (!string.IsNullOrEmpty(targetTitle))
+                            {
+                                if (title.Contains(targetTitle, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    result.Add(new WindowInfo(process.MainWindowHandle, title, className, process.ProcessName));
+                                    _logger.Debug($"找到匹配窗口 - 句柄: {process.MainWindowHandle}, 标题: {title}");
+                                }
+                            }
+                            else
+                            {
+                                result.Add(new WindowInfo(process.MainWindowHandle, title, className, process.ProcessName));
+                                _logger.Debug($"找到窗口 - 句柄: {process.MainWindowHandle}, 标题: {title}");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error($"处理进程窗口时发生异常: {ex.Message}");
+                    }
+                    finally
+                    {
+                        process.Dispose();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"查找窗口时发生异常: {ex.Message}");
+            }
+
+            if (result.Count == 0)
+            {
+                _logger.Debug($"未找到目标窗口 - 进程: {processName}, 目标标题: {targetTitle}");
+            }
+
+            return result;
+        }
+
+        private string GetWindowTitle(IntPtr hWnd)
+        {
+            StringBuilder title = new StringBuilder(256);
+            GetWindowText(hWnd, title, title.Capacity);
+            return title.ToString().Trim();
+        }
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
+
+        [DllImport("user32.dll")]
+        private static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsWindowVisible(IntPtr hWnd);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+        private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+        private string GetWindowClassName(IntPtr hWnd)
+        {
+            StringBuilder className = new StringBuilder(256);
+            GetClassName(hWnd, className, className.Capacity);
+            return className.ToString().Trim();
+        }
+
+        private void WindowCheckTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(SelectedWindowProcessName) || string.IsNullOrEmpty(SelectedWindowTitle))
+            {
+                return;
+            }
+
+            try
+            {
+                lock (_windowCheckLock)
+                {
+                    // 获取原始标题（移除状态信息）
+                    string originalTitle = SelectedWindowTitle.Split(new[] { " (句柄:", " (进程未运行)", " (未找到匹配窗口)" }, StringSplitOptions.None)[0];
+                    
+                    var windows = FindWindowsByProcessName(SelectedWindowProcessName, originalTitle);
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        if (windows.Any())
+                        {
+                            // 由于FindWindowsByProcessName已经按标题过滤，这里直接取第一个
+                            var targetWindow = windows.First();
+                            bool needsUpdate = false;
+
+                            // 检查句柄是否变化
+                            if (targetWindow.Handle != SelectedWindowHandle)
+                            {
+                                SelectedWindowHandle = targetWindow.Handle;
+                                needsUpdate = true;
+                            }
+
+                            // 检查类名是否变化
+                            if (targetWindow.ClassName != SelectedWindowClassName)
+                            {
+                                SelectedWindowClassName = targetWindow.ClassName;
+                                needsUpdate = true;
+                            }
+
+                            // 如果需要更新，则更新标题和配置
+                            if (needsUpdate)
+                            {
+                                SelectedWindowTitle = $"{targetWindow.Title} (句柄: {targetWindow.Handle.ToInt64()})";
+                                
+                                // 更新配置
+                                AppConfigService.UpdateConfig(config =>
+                                {
+                                    config.TargetWindowClassName = targetWindow.ClassName;
+                                    config.TargetWindowProcessName = targetWindow.ProcessName;
+                                    config.TargetWindowTitle = targetWindow.Title;
+                                });
+
+                                _logger.Info($"已更新窗口信息 - 句柄: {targetWindow.Handle.ToInt64()}, 类名: {targetWindow.ClassName}, 进程名: {targetWindow.ProcessName}, 标题: {targetWindow.Title}");
+                            }
+                        }
+                        else if (SelectedWindowHandle != IntPtr.Zero)
+                        {
+                            // 目标进程已关闭
+                            SelectedWindowHandle = IntPtr.Zero;
+                            SelectedWindowTitle = $"{originalTitle} (进程未运行)";
+                            _logger.Warning($"进程 {SelectedWindowProcessName} 已关闭");
+                        }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("检查窗口状态时发生异常", ex);
+            }
+        }
+
+        private void StartWindowCheck()
+        {
+            if (_windowCheckTimer == null)
+            {
+                _windowCheckTimer = new System.Timers.Timer(30000); // 30秒
+                _windowCheckTimer.Elapsed += WindowCheckTimer_Elapsed;
+            }
+            _windowCheckTimer.Start();
+            _logger.Debug("开始定时检查窗口状态");
+        }
+
+        private void StopWindowCheck()
+        {
+            _windowCheckTimer?.Stop();
+            _logger.Debug("停止定时检查窗口状态");
+        }
+
+        // 在析构函数或Dispose方法中清理定时器
+        ~KeyMappingViewModel()
+        {
+            _windowCheckTimer?.Dispose();
+            _activeWindowCheckTimer?.Dispose();
+        }
+
+        // 添加活动窗口检查方法
+        private void ActiveWindowCheckTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            try
+            {
+                // 如果没有选择窗口，则认为总是活动的
+                if (SelectedWindowHandle == IntPtr.Zero)
+                {
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        IsTargetWindowActive = true;
+                        _hotkeyService.IsTargetWindowActive = true;
+                    });
+                    return;
+                }
+
+                // 如果选择了窗口，则检查是否是当前活动窗口
+                var activeWindow = GetForegroundWindow();
+                bool isActive = activeWindow == SelectedWindowHandle;
+                
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    IsTargetWindowActive = isActive;
+                    _hotkeyService.IsTargetWindowActive = isActive;
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("检查活动窗口状态时发生异常", ex);
+            }
+        }
+
+        private class WindowInfo
+        {
+            public IntPtr Handle { get; set; }
+            public string Title { get; set; }
+            public string ClassName { get; set; }
+            public string ProcessName { get; set; }
+
+            public WindowInfo(IntPtr handle, string title, string className, string processName)
+            {
+                Handle = handle;
+                Title = title;
+                ClassName = className;
+                ProcessName = processName;
             }
         }
     }

@@ -7,9 +7,10 @@ using Markdig;
 using Microsoft.Web.WebView2.Core;
 using System.Windows.Input;
 using System.Diagnostics;
-using WpfApp.Commands;
+using WpfApp.Services.Utils;
 using WpfApp.Views;
 using WpfApp.Services.Models;
+using WpfApp.Services.Config;
 
 namespace WpfApp.ViewModels
 {

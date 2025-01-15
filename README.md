@@ -39,7 +39,8 @@
 - [ ] 离线驱动实装中
 
 ### 🚀 驱动特性
-- [x] 基于DeviceIoControl的内核级驱动实现
+- [x] 支持离线运行
+- [x] 基于DeviceIoControl内核级驱动实现
 - [x] 完善的反Hook和内存保护机制
 - [x] 支持32位/64位系统架构
 - [x] 支持USB/PS2键鼠设备
@@ -64,8 +65,8 @@
 
 - _**游戏模式打开(默认)**_：测试后平均按键速度为120+，适用于游戏内  
 - _**游戏模式关闭**_：解除按键速度限制平均速度320+，适用于一般场景  
-- _**自定义音频**_：打开 `C:\Users\用户\.lingyao\sound`，保持文件名替换 `start.mp3`/`stop.mp3` 即可  
-- _**Debug模式**_：打开 `C:\Users\用户\.lingyao\AppConfig.json` 将 `"Logging": {"Enabled": false,}` 中的 `false` 设为 `true`，后续的操作记录在 `.lingyao\logs` 目录下生成日志文件  
+- _**自定义音频**_：打开 `C:\Users\用户\.lykeys\sound`，保持文件名替换 `start.mp3`/`stop.mp3` 即可  
+- _**Debug模式**_：打开 `C:\Users\用户\.lykeys\AppConfig.json` 将 `"Logging": {"Enabled": false,}` 中的 `false` 设为 `true`，后续的操作记录在 `.lykeys\logs` 目录下生成日志文件  
 
 ## 🖼️ 项目展示  
 

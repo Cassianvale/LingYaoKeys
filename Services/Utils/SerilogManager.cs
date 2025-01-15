@@ -5,6 +5,8 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using WpfApp.Services.Utils;
 using WpfApp.Services.Models;
 
 namespace WpfApp.Services
@@ -20,20 +22,32 @@ namespace WpfApp.Services
 
         public static SerilogManager Instance => _instance.Value;
 
-        public void Initialize(LoggingConfig loggingConfig)
+        public void Initialize(DebugConfig debugConfig)
         {
             if (_initialized) return;
 
             try
             {
+                // 如果调试模式未启用且日志未启用，则不初始化日志系统
+                if (!debugConfig.IsDebugMode && !debugConfig.EnableLogging)
+                {
+                    return;
+                }
+
+                // 如果是调试模式，显示控制台窗口
+                if (debugConfig.IsDebugMode)
+                {
+                    ConsoleManager.Show();
+                }
+
                 // 1. 设置日志级别
-                var logLevel = loggingConfig.LogLevel.ToLower() switch
+                var logLevel = debugConfig.LogLevel.ToLower() switch
                 {
                     "debug" => LogEventLevel.Debug,
                     "information" => LogEventLevel.Information,
                     "warning" => LogEventLevel.Warning,
                     "error" => LogEventLevel.Error,
-                    _ => LogEventLevel.Information
+                    _ => LogEventLevel.Debug // 默认使用 Debug 级别
                 };
 
                 // 2. 创建日志过滤器
@@ -43,6 +57,7 @@ namespace WpfApp.Services
                 var loggerConfig = new LoggerConfiguration()
                     .MinimumLevel.ControlledBy(logFilter)
                     .Enrich.WithThreadId()
+                    .Enrich.FromLogContext()
                     .Filter.ByIncludingOnly(evt =>
                     {
                         // 获取源上下文和消息模板
@@ -54,18 +69,22 @@ namespace WpfApp.Services
                             ? evt.Properties["CallerMember"].ToString()
                             : string.Empty;
 
+                        // 如果是调试模式，不过滤任何日志
+                        if (debugConfig.IsDebugMode)
+                            return true;
+
                         // 1. 检查是否在排除的源上下文列表中
-                        if (loggingConfig.ExcludedSources?.Any(source => 
+                        if (debugConfig.ExcludedSources?.Any(source => 
                             sourceContext.Contains(source, StringComparison.OrdinalIgnoreCase)) == true)
                             return false;
 
                         // 2. 检查是否在排除的方法列表中
-                        if (loggingConfig.ExcludedMethods?.Any(method => 
+                        if (debugConfig.ExcludedMethods?.Any(method => 
                             callerMember.Equals(method, StringComparison.OrdinalIgnoreCase)) == true)
                             return false;
 
                         // 3. 检查是否匹配排除的消息模式
-                        if (loggingConfig.ExcludedPatterns?.Any(pattern =>
+                        if (debugConfig.ExcludedPatterns?.Any(pattern =>
                         {
                             // 将通配符模式转换为正则表达式
                             var regex = new System.Text.RegularExpressions.Regex(
@@ -77,7 +96,7 @@ namespace WpfApp.Services
                             return false;
 
                         // 4. 检查是否在排除的标签列表中
-                        if (loggingConfig.ExcludedTags?.Any(tag => 
+                        if (debugConfig.ExcludedTags?.Any(tag => 
                             messageTemplate.Contains($"[{tag}]", StringComparison.OrdinalIgnoreCase)) == true)
                             return false;
 
@@ -85,16 +104,31 @@ namespace WpfApp.Services
                     });
 
                 // 4. 添加输出目标
-                if (loggingConfig.Enabled)
+                const string outputTemplate = 
+                    "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{ThreadId}] [{SourceContext}.{CallerMember}:{LineNumber}] {Message}{NewLine}{Exception}";
+
+                // 调试模式下始终输出到控制台
+                if (debugConfig.IsDebugMode)
                 {
-                    const string outputTemplate = 
-                        "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{SourceContext}.{CallerMember}:{LineNumber}] {Message}{NewLine}{Exception}";
+                    loggerConfig = loggerConfig
+                        .WriteTo.Console(
+                            outputTemplate: outputTemplate,
+                            theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Code,
+                            restrictedToMinimumLevel: LogEventLevel.Debug
+                        );
+                    
+                    // 输出一条测试日志
+                    Console.WriteLine("Serilog 控制台输出已初始化");
+                }
 
+                // 如果启用了日志记录，添加其他输出目标
+                if (debugConfig.EnableLogging)
+                {
                     // Debug输出
-                    loggerConfig = loggerConfig.WriteTo.Debug(outputTemplate: outputTemplate);
-
-                    // 控制台输出
-                    loggerConfig = loggerConfig.WriteTo.Console(outputTemplate: outputTemplate);
+                    loggerConfig = loggerConfig.WriteTo.Debug(
+                        outputTemplate: outputTemplate,
+                        restrictedToMinimumLevel: LogEventLevel.Debug
+                    );
 
                     // 文件输出
                     if (!string.IsNullOrEmpty(_baseDirectory))
@@ -108,11 +142,11 @@ namespace WpfApp.Services
                             Directory.CreateDirectory(logDir);
 
                         // 清理旧日志
-                        if (loggingConfig.FileSettings.RetainDays > 0)
+                        if (debugConfig.FileSettings.RetainDays > 0)
                         {
                             try
                             {
-                                var cutoff = DateTime.Now.AddDays(-loggingConfig.FileSettings.RetainDays);
+                                var cutoff = DateTime.Now.AddDays(-debugConfig.FileSettings.RetainDays);
                                 if (Directory.Exists(logDir))
                                 {
                                     foreach (var file in Directory.GetFiles(logDir, "app*.log"))
@@ -144,8 +178,8 @@ namespace WpfApp.Services
                         loggerConfig = loggerConfig.WriteTo.File(
                             logPath,
                             rollingInterval: RollingInterval.Day,
-                            retainedFileCountLimit: loggingConfig.FileSettings.MaxFileCount,
-                            fileSizeLimitBytes: loggingConfig.FileSettings.MaxFileSize * 1024 * 1024,
+                            retainedFileCountLimit: debugConfig.FileSettings.MaxFileCount,
+                            fileSizeLimitBytes: debugConfig.FileSettings.MaxFileSize * 1024 * 1024,
                             rollOnFileSizeLimit: true,
                             outputTemplate: fileOutputTemplate);
                     }
@@ -154,6 +188,13 @@ namespace WpfApp.Services
                 // 5. 创建日志实例
                 _logger = loggerConfig.CreateLogger();
                 _initialized = true;
+
+                // 输出初始化成功日志
+                if (debugConfig.IsDebugMode)
+                {
+                    _logger.Debug("Serilog 日志系统初始化成功");
+                    _logger.Debug($"日志级别: {logLevel}, 调试模式: {debugConfig.IsDebugMode}, 日志记录: {debugConfig.EnableLogging}");
+                }
             }
             catch (Exception ex)
             {
@@ -167,12 +208,12 @@ namespace WpfApp.Services
             _baseDirectory = path;
         }
 
-        public void UpdateLoggerConfig(LoggingConfig loggingConfig)
+        public void UpdateLoggerConfig(DebugConfig debugConfig)
         {
             lock (_lock)
             {
                 if (_disposed) return;
-                Initialize(loggingConfig);
+                Initialize(debugConfig);
             }
         }
 

@@ -6,7 +6,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using System.Runtime.InteropServices;
 using WpfApp.Services.Models;
-using WpfApp.Services;
+using WpfApp.Services.Config;
 
 namespace WpfApp.Views
 {
@@ -35,8 +35,22 @@ namespace WpfApp.Views
             };
             
             // 加载上次保存的位置
-            var left = _config.FloatingWindowLeft;
-            var top = _config.FloatingWindowTop;
+            var left = _config.UI.FloatingWindow.Left;
+            var top = _config.UI.FloatingWindow.Top;
+            
+            // 如果是首次运行或位置无效，设置默认位置（右下角）
+            if (left == 0 && top == 0)
+            {
+                left = SystemParameters.WorkArea.Right - Width - 10;
+                top = SystemParameters.WorkArea.Bottom - Height - 10;
+                
+                // 保存默认位置
+                AppConfigService.UpdateConfig(config =>
+                {
+                    config.UI.FloatingWindow.Left = left;
+                    config.UI.FloatingWindow.Top = top;
+                });
+            }
             
             // 确保窗口在屏幕范围内
             if (left >= 0 && top >= 0 && 
@@ -48,9 +62,16 @@ namespace WpfApp.Views
             }
             else
             {
-                // 默认位置：屏幕右下角
+                // 如果位置超出屏幕范围，重置到右下角
                 Left = SystemParameters.WorkArea.Right - Width - 10;
                 Top = SystemParameters.WorkArea.Bottom - Height - 10;
+                
+                // 保存新位置
+                AppConfigService.UpdateConfig(config =>
+                {
+                    config.UI.FloatingWindow.Left = Left;
+                    config.UI.FloatingWindow.Top = Top;
+                });
             }
         }
 
@@ -92,8 +113,8 @@ namespace WpfApp.Views
             {
                 AppConfigService.UpdateConfig(config =>
                 {
-                    config.FloatingWindowLeft = Math.Round(Left, 2);
-                    config.FloatingWindowTop = Math.Round(Top, 2);
+                    config.UI.FloatingWindow.Left = Math.Round(Left, 2);
+                    config.UI.FloatingWindow.Top = Math.Round(Top, 2);
                 });
             }
             else
@@ -125,6 +146,16 @@ namespace WpfApp.Views
                 _mainWindow._trayContextMenu.IsOpen = true;
                 e.Handled = true;
             }
+        }
+
+        private void FloatingStatusWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            // 保存窗口位置
+            AppConfigService.UpdateConfig(config =>
+            {
+                config.UI.FloatingWindow.Left = Left;
+                config.UI.FloatingWindow.Top = Top;
+            });
         }
 
         // 添加 Win32 API 定义

@@ -10,6 +10,7 @@ namespace WpfApp.Services.Models
         private readonly LyKeysService _lyKeysService;
         private bool _isSelected = true;
         private LyKeysCode _keyCode;
+        private bool _isKeyBurst;
 
         public event PropertyChangedEventHandler? PropertyChanged;
         public event EventHandler<bool>? SelectionChanged;
@@ -43,6 +44,19 @@ namespace WpfApp.Services.Models
                     _isSelected = value;
                     OnPropertyChanged();
                     SelectionChanged?.Invoke(this, value);
+                }
+            }
+        }
+
+        public bool IsKeyBurst
+        {
+            get => _isKeyBurst;
+            set
+            {
+                if (_isKeyBurst != value)
+                {
+                    _isKeyBurst = value;
+                    OnPropertyChanged();
                 }
             }
         }

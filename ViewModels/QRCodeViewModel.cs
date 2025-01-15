@@ -1,6 +1,6 @@
 using System.Windows.Input;
 using System.Windows;
-using WpfApp.Commands;
+using WpfApp.Services.Utils;
 using WpfApp.Services;
 
 namespace WpfApp.ViewModels

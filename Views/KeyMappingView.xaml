@@ -3,346 +3,491 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-      xmlns:services="clr-namespace:WpfApp.Services"
-      xmlns:vm="clr-namespace:WpfApp.ViewModels"
       xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
       xmlns:behaviors="clr-namespace:WpfApp.Behaviors"
+      xmlns:controls="clr-namespace:WpfApp.Views.Controls"
       mc:Ignorable="d"
       Title="按键映射"
       PreviewMouseDown="Page_PreviewMouseDown">
-    <!-- 添加 PreviewMouseDown 事件处理 -->
-    <Grid Margin="10">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="Auto"/>
-        </Grid.ColumnDefinitions>
+    <Grid>
+        <!-- 主要内容 -->
+        <Grid x:Name="MainContent" Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MinWidth="300"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
 
-        <!-- 左侧按键列表区域 -->
-        <DockPanel Grid.Column="0" Margin="0,0,10,0">
-            <TextBox x:Name="KeyInputBox"
-                     Style="{StaticResource ModernTextBox}"
-                     IsEnabled="{Binding IsNotExecuting}"
-                     Text="{Binding CurrentKeyText, Mode=OneWay}"
-                     PreviewKeyDown="KeyInputBox_PreviewKeyDown"
-                     PreviewMouseDown="KeyInputBox_PreviewMouseDown"
-                     GotFocus="KeyInputBox_GotFocus"
-                     LostFocus="KeyInputBox_LostFocus"
-                     Height="32"
-                     Margin="0,0,0,10"
-                     TextAlignment="Center"
-                     Tag="点此输入按键"
-                     IsReadOnly="True"
-                     IsUndoEnabled="False"
-                     CaretBrush="Transparent"
-                     DockPanel.Dock="Top"/>
+            <!-- 左侧按键列表区域 -->
+            <DockPanel Grid.Column="0" Margin="0,0,10,0" MinWidth="300">
+                <!-- 顶部输入区域 -->
+                <DockPanel DockPanel.Dock="Top" 
+                          Height="32" 
+                          Margin="0,0,0,10">
+                    <Button x:Name="btnShowKeyboardLayout"
+                            Style="{StaticResource RoundedShadowButtonSmall}"
+                            Width="32" Height="32"
+                            Margin="0,0,10,0"
+                            Click="ShowKeyboardLayout_Click"
+                            DockPanel.Dock="Left"
+                            ToolTip="显示键鼠布局">
+                        <TextBlock Text="连发"
+                                  FontSize="13"
+                                  FontWeight="Medium"
+                                  Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"/>
+                    </Button>
                     
-            <ListBox x:Name="KeysList" 
-                     IsEnabled="{Binding IsNotExecuting}"
-                     BorderThickness="1"
-                     ItemsSource="{Binding KeyList}"
-                     Background="White"
-                     BorderBrush="#BDBDBD"
-                     PreviewMouseDown="KeysList_PreviewMouseDown"
-                     ScrollViewer.CanContentScroll="True"
-                     VirtualizingStackPanel.IsVirtualizing="True"
-                     VirtualizingStackPanel.VirtualizationMode="Recycling">
-                <b:Interaction.Behaviors>
-                    <behaviors:ListBoxDragDropBehavior />
-                </b:Interaction.Behaviors>
-                <ListBox.Template>
-                    <ControlTemplate TargetType="ListBox">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4">
-                            <ScrollViewer x:Name="ScrollViewer" 
-                                        Padding="1" 
-                                        Focusable="False"
-                                        VerticalScrollBarVisibility="Auto"
-                                        HorizontalScrollBarVisibility="Disabled"
-                                        Template="{DynamicResource ScrollViewerControlTemplate}">
-                                <ItemsPresenter />
-                            </ScrollViewer>
-                        </Border>
-                    </ControlTemplate>
-                </ListBox.Template>
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <CheckBox Style="{StaticResource ModernSwitch}"
-                                  Content="{Binding DisplayName}"
-                                  IsChecked="{Binding IsSelected}"
-                                  Height="30"
-                                  VerticalContentAlignment="Center"/>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-                <ListBox.ItemContainerStyle>
-                    <Style TargetType="ListBoxItem">
-                        <Setter Property="Height" Value="32"/>
-                        <Setter Property="Padding" Value="5,0"/>
-                        <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="ListBoxItem">
-                                    <Border x:Name="Bd"
-                                            Background="{TemplateBinding Background}"
-                                            BorderThickness="0"
-                                            Padding="{TemplateBinding Padding}"
-                                            SnapsToDevicePixels="true">
-                                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                                        SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="true">
-                                            <Setter Property="Background" Value="#F5F9FF"/>
-                                        </Trigger>
-                                        <Trigger Property="IsSelected" Value="true">
-                                            <Setter Property="Background" Value="#E3F2FD"/>
-                                        </Trigger>
-                                        <Trigger Property="behaviors:DragDropProperties.IsDragTarget" Value="true">
-                                            <Setter Property="Background" Value="#E3F2FD"/>
-                                        </Trigger>
-                                        <MultiTrigger>
-                                            <MultiTrigger.Conditions>
-                                                <Condition Property="IsSelected" Value="true"/>
-                                                <Condition Property="Selector.IsSelectionActive" Value="false"/>
-                                            </MultiTrigger.Conditions>
-                                            <Setter Property="Background" Value="#E3F2FD"/>
-                                        </MultiTrigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </ListBox.ItemContainerStyle>
-            </ListBox>
-        </DockPanel>
-
-        <!-- 右侧设置区域 -->
-        <StackPanel Grid.Column="1" Width="180">
-            <!-- 顶部按钮组 -->
-            <DockPanel Margin="0,0,0,10">
-                <Button Style="{StaticResource RoundedShadowButtonSmall}"
-                    Command="{Binding AddKeyCommand}"
-                    Name="btnAddKey"
-                    IsEnabled="{Binding IsNotExecuting}"
-                    DockPanel.Dock="Left" 
-                    Width="85" 
-                    Height="32"
-                    Margin="0,0,5,0"
-                    Content="添加按键" />
-                <Button Style="{StaticResource RoundedShadowButtonSmall}"
-                    Command="{Binding DeleteSelectedKeysCommand}"
-                    Name="btnDeleteSelectedKeys"
-                    IsEnabled="{Binding IsNotExecuting}"
-                    DockPanel.Dock="Right" 
-                    Width="85" 
-                    Height="32"
-                    Margin="5,0,0,0"
-                    Content="删除勾选" />
-            </DockPanel>
-
-            <!-- 状态显示 -->
-            <Border 
-                Margin="0,0,0,10" 
-                Padding="4,4" 
-                CornerRadius="8"
-                Height="30"
-                Background="{Binding IsHotkeyEnabled, Converter={StaticResource BoolToColorConverter}}">
-                <TextBlock 
-                    Text="{Binding HotkeyStatus}" 
-                    Foreground="White"
-                    FontWeight="Medium"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"/>
-            </Border>
-
-            <!-- 按键设置区域 -->
-            <DockPanel Margin="0,0,0,10">
-                <TextBlock Text="启动键" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <TextBox x:Name="txtStartHotkey"
-                         Style="{StaticResource ModernTextBox}"
+                    <TextBox x:Name="KeyInputBox"
+                             Style="{StaticResource ModernTextBox}"
+                             IsEnabled="{Binding IsNotExecuting}"
+                             Text="{Binding CurrentKeyText, Mode=OneWay}"
+                             PreviewKeyDown="KeyInputBox_PreviewKeyDown"
+                             PreviewMouseDown="KeyInputBox_PreviewMouseDown"
+                             GotFocus="KeyInputBox_GotFocus"
+                             LostFocus="KeyInputBox_LostFocus"
+                             TextAlignment="Center"
+                             Tag="点此输入按键"
+                             IsReadOnly="True"
+                             IsUndoEnabled="False"
+                             CaretBrush="Transparent"/>
+                </DockPanel>
+                        
+                <ListBox x:Name="KeysList" 
                          IsEnabled="{Binding IsNotExecuting}"
-                         Tag="空"
-                         IsReadOnly="True"
-                         Text="{Binding StartHotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                         IsUndoEnabled="False"
-                         CaretBrush="Transparent"
-                         TextAlignment="Center"
-                         PreviewKeyDown="StartHotkeyInput_PreviewKeyDown"
-                         KeyDown="StartHotkeyInput_KeyDown"
-                         PreviewMouseDown="StartHotkeyInput_PreviewMouseDown"
-                         PreviewMouseUp="StartHotkeyInput_PreviewMouseUp"
-                         MouseDown="StartHotkeyInput_MouseDown"
-                         GotFocus="HotkeyInputBox_GotFocus"
-                         LostFocus="HotkeyInputBox_LostFocus"/>
-            </DockPanel>
-
-            <DockPanel Margin="0,0,0,10" 
-                       Visibility="{Binding IsSequenceMode, Converter={StaticResource BoolToVisibilityConverter}}">
-                <TextBlock Text="停止键" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <TextBox x:Name="txtStopHotkey"
-                         Style="{StaticResource ModernTextBox}"
-                         IsEnabled="{Binding IsNotExecuting}"
-                         Tag="空"
-                         IsReadOnly="True"
-                         Text="{Binding StopHotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                         IsUndoEnabled="False"
-                         CaretBrush="Transparent"
-                         TextAlignment="Center"
-                         PreviewKeyDown="StopHotkeyInput_PreviewKeyDown"
-                         PreviewMouseDown="StopHotkeyInput_PreviewMouseDown"
-                         GotFocus="HotkeyInputBox_GotFocus"
-                         LostFocus="HotkeyInputBox_LostFocus"/>
-            </DockPanel>
-
-            <!-- 按键模式和间隔设置 -->
-            <DockPanel Margin="0,0,0,10">
-                <TextBlock Text="按键模式" 
-                           DockPanel.Dock="Left" 
-                           VerticalAlignment="Center" 
-                           Margin="0,0,0,0"
-                           Width="50"/>
-                <Button x:Name="btnModeHelp"
-                        DockPanel.Dock="Left"
-                        Style="{StaticResource CircleHelpButtonStyle}"
-                        Width="18" Height="18"
-                        FontSize="11"
-                        Margin="0,0,10,0"
-                        Click="ModeHelp_Click"
-                        Content="?"
-                        FontWeight="SemiBold">
-                    <Button.ToolTip>
-                        <ToolTip>
-                            <TextBlock Text="点击查看按键模式说明"/>
-                        </ToolTip>
-                    </Button.ToolTip>
-                </Button>
-
-                <!-- 按键模式帮助提示浮窗 -->
-                <Popup x:Name="modeHelpPopup" 
-                       PlacementTarget="{Binding ElementName=btnModeHelp}"
-                       Placement="Right" 
-                       AllowsTransparency="True" 
-                       PopupAnimation="Fade"
-                       StaysOpen="False">
-                    <Border Style="{StaticResource HelpPopupStyle}"
-                            Width="280">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource HelpTextStyle}"
-                                       Text="按键模式决定了按键的触发方式："/>
-                            <TextBlock Style="{StaticResource HelpTextStyle}"
-                                       Margin="0,8,0,0">
-                                <Run Text="• 顺序模式" FontWeight="SemiBold"/>
-                                <LineBreak/>
-                                <Run Text="  按下启动键开始，按下停止键结束"/>
-                                <LineBreak/>
-                                <Run Text="  适合需要精确控制开始和结束的场景"/>
-                                <LineBreak/>
-                                <LineBreak/>
-                                <Run Text="• 按压模式" FontWeight="SemiBold"/>
-                                <LineBreak/>
-                                <Run Text="  按住启动键时持续执行，松开后停止"/>
-                                <LineBreak/>
-                                <Run Text="  适合需要快速切换状态的场景"/>
-                            </TextBlock>
-                        </StackPanel>
-                    </Border>
-                </Popup>
-
-                <ComboBox x:Name="cboKeyMode"
-                          Style="{StaticResource ModernComboBox}"
-                          ItemContainerStyle="{StaticResource ModernComboBoxItem}"
-                          Width="100"
-                          Height="32"
-                          VerticalContentAlignment="Center"
-                          HorizontalContentAlignment="Center"
-                          ItemsSource="{Binding KeyModes}"
-                          SelectedIndex="{Binding SelectedKeyMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                    <ComboBox.ItemTemplate>
+                         BorderThickness="1"
+                         ItemsSource="{Binding KeyList}"
+                         Background="White"
+                         BorderBrush="#BDBDBD"
+                         PreviewMouseDown="KeysList_PreviewMouseDown"
+                         ScrollViewer.CanContentScroll="True"
+                         VirtualizingStackPanel.IsVirtualizing="True"
+                         VirtualizingStackPanel.VirtualizationMode="Recycling">
+                    <b:Interaction.Behaviors>
+                        <behaviors:ListBoxDragDropBehavior />
+                    </b:Interaction.Behaviors>
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="2" 
+                                       HorizontalAlignment="Stretch"
+                                       VerticalAlignment="Top"/>
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.Template>
+                        <ControlTemplate TargetType="ListBox">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4">
+                                <ScrollViewer x:Name="ScrollViewer" 
+                                            Padding="4" 
+                                            Focusable="False"
+                                            VerticalScrollBarVisibility="Auto"
+                                            HorizontalScrollBarVisibility="Disabled"
+                                            Template="{DynamicResource ScrollViewerControlTemplate}">
+                                    <ItemsPresenter />
+                                </ScrollViewer>
+                            </Border>
+                        </ControlTemplate>
+                    </ListBox.Template>
+                    <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding}" 
-                                      HorizontalAlignment="Center"/>
+                            <Border x:Name="itemBorder" 
+                                    Background="Transparent" 
+                                    CornerRadius="4" 
+                                    Padding="4">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- 连发标记 -->
+                                    <Border Grid.Column="0"
+                                            Width="24"
+                                            Height="24"
+                                            CornerRadius="12"
+                                            Margin="0,0,4,0"
+                                            VerticalAlignment="Center">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Style.Triggers>
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding IsKeyBurst}" Value="True"/>
+                                                            <Condition Binding="{Binding DataContext.KeyboardLayoutViewModel.IsRapidFireEnabled, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="True"/>
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="Background" Value="#E8F5E9"/>
+                                                        <Setter Property="BorderBrush" Value="#4CAF50"/>
+                                                        <Setter Property="BorderThickness" Value="1"/>
+                                                    </MultiDataTrigger>
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding IsKeyBurst}" Value="True"/>
+                                                            <Condition Binding="{Binding DataContext.KeyboardLayoutViewModel.IsRapidFireEnabled, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="False"/>
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="Background" Value="#FFEBEE"/>
+                                                        <Setter Property="BorderBrush" Value="#F44336"/>
+                                                        <Setter Property="BorderThickness" Value="1"/>
+                                                    </MultiDataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock TextAlignment="Center"
+                                                 VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value=""/>
+                                                    <Setter Property="Foreground" Value="#757575"/>
+                                                    <Style.Triggers>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IsKeyBurst}" Value="True"/>
+                                                                <Condition Binding="{Binding DataContext.KeyboardLayoutViewModel.IsRapidFireEnabled, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="True"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Text" Value="连"/>
+                                                            <Setter Property="Foreground" Value="#4CAF50"/>
+                                                            <Setter Property="FontWeight" Value="Bold"/>
+                                                        </MultiDataTrigger>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IsKeyBurst}" Value="True"/>
+                                                                <Condition Binding="{Binding DataContext.KeyboardLayoutViewModel.IsRapidFireEnabled, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="False"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Text" Value="连"/>
+                                                            <Setter Property="Foreground" Value="#F44336"/>
+                                                            <Setter Property="FontWeight" Value="Bold"/>
+                                                        </MultiDataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Border>
+                                    
+                                    <!-- ModernSwitch -->
+                                    <CheckBox Grid.Column="1"
+                                             Height="32"
+                                             Margin="4,0"
+                                             HorizontalAlignment="Stretch"
+                                             VerticalAlignment="Center"
+                                             VerticalContentAlignment="Center">
+                                        <CheckBox.Style>
+                                            <Style TargetType="CheckBox" BasedOn="{StaticResource ModernSwitch}">
+                                                <Setter Property="Content" Value="{Binding DisplayName}"/>
+                                                <Setter Property="IsChecked" Value="{Binding IsSelected}"/>
+                                                <Style.Triggers>
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding IsKeyBurst}" Value="True"/>
+                                                            <Condition Binding="{Binding DataContext.KeyboardLayoutViewModel.IsRapidFireEnabled, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="True"/>
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="IsEnabled" Value="False"/>
+                                                        <Setter Property="Opacity" Value="0.7"/>
+                                                    </MultiDataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </CheckBox.Style>
+                                    </CheckBox>
+                                </Grid>
+                            </Border>
                         </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
+                    </ListBox.ItemTemplate>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Height" Value="44"/>
+                            <Setter Property="Margin" Value="2"/>
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="Bd"
+                                                Background="{TemplateBinding Background}"
+                                                BorderThickness="0"
+                                                CornerRadius="4"
+                                                Padding="{TemplateBinding Padding}"
+                                                SnapsToDevicePixels="true">
+                                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="true">
+                                                <Setter Property="Background" Value="#F5F9FF"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="true">
+                                                <Setter Property="Background" Value="#E3F2FD"/>
+                                            </Trigger>
+                                            <Trigger Property="behaviors:DragDropProperties.IsDragTarget" Value="true">
+                                                <Setter Property="Background" Value="#E3F2FD"/>
+                                            </Trigger>
+                                            <MultiTrigger>
+                                                <MultiTrigger.Conditions>
+                                                    <Condition Property="IsSelected" Value="true"/>
+                                                    <Condition Property="Selector.IsSelectionActive" Value="false"/>
+                                                </MultiTrigger.Conditions>
+                                                <Setter Property="Background" Value="#E3F2FD"/>
+                                            </MultiTrigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                </ListBox>
             </DockPanel>
 
-            <DockPanel Margin="0,0,0,10">
-                <TextBlock Text="按键间隔" 
-                           DockPanel.Dock="Left" 
-                           VerticalAlignment="Center"
-                           Margin="0,0,0,0"
-                           Width="50"/>
-                <Button x:Name="btnIntervalHelp"
-                        DockPanel.Dock="Left"
-                        Style="{StaticResource CircleHelpButtonStyle}"
-                        Width="18" Height="18"
-                        FontSize="11"
-                        Margin="0,0,10,0"
-                        Click="IntervalHelp_Click"
-                        Content="?"
-                        FontWeight="SemiBold">
-                    <Button.ToolTip>
-                        <ToolTip>
-                            <TextBlock Text="点击查看按键间隔说明"/>
-                        </ToolTip>
-                    </Button.ToolTip>
+            <!-- 右侧设置区域 -->
+            <StackPanel Grid.Column="1" Width="180">
+                <!-- 顶部按钮组 -->
+                <DockPanel Margin="0,0,0,10">
+                    <Button Style="{StaticResource RoundedShadowButtonSmall}"
+                        Command="{Binding AddKeyCommand}"
+                        Name="btnAddKey"
+                        IsEnabled="{Binding IsNotExecuting}"
+                        DockPanel.Dock="Left" 
+                        Width="85" 
+                        Height="32"
+                        Margin="0,0,5,0"
+                        Content="添加按键" />
+                    <Button Style="{StaticResource RoundedShadowButtonSmall}"
+                        Command="{Binding DeleteSelectedKeysCommand}"
+                        Name="btnDeleteSelectedKeys"
+                        IsEnabled="{Binding IsNotExecuting}"
+                        DockPanel.Dock="Right" 
+                        Width="85" 
+                        Height="32"
+                        Margin="5,0,0,0"
+                        Content="删除勾选" />
+                </DockPanel>
+
+                <!-- 获取窗口句柄按钮 -->
+                <Button Style="{StaticResource RoundedShadowButtonSmall}"
+                        Name="btnGetWindowHandle"
+                        IsEnabled="{Binding IsNotExecuting}"
+                        Height="32"
+                        Margin="0,0,0,10"
+                        Click="GetWindowHandle_Click">
+                    <DockPanel>
+                        <Path Data="M13,9V3.5L18.5,9M6,2C4.89,2 4,2.89 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6Z"
+                              Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              Width="16" Height="16"
+                              Stretch="Uniform"
+                              Margin="0,0,8,0"/>
+                        <TextBlock Text="获取窗口句柄"
+                                 VerticalAlignment="Center"/>
+                    </DockPanel>
                 </Button>
 
-                <!-- 帮助提示浮窗 -->
-                <Popup x:Name="helpPopup" 
-                       PlacementTarget="{Binding ElementName=btnIntervalHelp}"
-                       Placement="Right" 
-                       AllowsTransparency="True" 
-                       PopupAnimation="Fade"
-                       StaysOpen="False">
-                    <Border Style="{StaticResource HelpPopupStyle}"
-                            Width="280">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource HelpTextStyle}"
-                                       Text="按键间隔是指连续按键之间的时间间隔，单位为毫秒(ms)，1秒=1000毫秒。"/>
-                            <TextBlock Style="{StaticResource HelpTextStyle}"
-                                       Margin="0,8,0,0">
-                                <Run Text="• 间隔越短，按键速度越快"/>
-                                <LineBreak/>
-                                <Run Text="• 间隔越长，按键速度越慢"/>
-                                <LineBreak/>
-                                <Run Text="• 建议值范围：5-10ms"/>
-                                <LineBreak/>
-                                <Run Text="• 最小值：1ms"/>
-                            </TextBlock>
-                            <TextBlock Style="{StaticResource HelpTextStyle}"
-                                       Margin="0,8,0,0"
-                                       Foreground="#F44336"
-                                       Text="注意：设置过短的间隔可能导致按键不稳定或游戏无法正确识别"/>
-                        </StackPanel>
-                    </Border>
-                </Popup>
-                <TextBox x:Name="txtKeyInterval"
-                         Style="{StaticResource ModernTextBox}"
-                         IsEnabled="{Binding IsNotExecuting}"
-                         Width="100"
-                         VerticalContentAlignment="Center"
-                         TextAlignment="Center"
-                         IsReadOnly="False"
-                         PreviewTextInput="NumberValidationTextBox"
-                         GotFocus="NumberInput_GotFocus"
-                         LostFocus="NumberInput_LostFocus"
-                         Text="{Binding KeyInterval, Converter={StaticResource IntToStringConverter}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DockPanel.Dock="Left"/>
-            </DockPanel>
+                <!-- 窗口句柄显示 -->
+                <DockPanel Margin="0,0,0,10">
+                    <TextBlock Text="句柄" 
+                              DockPanel.Dock="Left" 
+                              VerticalAlignment="Center"
+                              Margin="0,0,10,0"/>
+                    <Button Style="{StaticResource CircleButtonStyle}"
+                            DockPanel.Dock="Right"
+                            Width="24" Height="24"
+                            Margin="8,0,0,0"
+                            Click="ClearWindowHandle_Click"
+                            ToolTip="清除选择">
+                        <Path Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
+                              Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              Width="14" Height="14"
+                              Stretch="Uniform"/>
+                    </Button>
+                    <TextBox x:Name="txtWindowHandle"
+                            Style="{StaticResource ModernTextBox}"
+                            IsReadOnly="True"
+                            Text="{Binding SelectedWindowTitle, Mode=OneWay}"
+                            Tag="未选择窗口"
+                            ToolTip="{Binding SelectedWindowClassName}"/>
+                </DockPanel>
 
-            <!-- 底部设置区域重新布局 -->
-            <StackPanel Margin="0,0,0,0">
-                <!-- 声音提示和游戏模式并排 -->
-                <Grid Margin="0,0,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    
-                    <CheckBox Grid.Column="0"
-                              Style="{StaticResource ModernSwitch}"
+                <!-- 按键设置区域 -->
+                <DockPanel Margin="0,0,0,10">
+                    <TextBlock Text="启动键" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBox x:Name="txtStartHotkey"
+                             Style="{StaticResource ModernTextBox}"
+                             IsEnabled="{Binding IsNotExecuting}"
+                             Tag="空"
+                             IsReadOnly="True"
+                             Text="{Binding StartHotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                             IsUndoEnabled="False"
+                             CaretBrush="Transparent"
+                             TextAlignment="Center"
+                             PreviewKeyDown="StartHotkeyInput_PreviewKeyDown"
+                             KeyDown="StartHotkeyInput_KeyDown"
+                             PreviewMouseDown="StartHotkeyInput_PreviewMouseDown"
+                             PreviewMouseUp="StartHotkeyInput_PreviewMouseUp"
+                             PreviewMouseWheel="StartHotkeyInput_PreviewMouseWheel"
+                             MouseDown="StartHotkeyInput_MouseDown"
+                             GotFocus="HotkeyInputBox_GotFocus"
+                             LostFocus="HotkeyInputBox_LostFocus"/>
+                </DockPanel>
+
+                <DockPanel Margin="0,0,0,10" 
+                           Visibility="{Binding IsSequenceMode, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="停止键" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBox x:Name="txtStopHotkey"
+                             Style="{StaticResource ModernTextBox}"
+                             IsEnabled="{Binding IsNotExecuting}"
+                             Tag="空"
+                             IsReadOnly="True"
+                             Text="{Binding StopHotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                             IsUndoEnabled="False"
+                             CaretBrush="Transparent"
+                             TextAlignment="Center"
+                             PreviewKeyDown="StopHotkeyInput_PreviewKeyDown"
+                             PreviewMouseDown="StopHotkeyInput_PreviewMouseDown"
+                             PreviewMouseWheel="StopHotkeyInput_PreviewMouseWheel"
+                             GotFocus="HotkeyInputBox_GotFocus"
+                             LostFocus="HotkeyInputBox_LostFocus"/>
+                </DockPanel>
+
+                <!-- 按键模式和间隔设置 -->
+                <DockPanel Margin="0,0,0,10">
+                    <TextBlock Text="按键模式" 
+                               DockPanel.Dock="Left" 
+                               VerticalAlignment="Center" 
+                               Margin="0,0,0,0"
+                               Width="50"/>
+                    <Button x:Name="btnModeHelp"
+                            DockPanel.Dock="Left"
+                            Style="{StaticResource CircleHelpButtonStyle}"
+                            Width="18" Height="18"
+                            FontSize="11"
+                            Margin="0,0,10,0"
+                            Click="ModeHelp_Click"
+                            Content="?"
+                            FontWeight="SemiBold">
+                        <Button.ToolTip>
+                            <ToolTip>
+                                <TextBlock Text="点击查看按键模式说明"/>
+                            </ToolTip>
+                        </Button.ToolTip>
+                    </Button>
+
+                    <!-- 按键模式帮助提示浮窗 -->
+                    <Popup x:Name="modeHelpPopup" 
+                           PlacementTarget="{Binding ElementName=btnModeHelp}"
+                           Placement="Right" 
+                           AllowsTransparency="True" 
+                           PopupAnimation="Fade"
+                           StaysOpen="False">
+                        <Border Style="{StaticResource HelpPopupStyle}"
+                                Width="280">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource HelpTextStyle}"
+                                           Text="按键模式决定了按键的触发方式："/>
+                                <TextBlock Style="{StaticResource HelpTextStyle}"
+                                           Margin="0,8,0,0">
+                                    <Run Text="• 顺序模式" FontWeight="SemiBold"/>
+                                    <LineBreak/>
+                                    <Run Text="  按下启动键开始，按下停止键结束"/>
+                                    <LineBreak/>
+                                    <Run Text="  适合需要精确控制开始和结束的场景"/>
+                                    <LineBreak/>
+                                    <LineBreak/>
+                                    <Run Text="• 按压模式" FontWeight="SemiBold"/>
+                                    <LineBreak/>
+                                    <Run Text="  按住启动键时持续执行，松开后停止"/>
+                                    <LineBreak/>
+                                    <Run Text="  适合需要快速切换状态的场景"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+
+                    <ComboBox x:Name="cboKeyMode"
+                              Style="{StaticResource ModernComboBox}"
+                              ItemContainerStyle="{StaticResource ModernComboBoxItem}"
+                              Width="100"
+                              Height="32"
+                              VerticalContentAlignment="Center"
+                              HorizontalContentAlignment="Center"
+                              ItemsSource="{Binding KeyModes}"
+                              SelectedIndex="{Binding SelectedKeyMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" 
+                                          HorizontalAlignment="Center"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </DockPanel>
+
+                <DockPanel Margin="0,0,0,10">
+                    <TextBlock Text="按键间隔" 
+                               DockPanel.Dock="Left" 
+                               VerticalAlignment="Center"
+                               Margin="0,0,0,0"
+                               Width="50"/>
+                    <Button x:Name="btnIntervalHelp"
+                            DockPanel.Dock="Left"
+                            Style="{StaticResource CircleHelpButtonStyle}"
+                            Width="18" Height="18"
+                            FontSize="11"
+                            Margin="0,0,10,0"
+                            Click="IntervalHelp_Click"
+                            Content="?"
+                            FontWeight="SemiBold">
+                        <Button.ToolTip>
+                            <ToolTip>
+                                <TextBlock Text="点击查看按键间隔说明"/>
+                            </ToolTip>
+                        </Button.ToolTip>
+                    </Button>
+
+                    <!-- 帮助提示浮窗 -->
+                    <Popup x:Name="helpPopup" 
+                           PlacementTarget="{Binding ElementName=btnIntervalHelp}"
+                           Placement="Right" 
+                           AllowsTransparency="True" 
+                           PopupAnimation="Fade"
+                           StaysOpen="False">
+                        <Border Style="{StaticResource HelpPopupStyle}"
+                                Width="280">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource HelpTextStyle}"
+                                           Text="按键间隔是指连续按键之间的时间间隔，单位为毫秒(ms)，1秒=1000毫秒。"/>
+                                <TextBlock Style="{StaticResource HelpTextStyle}"
+                                           Margin="0,8,0,0">
+                                    <Run Text="• 间隔越短，按键速度越快"/>
+                                    <LineBreak/>
+                                    <Run Text="• 间隔越长，按键速度越慢"/>
+                                    <LineBreak/>
+                                    <Run Text="• 建议值范围：5-10ms"/>
+                                    <LineBreak/>
+                                    <Run Text="• 最小值：1ms"/>
+                                </TextBlock>
+                                <TextBlock Style="{StaticResource HelpTextStyle}"
+                                           Margin="0,8,0,0"
+                                           Foreground="#F44336"
+                                           Text="注意：设置过短的间隔可能导致按键不稳定或游戏无法正确识别"/>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+                    <TextBox x:Name="txtKeyInterval"
+                             Style="{StaticResource ModernTextBox}"
+                             IsEnabled="{Binding IsNotExecuting}"
+                             Width="100"
+                             VerticalContentAlignment="Center"
+                             TextAlignment="Center"
+                             IsReadOnly="False"
+                             PreviewTextInput="NumberValidationTextBox"
+                             GotFocus="NumberInput_GotFocus"
+                             LostFocus="NumberInput_LostFocus"
+                             Text="{Binding KeyInterval, Converter={StaticResource IntToStringConverter}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DockPanel.Dock="Left"/>
+                </DockPanel>
+
+                <!-- 底部设置区域重新布局 -->
+                <StackPanel Margin="0,0,0,0">
+                    <!-- 声音提示 -->
+                    <CheckBox Style="{StaticResource ModernSwitch}"
                               Content="声音提示" 
                               Height="32"
                               VerticalContentAlignment="Center"
@@ -351,8 +496,8 @@
                               Padding="0,0,0,0"
                               IsChecked="{Binding IsSoundEnabled, Mode=TwoWay}"/>
                               
-                    <CheckBox Grid.Column="1"
-                              Style="{StaticResource ModernSwitch}"
+                    <!-- 游戏模式 -->
+                    <CheckBox Style="{StaticResource ModernSwitch}"
                               Content="游戏模式" 
                               Height="32"
                               VerticalContentAlignment="Center"
@@ -360,18 +505,63 @@
                               Margin="0,0,0,0"
                               Padding="0,0,0,0"
                               IsChecked="{Binding IsGameMode, Mode=TwoWay}"/>
-                </Grid>
 
-                <!-- 添加浮窗开关 -->
-                <CheckBox Style="{StaticResource ModernSwitch}"
-                          Content="状态浮窗" 
-                          Height="32"
-                          VerticalContentAlignment="Center"
-                          HorizontalAlignment="Left"
-                          Margin="0,0,0,0"
-                          Padding="0,0,0,0"
-                          IsChecked="{Binding IsFloatingWindowEnabled, Mode=TwoWay}"/>
+                    <!-- 状态浮窗 -->
+                    <CheckBox Style="{StaticResource ModernSwitch}"
+                              Content="状态浮窗" 
+                              Height="32"
+                              VerticalContentAlignment="Center"
+                              HorizontalAlignment="Left"
+                              Margin="0,0,0,0"
+                              Padding="0,0,0,0"
+                              IsChecked="{Binding IsFloatingWindowEnabled, Mode=TwoWay}"/>
+                    <!-- 连发开关 -->
+                    <CheckBox Style="{StaticResource ModernSwitch}"
+                              Content="连发开关" 
+                              Height="32"
+                              VerticalContentAlignment="Center"
+                              HorizontalAlignment="Left"
+                              Margin="0,0,0,0"
+                              Padding="0,0,0,0"
+                              IsChecked="{Binding KeyboardLayoutViewModel.IsRapidFireEnabled, Mode=TwoWay}"/>
+                </StackPanel>
             </StackPanel>
-        </StackPanel>
+        </Grid>
+
+        <!-- 键鼠布局页面 -->
+        <Grid x:Name="KeyboardLayoutPage" 
+              Background="White" 
+              Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- 标题栏 -->
+            <DockPanel Grid.Row="0" 
+                       Background="#F5F5F5" 
+                       Height="48">
+                <Button x:Name="btnBackToMain"
+                        Style="{StaticResource CircleButtonStyle}"
+                        Width="32" Height="32"
+                        Margin="8,0,0,0"
+                        Click="CloseKeyboardLayout_Click">
+                    <Path Data="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"
+                          Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                          Width="16" Height="16"
+                          Stretch="Uniform"/>
+                </Button>
+                <TextBlock Text="键鼠布局"
+                           FontSize="16"
+                           FontWeight="Medium"
+                           VerticalAlignment="Center"
+                           Margin="16,0,0,0"/>
+            </DockPanel>
+
+            <!-- 键盘布局控件 -->
+            <controls:KeyboardLayoutView Grid.Row="1" 
+                                       x:Name="KeyboardLayout"
+                                       DataContext="{Binding KeyboardLayoutViewModel}"/>
+        </Grid>
     </Grid>
 </Page> 

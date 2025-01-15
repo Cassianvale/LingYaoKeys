@@ -1,6 +1,18 @@
 {
-  "Logging": {
-    "Enabled": false,
+  "UI": {
+    "MainWindow": {
+      "Width": 970.0,
+      "Height": 650.0
+    },
+    "FloatingWindow": {
+      "Left": 0,
+      "Top": 0,
+      "IsEnabled": true
+    }
+  },
+  "Debug": {
+    "IsDebugMode": false,
+    "EnableLogging": false,
     "LogLevel": "Debug",
     "FileSettings": {
       "MaxFileSize": 10,
@@ -11,42 +23,49 @@
     "ExcludedTags": [],
     "ExcludedSources": [
       "*.xaml*",
-      "ControlStyles.xaml",
-      "App.xaml",
-      "MainWindow.xaml"
+      "ControlStyles.xaml"
     ],
     "ExcludedMethods": [],
     "ExcludedPatterns": [
-      "窗口初始化完成*",
-      "已获取*实例",
-      "鼠标点击元素: *",
-      "*获取句柄*",
-      "*_DataContextChanged*",
-      "*触发: *",
-      "控件加载完成: *",
-      "页面切换到: *"
+      "窗口初始化完成*"
     ]
   },
-  "startKey": 109,
+  "startKey": 120,
   "startMods": 0,
-  "stopKey": 110,
+  "stopKey": 121,
   "stopMods": 0,
-  "keyList": [
-    404,
-    201,
-    202
+  "keys": [
+    {
+      "Code": 70,
+      "IsSelected": true,
+      "IsKeyBurst": true
+    },
+    {
+      "Code": 49,
+      "IsSelected": false,
+      "IsKeyBurst": false
+    },
+    {
+      "Code": 50,
+      "IsSelected": false,
+      "IsKeyBurst": false
+    }
   ],
-  "keySelections": [
-    true,
-    false,
-    false
+  "KeyBurst": [
+    {
+      "Code": 70,
+      "RapidFireDelay": 10,
+      "PressTime": 5
+    }
   ],
   "keyMode": 0,
-  "interval": 5,
+  "interval": 10,
   "soundEnabled": true,
   "IsGameMode": true,
   "KeyPressInterval": 5,
-  "FloatingWindowLeft": 0.0,
-  "FloatingWindowTop": 0.0,
-  "IsFloatingWindowEnabled": true
+  "IsRapidFire": false,
+  "IsRapidFireEnabled": false,
+  "TargetWindowClassName": null,
+  "TargetWindowProcessName": null,
+  "TargetWindowTitle": null
 }

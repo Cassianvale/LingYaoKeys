@@ -1,6 +1,5 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:local="clr-namespace:WpfApp.Styles"
                     xmlns:behaviors="clr-namespace:WpfApp.Behaviors">
 
     <!-- 通用输入框样式 -->
@@ -41,7 +40,7 @@
                             <Setter Property="BorderBrush" Value="#90CAF9"/>
                         </Trigger>
                         <Trigger Property="IsFocused" Value="True">
-                            <Setter Property="BorderBrush" Value="#2196F3"/>
+                            <Setter Property="BorderBrush" Value="#FF0000"/>
                         </Trigger>
                         <MultiTrigger>
                             <MultiTrigger.Conditions>
@@ -55,6 +54,9 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <!-- Emoji 字体设置 -->
+    <FontFamily x:Key="EmojiFont">Segoe UI Emoji</FontFamily>
 
     <!-- 通用下拉框样式 -->
     <Style x:Key="ModernComboBox" TargetType="ComboBox">

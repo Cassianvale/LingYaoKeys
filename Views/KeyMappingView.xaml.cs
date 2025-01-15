@@ -11,6 +11,7 @@ using WpfApp.Services.Models;
 using System.Windows.Media;
 using System.Windows.Controls.Primitives;
 using WpfApp.Behaviors;
+using System.Windows.Media.Animation;
 
 // 提供按键映射视图
 namespace WpfApp.Views
@@ -24,12 +25,14 @@ namespace WpfApp.Views
         private const string KEY_ERROR = "无法识别按键，请检查输入法是否关闭";
         private const string HOTKEY_CONFLICT = "无法设置与热键相同的按键";
         private HotkeyService? _hotkeyService;
+        private readonly KeyMappingViewModel _viewModel;
 
         private KeyMappingViewModel ViewModel => (KeyMappingViewModel)DataContext;
 
         public KeyMappingView()
         {
             InitializeComponent();
+            _viewModel = (KeyMappingViewModel)DataContext;
             
             // 监听 DataContext 变化
             this.DataContextChanged += KeyMappingView_DataContextChanged;
@@ -345,6 +348,29 @@ namespace WpfApp.Views
             _logger.Debug("开始热键 Mouse 按下 已触发");
             _logger.Debug($"ChangedButton: {e.ChangedButton}");
             StartHotkeyInput_PreviewMouseDown(sender, e);
+        }
+
+        // 添加滚轮事件处理
+        private void StartHotkeyInput_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (sender is System.Windows.Controls.TextBox textBox)
+            {
+                e.Handled = true;
+                LyKeysCode keyCode = e.Delta > 0 ? LyKeysCode.VK_WHEELUP : LyKeysCode.VK_WHEELDOWN;
+                _logger.Debug($"检测到滚轮事件: {keyCode}, Delta: {e.Delta}");
+                HandleHotkeyInput(textBox, keyCode, Keyboard.Modifiers, true);
+            }
+        }
+
+        private void StopHotkeyInput_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (sender is System.Windows.Controls.TextBox textBox)
+            {
+                e.Handled = true;
+                LyKeysCode keyCode = e.Delta > 0 ? LyKeysCode.VK_WHEELUP : LyKeysCode.VK_WHEELDOWN;
+                _logger.Debug($"检测到滚轮事件: {keyCode}, Delta: {e.Delta}");
+                HandleHotkeyInput(textBox, keyCode, Keyboard.Modifiers, false);
+            }
         }
 
         // 处理开始热键的鼠标释放
@@ -791,6 +817,59 @@ namespace WpfApp.Views
                         parent.Focus();
                     }
                 }
+            }
+        }
+
+        private void ShowKeyboardLayout_Click(object sender, RoutedEventArgs e)
+        {
+            MainContent.Visibility = Visibility.Collapsed;
+            KeyboardLayoutPage.Visibility = Visibility.Visible;
+        }
+
+        private void CloseKeyboardLayout_Click(object sender, RoutedEventArgs e)
+        {
+            KeyboardLayoutPage.Visibility = Visibility.Collapsed;
+            MainContent.Visibility = Visibility.Visible;
+        }
+
+        private void GetWindowHandle_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 创建一个新的窗口来显示所有可见窗口的句柄
+                var windowHandleDialog = new WindowHandleDialog();
+                windowHandleDialog.Owner = Window.GetWindow(this);
+                windowHandleDialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                
+                if (windowHandleDialog.ShowDialog() == true)
+                {
+                    // 获取选中的窗口信息
+                    var handle = windowHandleDialog.SelectedHandle;
+                    var title = windowHandleDialog.SelectedTitle;
+                    var className = windowHandleDialog.SelectedClassName;
+                    var processName = windowHandleDialog.SelectedProcessName;
+                    
+                    // 更新ViewModel中的窗口信息
+                    ViewModel.UpdateSelectedWindow(handle, title, className, processName);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("获取窗口句柄时发生异常", ex);
+                ShowError("获取窗口句柄失败，请查看日志");
+            }
+        }
+
+        private void ClearWindowHandle_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                ViewModel.ClearSelectedWindow();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("清除窗口句柄时发生异常", ex);
+                ShowError("清除窗口句柄失败，请查看日志");
             }
         }
 

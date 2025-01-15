@@ -1,0 +1,57 @@
+name: Release Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version'
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Aliyun CLI
+        run: |
+          # 下载并安装阿里云 CLI
+          Invoke-WebRequest -Uri "https://aliyuncli.alicdn.com/aliyun-cli-windows-latest-amd64.zip" -OutFile "aliyun-cli.zip"
+          Expand-Archive -Path "aliyun-cli.zip" -DestinationPath "aliyun-cli"
+          $env:PATH += ";$pwd\aliyun-cli"
+          
+          # 配置阿里云凭证
+          aliyun configure set --mode AK --profile default --region cn-shanghai --language zh --access-key-id "${{ secrets.OSS_ACCESS_KEY_ID }}" --access-key-secret "${{ secrets.OSS_ACCESS_KEY_SECRET }}"
+        shell: pwsh
+
+      - name: Update Version
+        run: |
+          # 1. 更新 csproj 文件版本号
+          $csprojPath = "WpfApp.csproj"
+          $content = Get-Content $csprojPath
+          $content = $content -replace '<Version>.*</Version>', "<Version>${{ github.event.inputs.version }}</Version>"
+          Set-Content -Path $csprojPath -Value $content
+
+          # 2. 创建 version.json
+          $versionJson = @{
+            version = "${{ github.event.inputs.version }}"
+            releaseNotes = "Version ${{ github.event.inputs.version }} update"
+            downloadUrl = "https://github.com/Cassianvale/LingYaoKeys/releases/download/v${{ github.event.inputs.version }}/LingYaoKeys-${{ github.event.inputs.version }}.zip"
+          } | ConvertTo-Json
+          Set-Content -Path "version.json" -Value $versionJson
+
+          # 3. 上传到阿里云 OSS
+          aliyun oss cp --force "version.json" oss://lykeys-remote/version.json
+        shell: pwsh
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          release_name: Release ${{ github.event.inputs.version }}
+          draft: false
+          prerelease: false 
