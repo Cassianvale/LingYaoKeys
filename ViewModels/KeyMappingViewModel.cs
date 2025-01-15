@@ -431,16 +431,7 @@ namespace WpfApp.ViewModels
         {
             if (_floatingWindow?.DataContext is FloatingStatusViewModel viewModel)
             {
-                string statusText;
-                if (IsExecuting)
-                {
-                    statusText = IsTargetWindowActive ? "运行中" : "已暂停";
-                    _logger.Debug($"当前执行状态: {IsExecuting}, 窗口活动状态: {IsTargetWindowActive}");
-                }
-                else
-                {
-                    statusText = "已停止";
-                }
+                string statusText = IsExecuting ? "运行中" : "已停止";
                 viewModel.StatusText = statusText;
                 _logger.Debug($"更新浮窗状态: {statusText}");
             }
@@ -1564,18 +1555,26 @@ namespace WpfApp.ViewModels
         {
             try
             {
-                if (SelectedWindowHandle != IntPtr.Zero)
+                // 如果没有选择窗口，则认为总是活动的
+                if (SelectedWindowHandle == IntPtr.Zero)
                 {
-                    var activeWindow = GetForegroundWindow();
-                    bool isActive = activeWindow == SelectedWindowHandle;
-                    
                     System.Windows.Application.Current.Dispatcher.Invoke(() =>
                     {
-                        IsTargetWindowActive = isActive;
-                        // 同步状态到 HotkeyService
-                        _hotkeyService.IsTargetWindowActive = isActive;
+                        IsTargetWindowActive = true;
+                        _hotkeyService.IsTargetWindowActive = true;
                     });
+                    return;
                 }
+
+                // 如果选择了窗口，则检查是否是当前活动窗口
+                var activeWindow = GetForegroundWindow();
+                bool isActive = activeWindow == SelectedWindowHandle;
+                
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    IsTargetWindowActive = isActive;
+                    _hotkeyService.IsTargetWindowActive = isActive;
+                });
             }
             catch (Exception ex)
             {
