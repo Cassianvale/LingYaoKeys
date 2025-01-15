@@ -222,7 +222,7 @@ namespace WpfApp.Services
                 
                 // 检查目标窗口是否激活
                 IntPtr activeWindow = GetForegroundWindow();
-                bool isTargetWindowActive = _targetWindowHandle != IntPtr.Zero && activeWindow == _targetWindowHandle;
+                bool isTargetWindowActive = _targetWindowHandle == IntPtr.Zero || activeWindow == _targetWindowHandle;
                 
                 if (!isTargetWindowActive)
                 {
@@ -290,7 +290,7 @@ namespace WpfApp.Services
                 {
                     // 获取当前活动窗口
                     IntPtr activeWindow = GetForegroundWindow();
-                    bool isTargetWindowActive = _targetWindowHandle != IntPtr.Zero && activeWindow == _targetWindowHandle;
+                    bool isTargetWindowActive = _targetWindowHandle == IntPtr.Zero || activeWindow == _targetWindowHandle;
 
                     var hookStruct = (KBDLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT))!;
                     bool isStartKey = hookStruct.vkCode == _startVirtualKey;
@@ -400,7 +400,8 @@ namespace WpfApp.Services
                 {
                     // 获取当前活动窗口
                     IntPtr activeWindow = GetForegroundWindow();
-                    bool isTargetWindowActive = _targetWindowHandle != IntPtr.Zero && activeWindow == _targetWindowHandle;
+                    // 修改判断逻辑：如果没有设置目标窗口，则允许在任何窗口触发
+                    bool isTargetWindowActive = _targetWindowHandle == IntPtr.Zero || activeWindow == _targetWindowHandle;
 
                     // 如果目标窗口未激活，停止当前执行
                     if (!isTargetWindowActive && _isSequenceRunning)
