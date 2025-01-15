@@ -100,7 +100,6 @@
 
   <!-- 新增：配置程序集依赖项 -->
   <ItemGroup>
-    <PackageReference Include="Aliyun.OSS.SDK.NetCore" Version="2.14.1" />
     <PackageReference Include="Markdig" Version="0.39.1" PrivateAssets="all" />
     <PackageReference Include="MaterialDesignColors" Version="5.2.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.0" />

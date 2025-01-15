@@ -10,7 +10,7 @@ using Forms = System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.ComponentModel;
 using System.Diagnostics;
-using Microsoft.Extensions.Configuration;
+using MessageBox = System.Windows.MessageBox;
 
 namespace WpfApp
 {
@@ -40,8 +40,6 @@ namespace WpfApp
             CTRL_LOGOFF_EVENT = 5,
             CTRL_SHUTDOWN_EVENT = 6
         }
-
-        public static IConfiguration Configuration { get; private set; }
 
         // 清理级别
         // Normal 级别：基本资源清理（适用于正常应用退出）
@@ -345,39 +343,24 @@ namespace WpfApp
 
             try
             {
-                // 在应用程序启动前设置高 DPI 模式
-                if (Environment.OSVersion.Version >= new Version(6, 3))
-                {
-                    Forms.Application.SetHighDpiMode(Forms.HighDpiMode.PerMonitorV2);
-                    _logger.Debug("已设置高DPI模式");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("设置高DPI模式失败", ex);
-            }
+                // 创建并显示启动屏幕
+                var splashWindow = new Views.SplashWindow();
+                splashWindow.Show();
+                splashWindow.UpdateProgress("正在初始化应用程序...", 0);
 
-            // 初始化配置
-            var builder = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                .AddJsonFile($"appsettings.{GetEnvironment()}.json", optional: true, reloadOnChange: true)
-                .AddEnvironmentVariables();
+                // 设置高DPI模式
 
-            Configuration = builder.Build();
+                Console.WriteLine("正在应用 Per Monitor V2 DPI 感知...");
 
-            // 预初始化WebView2环境
-            _ = Services.WebView2Service.Instance.GetEnvironmentAsync();
-
-            try
-            {
                 // 确保用户数据目录存在
                 Directory.CreateDirectory(_userDataPath);
 
-                // 1. 首先初始化配置服务
+                // 1. 初始化配置服务
+                splashWindow.UpdateProgress("正在初始化配置服务...", 20);
                 AppConfigService.Initialize(_userDataPath);
 
-                // 2. 然后初始化日志系统
+                // 2. 初始化日志系统
+                splashWindow.UpdateProgress("正在初始化日志系统...", 30);
                 _logger.SetBaseDirectory(_userDataPath);
                 _logger.Initialize(AppConfigService.Config.Debug);
 
@@ -391,100 +374,27 @@ namespace WpfApp
                 };
 
                 // 注册全局异常处理
-                AppDomain.CurrentDomain.UnhandledException += (s, args) =>
-                {
-                    var ex = args.ExceptionObject as Exception;
-                    _logger.Error("未处理的异常，程序发生致命错误", ex);
-                };
+                RegisterGlobalExceptionHandlers();
 
-                Current.DispatcherUnhandledException += (s, args) =>
-                {
-                    _logger.Error("UI线程异常，界面线程发生异常", args.Exception);
-                    args.Handled = true;
-                };
-
-                TaskScheduler.UnobservedTaskException += (s, args) =>
-                {
-                    _logger.Error("任务异常, 异步任务发生异常", args.Exception);
-                    args.SetObserved();
-                };
-
-                _logger.Debug($"日志系统初始化完成, 配置: Level={AppConfigService.Config.Debug.LogLevel}, MaxSize={AppConfigService.Config.Debug.FileSettings.MaxFileSize}MB");
-                _logger.Debug("应用程序启动...");
-
-                // 获取用户目录路径
+                // 4. 异步提取驱动文件
+                splashWindow.UpdateProgress("正在准备驱动文件...", 40);
                 string driverPath = Path.Combine(_userDataPath, "Resource", "lykeysdll");
-                string driverFile = Path.Combine(driverPath, "lykeys.sys");
-                string dllFile = Path.Combine(driverPath, "lykeysdll.dll");
-                string catFile = Path.Combine(driverPath, "lykeys.cat");
+                await PrepareDriverFilesAsync(driverPath);
 
-                // 新增：清理已存在的服务
+                // 5. 初始化驱动服务
+                splashWindow.UpdateProgress("正在初始化驱动服务...", 60);
                 try
                 {
+                    // 清理已存在的服务
                     await CleanupExistingServiceAsync();
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error("清理已存在的服务失败", ex);
-                    System.Windows.MessageBox.Show("清理已存在的服务失败，请手动停止并删除lykeys服务后重试", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    Current.Shutdown();
-                    return;
-                }
 
-                try
-                {
-                    // 确保驱动目录存在
-                    Directory.CreateDirectory(driverPath);
-
-                    // 检查驱动文件是否存在且完整
-                    bool needExtractFiles = !File.Exists(driverFile) || 
-                                          !File.Exists(dllFile) || 
-                                          !File.Exists(catFile);
-
-                    if (needExtractFiles)
-                    {
-                        _logger.Debug("驱动文件不存在或不完整，开始提取...");
-                        // 从嵌入式资源提取驱动文件
-                        ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeys.sys", driverFile);
-                        ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeysdll.dll", dllFile);
-                        ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeys.cat", catFile);
-                        _logger.Debug($"驱动文件已提取到用户数据目录: {driverPath}");
-                    }
-                    else
-                    {
-                        _logger.Debug("驱动文件已存在且完整，跳过提取步骤");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error($"提取驱动文件失败: {ex.Message}", ex);
-                    System.Windows.MessageBox.Show("提取驱动文件失败，请确保程序完整性", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    Current.Shutdown();
-                    return;
-                }
-
-                if (!File.Exists(driverFile) || !File.Exists(dllFile))
-                {
-                    _logger.Error($"驱动文件丢失: {driverFile} 或 {dllFile}");
-                    System.Windows.MessageBox.Show("驱动文件丢失，请确保程序完整性", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    Current.Shutdown();
-                    return;
-                }
-
-                _logger.Debug($"驱动文件目录: {driverPath}");
-                _logger.Debug($"驱动文件: {driverFile}");
-                _logger.Debug($"DLL文件: {dllFile}");
-                _logger.Debug($"CAT文件: {catFile}");
-
-                // 初始化驱动管理器
-                try
-                {
                     // 初始化 LyKeys 服务
                     LyKeysDriver = new LyKeysService();
+                    string driverFile = Path.Combine(driverPath, "lykeys.sys");
                     if (!await LyKeysDriver.InitializeAsync(driverFile))
                     {
                         _logger.Error("驱动加载失败，无法加载LyKeys驱动文件");
-                        System.Windows.MessageBox.Show("驱动加载失败，请检查是否以管理员身份运行程序", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show("驱动加载失败，请检查是否以管理员身份运行程序", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                         Current.Shutdown();
                         return;
                     }
@@ -493,46 +403,128 @@ namespace WpfApp
                 catch (Exception ex)
                 {
                     _logger.Error($"驱动初始化失败: {ex.Message}", ex);
-                    System.Windows.MessageBox.Show("驱动初始化失败，请检查是否以管理员身份运行程序", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("驱动初始化失败，请检查是否以管理员身份运行程序", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     Current.Shutdown();
                     return;
                 }
 
-                // 初始化音频服务
+                // 6. 初始化音频服务
+                splashWindow.UpdateProgress("正在初始化音频服务...", 80);
                 _logger.Debug("初始化音频服务");
                 AudioService = new AudioService();
 
-                // 创建并显示主窗口
+                // 7. 创建并显示主窗口
+                splashWindow.UpdateProgress("正在启动主界面...", 90);
                 _logger.Debug("创建主窗口...");
                 var mainWindow = new MainWindow();
-                mainWindow.Show();
 
-                // 初始化热键服务
+                // 8. 初始化热键服务
+                splashWindow.UpdateProgress("正在初始化热键服务...", 95);
                 _logger.Debug("初始化热键服务");
                 var hotkeyService = new HotkeyService(mainWindow, LyKeysDriver);
 
                 // 注册应用程序退出事件
-                Exit += OnApplicationExit;
+                RegisterExitHandlers();
 
-                // 添加程序退出时的清理逻辑
-                Current.Exit += (s, e) =>
-                {
-                    try
-                    {
-                        _logger.Debug("程序正常退出");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Error($"程序退出时发生错误: {ex.Message}", ex);
-                    }
-                };
+                // 显示主窗口
+                splashWindow.UpdateProgress("启动完成", 100);
+                await Task.Delay(500); // 短暂延迟以显示完成状态
+                mainWindow.Show();
+                splashWindow.Close();
             }
             catch (Exception ex)
             {
                 _logger.Error("启动失败, 应用程序启动过程中发生异常", ex);
-                System.Windows.MessageBox.Show($"程序启动异常：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"程序启动异常：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 Current.Shutdown();
             }
+        }
+
+        private void RegisterGlobalExceptionHandlers()
+        {
+            AppDomain.CurrentDomain.UnhandledException += (s, args) =>
+            {
+                var ex = args.ExceptionObject as Exception;
+                _logger.Error("未处理的异常，程序发生致命错误", ex);
+            };
+
+            Current.DispatcherUnhandledException += (s, args) =>
+            {
+                _logger.Error("UI线程异常，界面线程发生异常", args.Exception);
+                args.Handled = true;
+            };
+
+            TaskScheduler.UnobservedTaskException += (s, args) =>
+            {
+                _logger.Error("任务异常, 异步任务发生异常", args.Exception);
+                args.SetObserved();
+            };
+        }
+
+        private async Task PrepareDriverFilesAsync(string driverPath)
+        {
+            try
+            {
+                // 确保驱动目录存在
+                Directory.CreateDirectory(driverPath);
+
+                string driverFile = Path.Combine(driverPath, "lykeys.sys");
+                string dllFile = Path.Combine(driverPath, "lykeysdll.dll");
+                string catFile = Path.Combine(driverPath, "lykeys.cat");
+
+                // 检查驱动文件是否存在且完整
+                bool needExtractFiles = !File.Exists(driverFile) || 
+                                      !File.Exists(dllFile) || 
+                                      !File.Exists(catFile);
+
+                if (needExtractFiles)
+                {
+                    _logger.Debug("驱动文件不存在或不完整，开始提取...");
+                    await Task.Run(() =>
+                    {
+                        // 从嵌入式资源提取驱动文件
+                        ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeys.sys", driverFile);
+                        ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeysdll.dll", dllFile);
+                        ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeys.cat", catFile);
+                    });
+                    _logger.Debug($"驱动文件已提取到用户数据目录: {driverPath}");
+                }
+                else
+                {
+                    _logger.Debug("驱动文件已存在且完整，跳过提取步骤");
+                }
+
+                if (!File.Exists(driverFile) || !File.Exists(dllFile))
+                {
+                    throw new FileNotFoundException("驱动文件丢失");
+                }
+
+                _logger.Debug($"驱动文件目录: {driverPath}");
+                _logger.Debug($"驱动文件: {driverFile}");
+                _logger.Debug($"DLL文件: {dllFile}");
+                _logger.Debug($"CAT文件: {catFile}");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"提取驱动文件失败: {ex.Message}", ex);
+                throw;
+            }
+        }
+
+        private void RegisterExitHandlers()
+        {
+            Exit += OnApplicationExit;
+            Current.Exit += (s, e) =>
+            {
+                try
+                {
+                    _logger.Debug("程序正常退出");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"程序退出时发生错误: {ex.Message}", ex);
+                }
+            };
         }
 
         /// <summary>
@@ -571,15 +563,6 @@ namespace WpfApp
         private void OnApplicationExit(object sender, ExitEventArgs e)
         {
             Cleanup(CleanupLevel.Normal);
-        }
-
-        private string GetEnvironment()
-        {
-            #if DEBUG
-                return "Development";
-            #else
-                return "Production";
-            #endif
         }
     }
 }

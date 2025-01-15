@@ -8,13 +8,14 @@ using WpfApp.Services.Config;
 using WpfApp.Services.Utils;
 using MessageBox = System.Windows.MessageBox;
 using Application = System.Windows.Application;
+using System.Net.Http;
 
 namespace WpfApp.ViewModels
 {
     public class SettingsViewModel : ViewModelBase
     {
         private readonly SerilogManager _logger = SerilogManager.Instance;
-        private readonly UpdateService? _updateService;
+        private readonly UpdateService _updateService;
         private readonly ConfigService _configService;
         private bool _isCheckingUpdate;
         private string _updateStatus = "检查更新";
@@ -37,25 +38,16 @@ namespace WpfApp.ViewModels
         public ICommand ExportConfigCommand { get; }
         public ICommand ToggleDebugModeCommand { get; }
 
-        public SettingsViewModel(IConfiguration configuration)
+        public SettingsViewModel()
         {
             _configService = new ConfigService();
-            try
-            {
-                _updateService = new UpdateService(configuration);
-            }
-            catch (Exception ex)
-            {
-                _logger.Warning($"初始化更新服务失败: {ex.Message}");
-                _updateService = null;
-            }
+            _updateService = new UpdateService();
             
             CheckUpdateCommand = new RelayCommand(async () => await CheckForUpdateAsync(), () => !_isCheckingUpdate);
             ImportConfigCommand = new RelayCommand(ImportConfig);
             ExportConfigCommand = new RelayCommand(ExportConfig);
             ToggleDebugModeCommand = new RelayCommand(ToggleDebugMode);
 
-            // 初始化调试模式状态
             UpdateDebugModeStatus();
         }
 
@@ -133,13 +125,6 @@ namespace WpfApp.ViewModels
 
         private async Task CheckForUpdateAsync()
         {
-            if (_updateService == null)
-            {
-                System.Windows.MessageBox.Show("更新服务未初始化，无法检查更新", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                UpdateStatus = "服务未初始化";
-                return;
-            }
-
             try
             {
                 _isCheckingUpdate = true;
@@ -148,13 +133,12 @@ namespace WpfApp.ViewModels
                 var updateInfo = await _updateService.CheckForUpdateAsync();
                 if (updateInfo != null)
                 {
-                    var result = System.Windows.MessageBox.Show(
-                        $"发现新版本：{updateInfo.LatestVersion}\n当前版本：{updateInfo.CurrentVersion}\n\n更新内容：\n{updateInfo.ReleaseNotes}\n\n是否立即更新？",
-                        "发现新版本",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Information);
+                    var dialog = new Views.UpdateDialog(
+                        updateInfo.LatestVersion,
+                        updateInfo.CurrentVersion,
+                        updateInfo.DownloadUrl);
 
-                    if (result == MessageBoxResult.Yes)
+                    if (dialog.ShowDialog() == true)
                     {
                         _updateService.OpenDownloadPage(updateInfo.DownloadUrl);
                     }
@@ -162,20 +146,52 @@ namespace WpfApp.ViewModels
                 }
                 else
                 {
-                    System.Windows.MessageBox.Show("当前已是最新版本", "检查更新", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(
+                        "当前已是最新版本", 
+                        "检查更新", 
+                        MessageBoxButton.OK, 
+                        MessageBoxImage.Information);
                     UpdateStatus = "已是最新";
                 }
             }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("无法连接到更新服务器"))
+            catch (HttpRequestException ex)
             {
                 _logger.Error("检查更新失败：网络连接问题", ex);
-                System.Windows.MessageBox.Show("无法连接到更新服务器，请检查网络连接", "网络错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(
+                    "无法连接到更新服务器，请检查网络连接", 
+                    "网络错误", 
+                    MessageBoxButton.OK, 
+                    MessageBoxImage.Warning);
                 UpdateStatus = "网络错误";
+            }
+            catch (TaskCanceledException)
+            {
+                _logger.Error("检查更新失败：请求超时");
+                MessageBox.Show(
+                    "更新服务器响应超时，请稍后重试", 
+                    "超时错误", 
+                    MessageBoxButton.OK, 
+                    MessageBoxImage.Warning);
+                UpdateStatus = "请求超时";
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.Error("检查更新失败：服务异常", ex);
+                MessageBox.Show(
+                    $"更新服务异常：{ex.Message}", 
+                    "服务错误", 
+                    MessageBoxButton.OK, 
+                    MessageBoxImage.Warning);
+                UpdateStatus = "服务异常";
             }
             catch (Exception ex)
             {
-                _logger.Error("检查更新失败", ex);
-                System.Windows.MessageBox.Show($"检查更新失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                _logger.Error("检查更新失败：未知错误", ex);
+                MessageBox.Show(
+                    $"检查更新失败：{ex.Message}", 
+                    "错误", 
+                    MessageBoxButton.OK, 
+                    MessageBoxImage.Error);
                 UpdateStatus = "检查失败";
             }
             finally
@@ -198,7 +214,7 @@ namespace WpfApp.ViewModels
                 if (dialog.ShowDialog() == true)
                 {
                     _configService.ImportConfig(dialog.FileName);
-                    System.Windows.MessageBox.Show("配置导入成功，需要重启程序才能生效。是否立即重启？", 
+                    MessageBox.Show("配置导入成功，需要重启程序才能生效。是否立即重启？", 
                         "重启提示", 
                         MessageBoxButton.YesNo, 
                         MessageBoxImage.Question);
@@ -207,7 +223,7 @@ namespace WpfApp.ViewModels
             catch (Exception ex)
             {
                 _logger.Error("导入配置失败", ex);
-                System.Windows.MessageBox.Show($"导入配置失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"导入配置失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
