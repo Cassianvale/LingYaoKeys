@@ -18,6 +18,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '8.0.x'
+
       - name: Setup Aliyun CLI
         run: |
           # 下载并安装阿里云 CLI
@@ -45,31 +50,29 @@ jobs:
               Set-Content -Path $csprojPath -Value $content -Encoding UTF8
               Write-Host "Updated version in csproj file"
           } else {
-              Write-Error "csproj file not found at: $csprojPath"
+              Write-Error "csproj file not found: $csprojPath"
               exit 1
           }
+        shell: pwsh
 
-          # 2. 创建 version.json
-          $versionJsonPath = Join-Path $workDir "version.json"
+      - name: Build and Publish
+        run: |
+          dotnet restore
+          dotnet build -c Release
+          dotnet publish -c Release -r win-x64 -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:SelfContained=false
+        
+      - name: Create version.json
+        run: |
           $versionJson = @{
               version = "${{ github.event.inputs.version }}"
               releaseNotes = "Version ${{ github.event.inputs.version }} update"
-              downloadUrl = "https://github.com/Cassianvale/LingYaoKeys/releases/download/v${{ github.event.inputs.version }}/LingYaoKeys-${{ github.event.inputs.version }}.zip"
+              downloadUrl = "https://github.com/Cassianvale/LingYaoKeys/releases/download/v${{ github.event.inputs.version }}/LingYaoKeys.exe"
           } | ConvertTo-Json
-          Set-Content -Path $versionJsonPath -Value $versionJson -Encoding UTF8
-          Write-Host "Created version.json at: $versionJsonPath"
-
-          # 3. 上传到阿里云 OSS
+          Set-Content -Path "version.json" -Value $versionJson -Encoding UTF8
+          
+          # 上传到阿里云 OSS
           Write-Host "Uploading to OSS..."
-          Write-Host "Source file: $versionJsonPath"
-          Write-Host "Destination: oss://lykeys-remote/version.json"
-          cd $workDir
           aliyun oss cp version.json oss://lykeys-remote/version.json --force
-          if ($LASTEXITCODE -ne 0) {
-              Write-Error "Failed to upload to OSS"
-              exit 1
-          }
-          Write-Host "Upload completed successfully"
         shell: pwsh
 
       - name: Create Release
@@ -79,5 +82,8 @@ jobs:
           name: Release ${{ github.event.inputs.version }}
           draft: false
           prerelease: false
+          files: |
+            bin/Release/publish/LingYaoKeys.exe
+            version.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
