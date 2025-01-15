@@ -49,12 +49,17 @@ bld/
 *.userprefs
 *.dll
 *.pdb
+
+# XML files
 *.xml
-!FodyWeavers.xml  # 排除 Fody 配置文件
+!FodyWeavers.xml
+!FodyWeavers.xsd
+
+# Cache and config files
 *.cache
 *.json
-!AppConfig.json  # 排除应用配置文件
-!package.json    # 排除包配置文件
+!AppConfig.json
+!package.json
 
 # Build and publish files
 publish/
