@@ -70,11 +70,11 @@ jobs:
           # 清理
           dotnet clean -c Release
           
-          # 构建
-          dotnet build -c Release
+          # 构建 Release 版本以触发 Fody
+          dotnet build -c Release -p:Platform=x64
           
           # 发布 (框架依赖模式)
-          dotnet publish -c Release -f net8.0-windows --no-restore
+          dotnet publish -c Release -p:Platform=x64 -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
           
           # 验证发布的文件
           $publishDir = "bin/Release/publish"
