@@ -55,19 +55,24 @@ jobs:
           }
         shell: pwsh
 
-      - name: Build and Publish
+      - name: Restore dependencies
+        run: dotnet restore
+        
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Publish
         run: |
-          dotnet restore
-          dotnet publish -c Release
+          dotnet publish --configuration Release --no-build `
+            --framework net8.0-windows `
+            --output ./publish `
+            /p:DebugType=None `
+            /p:DebugSymbols=false `
+            /p:PublishSingleFile=false
           
           # 验证发布的文件
-          $exePath = "bin/Release/publish/LingYaoKeys.exe"
-          if (Test-Path $exePath) {
-              $fileInfo = Get-Item $exePath
-              Write-Host "Published file size: $($fileInfo.Length) bytes"
-          } else {
-              Write-Error "Published file not found: $exePath"
-              exit 1
+          Get-ChildItem ./publish -Recurse | ForEach-Object {
+              Write-Host "$($_.FullName) - $($_.Length) bytes"
           }
         shell: pwsh
         
@@ -93,7 +98,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            bin/Release/publish/LingYaoKeys.exe
+            ./publish/LingYaoKeys.exe
             version.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
