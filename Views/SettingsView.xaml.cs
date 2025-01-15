@@ -8,7 +8,7 @@ namespace WpfApp.Views
         public SettingsView()
         {
             InitializeComponent();
-            DataContext = new SettingsViewModel(App.Configuration);
+            DataContext = new SettingsViewModel();
         }
     }
 } 
