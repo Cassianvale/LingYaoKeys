@@ -80,7 +80,15 @@ namespace WpfApp.Services
                     versionContent = reader.ReadToEnd();
                 }
 
-                var versionInfo = JsonSerializer.Deserialize<VersionInfo>(versionContent);
+                _logger.Debug($"从 OSS 获取的版本信息: {versionContent}");
+
+                // 使用 JsonSerializerOptions 确保大小写不敏感
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+                
+                var versionInfo = JsonSerializer.Deserialize<VersionInfo>(versionContent, options);
 
                 if (versionInfo == null)
                 {
@@ -88,45 +96,70 @@ namespace WpfApp.Services
                     return null;
                 }
 
+                if (string.IsNullOrEmpty(versionInfo.Version))
+                {
+                    _logger.Warning("获取版本信息失败：版本号为空");
+                    return null;
+                }
+
                 var currentVersion = GetCurrentVersion();
-                
-                // 尝试解析版本号，如果失败则使用简单的字符串比较
-                Version? latestVersion = null;
-                Version? parsedCurrentVersion = null;
-                
+                _logger.Debug($"当前版本: {FormatVersion(currentVersion)}");
+                _logger.Debug($"最新版本: {versionInfo.Version}");
+
+                // 统一版本号格式为 x.x.x.0
+                string NormalizeVersion(string version)
+                {
+                    version = version.TrimStart('v');
+                    var parts = version.Split('.');
+                    if (parts.Length == 3)
+                    {
+                        return $"{version}.0";
+                    }
+                    else if (parts.Length == 2)
+                    {
+                        return $"{version}.0.0";
+                    }
+                    else if (parts.Length == 1)
+                    {
+                        return $"{version}.0.0.0";
+                    }
+                    return version;
+                }
+
                 try
                 {
-                    latestVersion = Version.Parse(versionInfo.Version);
-                    parsedCurrentVersion = Version.Parse(currentVersion.ToString());
+                    string normalizedLatestVersion = NormalizeVersion(versionInfo.Version);
+                    string normalizedCurrentVersion = NormalizeVersion(currentVersion.ToString());
+                    
+                    _logger.Debug($"标准化后的当前版本: {normalizedCurrentVersion}");
+                    _logger.Debug($"标准化后的最新版本: {normalizedLatestVersion}");
+
+                    var latestVersion = Version.Parse(normalizedLatestVersion);
+                    var parsedCurrentVersion = Version.Parse(normalizedCurrentVersion);
+
+                    bool hasNewVersion = latestVersion > parsedCurrentVersion;
+                    _logger.Debug($"版本比较结果: {hasNewVersion}");
+
+                    if (hasNewVersion)
+                    {
+                        _logger.Debug("检测到新版本");
+                        return new UpdateInfo
+                        {
+                            CurrentVersion = FormatVersion(currentVersion),
+                            LatestVersion = versionInfo.Version,
+                            ReleaseNotes = versionInfo.ReleaseNotes?.Replace("\\n", "\n") ?? "",
+                            DownloadUrl = versionInfo.DownloadUrl
+                        };
+                    }
+
+                    _logger.Debug("未检测到新版本");
+                    return null;
                 }
                 catch (Exception ex)
                 {
-                    _logger.Warning($"版本号解析失败，将使用字符串比较: {ex.Message}");
+                    _logger.Error($"版本号解析失败: {ex.Message}");
+                    throw;
                 }
-
-                bool hasNewVersion = false;
-                if (latestVersion != null && parsedCurrentVersion != null)
-                {
-                    hasNewVersion = latestVersion > parsedCurrentVersion;
-                }
-                else
-                {
-                    // 使用字符串比较作为后备方案
-                    hasNewVersion = string.Compare(versionInfo.Version, currentVersion.ToString(), StringComparison.Ordinal) > 0;
-                }
-
-                if (hasNewVersion)
-                {
-                    return new UpdateInfo
-                    {
-                        CurrentVersion = currentVersion.ToString(),
-                        LatestVersion = versionInfo.Version,
-                        ReleaseNotes = versionInfo.ReleaseNotes,
-                        DownloadUrl = versionInfo.DownloadUrl
-                    };
-                }
-
-                return null;
             }
             catch (Exception ex)
             {
@@ -142,7 +175,18 @@ namespace WpfApp.Services
         {
             var assembly = Assembly.GetExecutingAssembly();
             var version = assembly.GetName().Version;
-            return version ?? new Version(1, 0, 0);
+            if (version == null) return new Version(1, 0, 0, 0);
+            
+            // 只保留前三段版本号
+            return new Version(version.Major, version.Minor, version.Build, 0);
+        }
+
+        /// <summary>
+        /// 格式化版本号为 x.x.x 格式
+        /// </summary>
+        private string FormatVersion(Version version)
+        {
+            return $"{version.Major}.{version.Minor}.{version.Build}";
         }
 
         /// <summary>

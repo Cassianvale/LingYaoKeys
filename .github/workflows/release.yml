@@ -102,6 +102,5 @@ jobs:
           prerelease: false
           files: |
             ${{ env.ZIP_FILE }}
-            version.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
