@@ -28,22 +28,37 @@ jobs:
 
       - name: Update Version
         run: |
+          # 获取当前工作目录
+          $workDir = Get-Location
+          Write-Host "Current working directory: $workDir"
+          
           # 1. 更新 csproj 文件版本号
-          $csprojPath = "WpfApp.csproj"
-          $content = Get-Content $csprojPath
-          $content = $content -replace '<Version>.*</Version>', "<Version>${{ github.event.inputs.version }}</Version>"
-          Set-Content -Path $csprojPath -Value $content
+          $csprojPath = Join-Path $workDir "WpfApp.csproj"
+          Write-Host "Updating csproj file: $csprojPath"
+          
+          if (Test-Path $csprojPath) {
+              $content = Get-Content $csprojPath
+              $content = $content -replace '<Version>.*</Version>', "<Version>${{ github.event.inputs.version }}</Version>"
+              Set-Content -Path $csprojPath -Value $content -Encoding UTF8
+              Write-Host "Updated version in csproj file"
+          } else {
+              Write-Error "csproj file not found at: $csprojPath"
+              exit 1
+          }
 
           # 2. 创建 version.json
+          $versionJsonPath = Join-Path $workDir "version.json"
           $versionJson = @{
-            version = "${{ github.event.inputs.version }}"
-            releaseNotes = "Version ${{ github.event.inputs.version }} update"
-            downloadUrl = "https://github.com/Cassianvale/LingYaoKeys/releases/download/v${{ github.event.inputs.version }}/LingYaoKeys-${{ github.event.inputs.version }}.zip"
+              version = "${{ github.event.inputs.version }}"
+              releaseNotes = "Version ${{ github.event.inputs.version }} update"
+              downloadUrl = "https://github.com/Cassianvale/LingYaoKeys/releases/download/v${{ github.event.inputs.version }}/LingYaoKeys-${{ github.event.inputs.version }}.zip"
           } | ConvertTo-Json
-          Set-Content -Path "version.json" -Value $versionJson
+          Set-Content -Path $versionJsonPath -Value $versionJson -Encoding UTF8
+          Write-Host "Created version.json at: $versionJsonPath"
 
           # 3. 上传到阿里云 OSS
-          aliyun oss cp --force "version.json" oss://lykeys-remote/version.json
+          Write-Host "Uploading to OSS..."
+          aliyun oss cp --force "$versionJsonPath" "oss://lykeys-remote/version.json"
         shell: pwsh
 
       - name: Create Release
