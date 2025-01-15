@@ -1,6 +1,7 @@
 using System.Reflection;
 using Newtonsoft.Json;
 using System.Windows.Input;
+using System.Collections.Generic;
 
 namespace WpfApp.Services.Models
 {
@@ -96,7 +97,6 @@ namespace WpfApp.Services.Models
     {
         [JsonIgnore]
         public AppInfo AppInfo { get; set; } = new AppInfo();
-        [JsonIgnore]
         public UIConfig UI { get; set; } = new UIConfig();
         public DebugConfig Debug { get; set; } = new DebugConfig();
         
@@ -115,7 +115,6 @@ namespace WpfApp.Services.Models
         public int? KeyPressInterval { get; set; }
         public double FloatingWindowLeft { get; set; }
         public double FloatingWindowTop { get; set; }
-        public bool IsFloatingWindowEnabled { get; set; }
 
         // 连发功能是否启用
         public bool? IsRapidFireEnabled { get; set; }
@@ -127,6 +126,14 @@ namespace WpfApp.Services.Models
 
         [JsonIgnore]
         public string Author { get; set; } = "慕长秋";
+
+        public AppConfig()
+        {
+            Debug = new DebugConfig();
+            UI = new UIConfig();
+            keys = new List<KeyConfig>();
+            KeyBurst = new List<KeyBurstConfig>();
+        }
     }
 
     public class AppInfo
@@ -152,15 +159,30 @@ namespace WpfApp.Services.Models
 
     public class UIConfig
     {
-        [JsonIgnore]
-        public MainWindowConfig MainWindow { get; set; } = new MainWindowConfig();
+        public WindowConfig MainWindow { get; set; } = new WindowConfig();
+        public FloatingWindowConfig FloatingWindow { get; set; } = new FloatingWindowConfig();
     }
 
-    public class MainWindowConfig
+    public class WindowConfig
     {
         [JsonIgnore]
-        public int DefaultWidth { get; set; } = 510;
+        public double DefaultWidth { get; set; } = 970;
         [JsonIgnore]
-        public int DefaultHeight { get; set; } = 450;
+        public double DefaultHeight { get; set; } = 650;
+        [JsonIgnore]
+        public double MinWidth { get; set; } = 630;
+        [JsonIgnore]
+        public double MinHeight { get; set; } = 530;
+        
+        // 当前窗口尺寸
+        public double Width { get; set; } = 970;
+        public double Height { get; set; } = 650;
+    }
+
+    public class FloatingWindowConfig
+    {
+        public double Left { get; set; }
+        public double Top { get; set; }
+        public bool IsEnabled { get; set; } = true;
     }
 } 

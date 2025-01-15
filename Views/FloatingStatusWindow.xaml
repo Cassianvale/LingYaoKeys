@@ -6,7 +6,7 @@
         xmlns:vm="clr-namespace:WpfApp.ViewModels"
         xmlns:converters="clr-namespace:WpfApp.Converters"
         mc:Ignorable="d"
-        Title="状态" 
+        Title="浮动状态窗口" 
         Height="40" 
         Width="100"
         WindowStyle="None"
@@ -18,7 +18,8 @@
         MouseMove="Window_MouseMove"
         MouseLeftButtonUp="Window_MouseLeftButtonUp"
         MouseRightButtonDown="Window_MouseRightButtonDown"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize"
+        Closing="FloatingStatusWindow_Closing">
     
     <Window.Resources>
         <converters:StatusToColorConverter x:Key="StatusToColorConverter"/>

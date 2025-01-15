@@ -12,6 +12,7 @@ using System.Threading;
 using System.ComponentModel;
 using WpfApp.ViewModels;
 using WpfApp.Services.Models;
+using WpfApp.Services.Config;
 
 // 提供快捷键服务
 namespace WpfApp.Services

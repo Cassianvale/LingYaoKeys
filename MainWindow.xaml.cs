@@ -13,6 +13,7 @@ using System.IO;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
+using WpfApp.Services.Config;
 
 namespace WpfApp
 {
@@ -103,10 +104,6 @@ namespace WpfApp
                 // 先初始化ViewModel
                 _viewModel = new MainViewModel(App.LyKeysDriver, this);
                 
-                // 设置初始窗口大小
-                Width = _viewModel.Config.UI.MainWindow.DefaultWidth;
-                Height = _viewModel.Config.UI.MainWindow.DefaultHeight;
-                
                 // 初始化组件
                 InitializeComponent();
                 
@@ -121,6 +118,9 @@ namespace WpfApp
                 
                 // 注册窗口状态改变事件
                 StateChanged += MainWindow_StateChanged;
+
+                // 注册窗口大小改变事件
+                SizeChanged += MainWindow_SizeChanged;
                 
                 _logger.Debug($"窗口初始化完成 - 尺寸: {Width}x{Height}");
             }
@@ -449,6 +449,17 @@ namespace WpfApp
             try 
             {
                 _logger.Debug("开始清理窗口资源...");
+
+                // 保存窗口大小到配置
+                if (WindowState == WindowState.Normal)
+                {
+                    _logger.Debug($"保存窗口大小: {ActualWidth}x{ActualHeight}");
+                    AppConfigService.UpdateConfig(config =>
+                    {
+                        config.UI.MainWindow.Width = ActualWidth;
+                        config.UI.MainWindow.Height = ActualHeight;
+                    });
+                }
                 
                 // 先停止所有操作
                 if (_viewModel is IDisposable disposableViewModel)
@@ -914,6 +925,12 @@ namespace WpfApp
             {
                 NavToggleButton_Click(FindName("NavToggleButton"), e);
             }
+        }
+
+        private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            // 仅在窗口关闭时保存
+            _logger.Debug($"窗口大小已更改: {ActualWidth}x{ActualHeight}");
         }
     }
 }

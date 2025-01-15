@@ -10,6 +10,7 @@ using System.Diagnostics;
 using WpfApp.Services.Utils;
 using WpfApp.Views;
 using WpfApp.Services.Models;
+using WpfApp.Services.Config;
 
 namespace WpfApp.ViewModels
 {

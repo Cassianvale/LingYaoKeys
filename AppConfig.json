@@ -1,4 +1,15 @@
 {
+  "UI": {
+    "MainWindow": {
+      "Width": 970.0,
+      "Height": 650.0
+    },
+    "FloatingWindow": {
+      "Left": 0,
+      "Top": 0,
+      "IsEnabled": true
+    }
+  },
   "Debug": {
     "IsDebugMode": false,
     "EnableLogging": false,
@@ -52,9 +63,6 @@
   "soundEnabled": true,
   "IsGameMode": true,
   "KeyPressInterval": 5,
-  "FloatingWindowLeft": 1938.0,
-  "FloatingWindowTop": 1054.0,
-  "IsFloatingWindowEnabled": true,
   "IsRapidFire": false,
   "IsRapidFireEnabled": false,
   "TargetWindowClassName": null,

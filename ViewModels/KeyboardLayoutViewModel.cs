@@ -4,6 +4,7 @@ using System.Windows.Input;
 using WpfApp.Services;
 using WpfApp.Services.Models;
 using WpfApp.Services.Utils;
+using WpfApp.Services.Config;
 
 namespace WpfApp.ViewModels
 {

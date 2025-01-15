@@ -6,7 +6,8 @@ using System.Reflection;
 using System.Windows.Input;
 using System.Windows;
 
-namespace WpfApp.Services
+
+namespace WpfApp.Services.Config
 {
     public class ConfigChangedEventArgs : EventArgs
     {
@@ -22,6 +23,7 @@ namespace WpfApp.Services
 
     public class AppConfigService
     {
+        private static readonly SerilogManager _logger = SerilogManager.Instance;
         private static string _configPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             ".lykeys",
@@ -123,13 +125,28 @@ namespace WpfApp.Services
         {
             return config.soundEnabled == null 
                 || config.IsGameMode == null 
-                || config.KeyPressInterval == null;
+                || config.KeyPressInterval == null
+                || config.UI?.MainWindow == null;  // 只检查 MainWindow 是否为 null
         }
 
         private static AppConfig CreateDefaultConfig()
         {
             return new AppConfig
             {
+                UI = new UIConfig
+                {
+                    MainWindow = new WindowConfig
+                    {
+                        Width = 970,
+                        Height = 650
+                    },
+                    FloatingWindow = new FloatingWindowConfig
+                    {
+                        Left = 0,
+                        Top = 0,
+                        IsEnabled = true
+                    }
+                },
                 Debug = new DebugConfig
                 {
                     IsDebugMode = false,    // 调试模式总开关
@@ -142,34 +159,17 @@ namespace WpfApp.Services
                         RollingInterval = "Day",
                         RetainDays = 7
                     },
-                    // 排除一些常见的调试和性能日志
-                    ExcludedTags = new List<string>
-                    {
-                        // // 日志级别标签
-                        // "Debug",      // 调试信息
-                        // "Trace",      // 跟踪信息
-                        // "Info",       // 普通信息
-                        
-                        // // 功能模块标签
-                        // "Sequence",   // 按键序列相关
-                        // "Driver",     // 驱动相关
-                        // "Init",       // 初始化相关
-                        // "UI",         // UI相关
-                        // "Config",     // 配置相关
-                        // "Performance" // 性能相关
-                    },
-                    // 排除一些不太重要的类的日志
+                    ExcludedTags = new List<string>(),
                     ExcludedSources = new List<string>{
                         "*.xaml*",
                         "ControlStyles.xaml"
                     },
-                    // 排除一些常见的方法日志
                     ExcludedMethods = new List<string>{},
-                    // 排除一些常见的消息模式
                     ExcludedPatterns = new List<string>{
                         "窗口初始化完成*"
                     }
                 },
+
                 startKey = LyKeysCode.VK_F9,    
                 startMods = 0,
                 stopKey = LyKeysCode.VK_F10,
@@ -189,9 +189,6 @@ namespace WpfApp.Services
                 soundEnabled = true,
                 IsGameMode = true,
                 KeyPressInterval = 5,
-                FloatingWindowLeft = SystemParameters.WorkArea.Right - 100 - 10,
-                FloatingWindowTop = SystemParameters.WorkArea.Bottom - 40 - 10,
-                IsFloatingWindowEnabled = true,
                 IsRapidFire = false,
                 IsRapidFireEnabled = false,
                 TargetWindowClassName = null,
@@ -207,24 +204,24 @@ namespace WpfApp.Services
             bool configChanged = false;
             
             // 验证并修正窗口尺寸
-            if (_config.UI.MainWindow.DefaultWidth < 510)
+            if (_config.UI.MainWindow.Width < _config.UI.MainWindow.MinWidth)
             {
-                Console.WriteLine($"窗口宽度 {_config.UI.MainWindow.DefaultWidth} 小于最小值，已修正为 510");
-                _config.UI.MainWindow.DefaultWidth = 510;
+                _logger.Debug($"窗口宽度 {_config.UI.MainWindow.Width} 小于最小值，已修正为 {_config.UI.MainWindow.MinWidth}");
+                _config.UI.MainWindow.Width = _config.UI.MainWindow.MinWidth;
                 configChanged = true;
             }
             
-            if (_config.UI.MainWindow.DefaultHeight < 450)
+            if (_config.UI.MainWindow.Height < _config.UI.MainWindow.MinHeight)
             {
-                Console.WriteLine($"窗口高度 {_config.UI.MainWindow.DefaultHeight} 小于最小值，已修正为 450");
-                _config.UI.MainWindow.DefaultHeight = 450;
+                _logger.Debug($"窗口高度 {_config.UI.MainWindow.Height} 小于最小值，已修正为 {_config.UI.MainWindow.MinHeight}");
+                _config.UI.MainWindow.Height = _config.UI.MainWindow.MinHeight;
                 configChanged = true;
             }
 
             // 验证热键模式配置
             if (_config.keyMode != 0 && _config.keyMode != 1)
             {
-                Console.WriteLine($"无效的按键模式 {_config.keyMode}，已修正为顺序模式(0)");
+                _logger.Debug($"无效的按键模式 {_config.keyMode}，已修正为顺序模式(0)");
                 _config.keyMode = 0;
                 configChanged = true;
             }
@@ -232,21 +229,21 @@ namespace WpfApp.Services
             // 验证热键配置
             if (_config.startKey == null)
             {
-                Console.WriteLine("启动热键未设置，已设置为默认值");
+                _logger.Debug("启动热键未设置，已设置为默认值");
                 _config.startKey = LyKeysCode.VK_F9;
                 configChanged = true;
             }
 
             if (_config.stopKey == null && _config.keyMode == 0)
             {
-                Console.WriteLine("停止热键未设置，已设置为默认值");
+                _logger.Debug("停止热键未设置，已设置为默认值");
                 _config.stopKey = LyKeysCode.VK_F10;
                 configChanged = true;
             }
 
             if (configChanged)
             {
-                Console.WriteLine("配置已更新并验证");
+                _logger.Debug("配置已更新并验证");
                 SaveConfig();
             }
         }
