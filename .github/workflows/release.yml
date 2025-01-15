@@ -23,6 +23,11 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v1
+        with:
+          nuget-version: '6.x'
+
       - name: Setup Aliyun CLI
         run: |
           # 下载并安装阿里云 CLI
@@ -55,24 +60,36 @@ jobs:
           }
         shell: pwsh
 
-      - name: Restore dependencies
-        run: dotnet restore
-        
-      - name: Build
-        run: dotnet build --configuration Release --no-restore
-
-      - name: Publish
+      - name: Restore NuGet packages
         run: |
-          dotnet publish --configuration Release --no-build `
-            --framework net8.0-windows `
-            --output ./publish `
-            /p:DebugType=None `
-            /p:DebugSymbols=false `
-            /p:PublishSingleFile=false
+          nuget restore WpfApp.csproj -Source https://api.nuget.org/v3/index.json
+          dotnet restore --verbosity normal
+        
+      - name: Build and Publish
+        run: |
+          # 清理
+          dotnet clean -c Release
+          
+          # 构建
+          dotnet build -c Release
+          
+          # 发布 (框架依赖模式)
+          dotnet publish -c Release -f net8.0-windows --no-restore
           
           # 验证发布的文件
-          Get-ChildItem ./publish -Recurse | ForEach-Object {
-              Write-Host "$($_.FullName) - $($_.Length) bytes"
+          $publishDir = "bin/Release/publish"
+          $exePath = Join-Path $publishDir "LingYaoKeys.exe"
+          
+          if (Test-Path $exePath) {
+              $fileInfo = Get-Item $exePath
+              Write-Host "Published file size: $($fileInfo.Length) bytes"
+              Write-Host "Published file path: $exePath"
+              Get-ChildItem $publishDir -Recurse | ForEach-Object {
+                  Write-Host $_.FullName
+              }
+          } else {
+              Write-Error "Published file not found: $exePath"
+              exit 1
           }
         shell: pwsh
         
@@ -98,7 +115,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            ./publish/LingYaoKeys.exe
+            bin/Release/publish/LingYaoKeys.exe
             version.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
