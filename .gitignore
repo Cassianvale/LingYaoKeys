@@ -17,10 +17,6 @@ output/
 logs/
 packages/
 DvlErrLog.txt
-lykeys.sys
-lykeysdll.dll
-lykeys.cat
-
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -399,3 +395,8 @@ appsettings.Production.json
 
 # 但不忽略模板文件
 !appsettings.template.json
+
+# 驱动文件
+!lykeys.sys
+!lykeysdll.dll
+!lykeys.cat
