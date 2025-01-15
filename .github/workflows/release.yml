@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version'
+        description: '新版本号 (例如: 1.3.0)'
         required: true
         type: string
 
@@ -58,7 +58,14 @@ jobs:
 
           # 3. 上传到阿里云 OSS
           Write-Host "Uploading to OSS..."
-          aliyun oss cp --force "$versionJsonPath" "oss://lykeys-remote/version.json"
+          Write-Host "Source file: $versionJsonPath"
+          Write-Host "Destination: oss://lykeys-remote/version.json"
+          & aliyun.exe oss cp "$versionJsonPath" "oss://lykeys-remote/version.json" --force
+          if ($LASTEXITCODE -ne 0) {
+              Write-Error "Failed to upload to OSS"
+              exit 1
+          }
+          Write-Host "Upload completed successfully"
         shell: pwsh
 
       - name: Create Release
