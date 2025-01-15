@@ -89,14 +89,38 @@ namespace WpfApp.Services
                 }
 
                 var currentVersion = GetCurrentVersion();
-                var latestVersion = new Version(versionInfo.Version);
+                
+                // 尝试解析版本号，如果失败则使用简单的字符串比较
+                Version? latestVersion = null;
+                Version? parsedCurrentVersion = null;
+                
+                try
+                {
+                    latestVersion = Version.Parse(versionInfo.Version);
+                    parsedCurrentVersion = Version.Parse(currentVersion.ToString());
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warning($"版本号解析失败，将使用字符串比较: {ex.Message}");
+                }
 
-                if (latestVersion > currentVersion)
+                bool hasNewVersion = false;
+                if (latestVersion != null && parsedCurrentVersion != null)
+                {
+                    hasNewVersion = latestVersion > parsedCurrentVersion;
+                }
+                else
+                {
+                    // 使用字符串比较作为后备方案
+                    hasNewVersion = string.Compare(versionInfo.Version, currentVersion.ToString(), StringComparison.Ordinal) > 0;
+                }
+
+                if (hasNewVersion)
                 {
                     return new UpdateInfo
                     {
                         CurrentVersion = currentVersion.ToString(),
-                        LatestVersion = latestVersion.ToString(),
+                        LatestVersion = versionInfo.Version,
                         ReleaseNotes = versionInfo.ReleaseNotes,
                         DownloadUrl = versionInfo.DownloadUrl
                     };

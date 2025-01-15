@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '新版本号 (格式: 1.0.0.0)'
+        description: '新版本号'
         required: true
         type: string
       releaseNotes:
@@ -34,22 +34,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-
-      - name: Validate Version Format
-        run: |
-          $version = "${{ github.event.inputs.version }}"
-          try {
-              $parsedVersion = [System.Version]::Parse($version)
-              if ($parsedVersion.ToString() -ne $version) {
-                  throw "Version format mismatch"
-              }
-              Write-Host "Version format is valid: $version"
-          }
-          catch {
-              Write-Error "Invalid version format. Please use format: major.minor.build.revision (e.g. 1.0.0.0)"
-              exit 1
-          }
-        shell: pwsh
 
       - name: Update Version
         run: |
@@ -90,12 +74,12 @@ jobs:
           
           # 创建并上传 version.json
           @{
-              version = [System.Version]::Parse("${{ github.event.inputs.version }}").ToString()
+              version = "${{ github.event.inputs.version }}"
               releaseNotes = "${{ github.event.inputs.releaseNotes }}"
               downloadUrl = "https://lykeys-remote.oss-cn-shanghai.aliyuncs.com/releases/v${{ github.event.inputs.version }}/$env:ZIP_FILE"
               githubUrl = "https://github.com/Cassianvale/LingYaoKeys/releases/download/v${{ github.event.inputs.version }}/$env:ZIP_FILE"
               releaseDate = [DateTime]::UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
-              minVersion = "1.0.0.0"
+              minVersion = "1.0.0"
               forceUpdate = $false
           } | ConvertTo-Json | Set-Content -Path "version.json" -Encoding UTF8
           
