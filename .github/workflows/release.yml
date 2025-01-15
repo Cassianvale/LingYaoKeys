@@ -16,89 +16,55 @@ jobs:
     runs-on: windows-latest
     
     env:
-      Solution_Name: WpfApp.sln
       Project_Path: WpfApp.csproj
       Configuration: Release
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Install .NET Core
+      - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
 
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Setup Aliyun CLI
-        run: |
-          # 下载并安装阿里云 CLI
-          Invoke-WebRequest -Uri "https://aliyuncli.alicdn.com/aliyun-cli-windows-latest-amd64.zip" -OutFile "aliyun-cli.zip"
-          Expand-Archive -Path "aliyun-cli.zip" -DestinationPath "aliyun-cli"
-          $env:PATH += ";$pwd\aliyun-cli"
-          
-          # 配置阿里云凭证
-          aliyun configure set --mode AK --profile default --region cn-shanghai --language zh --access-key-id "${{ secrets.OSS_ACCESS_KEY_ID }}" --access-key-secret "${{ secrets.OSS_ACCESS_KEY_SECRET }}"
-        shell: pwsh
-
       - name: Update Version
         run: |
-          $csprojPath = Join-Path $env:GITHUB_WORKSPACE $env:Project_Path
-          Write-Host "Updating version in: $csprojPath"
-          
-          if (Test-Path $csprojPath) {
-              $content = Get-Content $csprojPath
-              $content = $content -replace '<Version>.*</Version>', "<Version>${{ github.event.inputs.version }}</Version>"
-              Set-Content -Path $csprojPath -Value $content -Encoding UTF8
-              Write-Host "Updated version to: ${{ github.event.inputs.version }}"
-          } else {
-              Write-Error "Project file not found: $csprojPath"
-              exit 1
-          }
+          $content = Get-Content $env:Project_Path
+          $content = $content -replace '<Version>.*</Version>', "<Version>${{ github.event.inputs.version }}</Version>"
+          Set-Content -Path $env:Project_Path -Value $content -Encoding UTF8
         shell: pwsh
 
-      - name: Restore Dependencies
+      - name: Build and Publish
         run: |
-          msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration
-          dotnet restore $env:Project_Path --verbosity normal
-
-      - name: Build
-        run: |
-          msbuild $env:Project_Path /p:Configuration=$env:Configuration /p:Platform=x64 /p:RestorePackages=false
-
-      - name: Publish
-        run: |
-          dotnet publish $env:Project_Path --configuration $env:Configuration --no-restore --output publish
+          dotnet publish $env:Project_Path -c $env:Configuration -p:Platform=x64 --output publish
           
           # 验证发布文件
           $exePath = "publish\LingYaoKeys.exe"
           if (Test-Path $exePath) {
               $fileInfo = Get-Item $exePath
               Write-Host "Published file size: $($fileInfo.Length) bytes"
-              Write-Host "Published file path: $exePath"
-              Get-ChildItem publish -Recurse | ForEach-Object {
-                  Write-Host $_.FullName
-              }
           } else {
               Write-Error "Published file not found: $exePath"
               exit 1
           }
         shell: pwsh
 
-      - name: Create version.json
+      - name: Upload to OSS
         run: |
-          $versionJson = @{
+          # 下载并配置阿里云 CLI
+          Invoke-WebRequest -Uri "https://aliyuncli.alicdn.com/aliyun-cli-windows-latest-amd64.zip" -OutFile "aliyun-cli.zip"
+          Expand-Archive -Path "aliyun-cli.zip" -DestinationPath "aliyun-cli"
+          $env:PATH += ";$pwd\aliyun-cli"
+          aliyun configure set --mode AK --profile default --region cn-shanghai --language zh --access-key-id "${{ secrets.OSS_ACCESS_KEY_ID }}" --access-key-secret "${{ secrets.OSS_ACCESS_KEY_SECRET }}"
+          
+          # 创建并上传 version.json
+          @{
               version = "${{ github.event.inputs.version }}"
               releaseNotes = "Version ${{ github.event.inputs.version }} update"
               downloadUrl = "https://github.com/Cassianvale/LingYaoKeys/releases/download/v${{ github.event.inputs.version }}/LingYaoKeys.exe"
-          } | ConvertTo-Json
-          Set-Content -Path "version.json" -Value $versionJson -Encoding UTF8
+          } | ConvertTo-Json | Set-Content -Path "version.json" -Encoding UTF8
           
-          Write-Host "Uploading to OSS..."
           aliyun oss cp version.json oss://lykeys-remote/version.json --force
         shell: pwsh
 
