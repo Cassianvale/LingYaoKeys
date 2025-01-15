@@ -349,7 +349,6 @@ namespace WpfApp
                 splashWindow.UpdateProgress("正在初始化应用程序...", 0);
 
                 // 设置高DPI模式
-
                 Console.WriteLine("正在应用 Per Monitor V2 DPI 感知...");
 
                 // 确保用户数据目录存在
@@ -417,6 +416,9 @@ namespace WpfApp
                 splashWindow.UpdateProgress("正在启动主界面...", 90);
                 _logger.Debug("创建主窗口...");
                 var mainWindow = new MainWindow();
+                // 显式设置为应用程序的主窗口
+                Current.MainWindow = mainWindow;
+                _logger.Debug($"MainWindow是否设置成功: {Current.MainWindow != null}");
 
                 // 8. 初始化热键服务
                 splashWindow.UpdateProgress("正在初始化热键服务...", 95);
@@ -430,6 +432,7 @@ namespace WpfApp
                 splashWindow.UpdateProgress("启动完成", 100);
                 await Task.Delay(500); // 短暂延迟以显示完成状态
                 mainWindow.Show();
+                _logger.Debug($"主窗口显示后MainWindow是否存在: {Current.MainWindow != null}");
                 splashWindow.Close();
             }
             catch (Exception ex)

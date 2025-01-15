@@ -369,16 +369,62 @@ namespace WpfApp.ViewModels
         {
             try
             {
+                _logger.Debug("开始执行ShowQRCode方法");
+                
                 var mainWindow = System.Windows.Application.Current.MainWindow;
-                if (mainWindow?.DataContext is MainViewModel mainViewModel)
+                _logger.Debug($"MainWindow是否为null: {mainWindow == null}");
+                
+                if (mainWindow == null)
                 {
-                    mainViewModel.NavigateCommand.Execute("QRCode");
+                    _logger.Error("无法获取MainWindow实例");
+                    System.Windows.MessageBox.Show(
+                        "无法打开二维码页面，请尝试重启应用程序。",
+                        "错误",
+                        System.Windows.MessageBoxButton.OK,
+                        System.Windows.MessageBoxImage.Error);
+                    return;
                 }
-                _logger.Debug("显示二维码页面");
+
+                _logger.Debug($"MainWindow类型: {mainWindow.GetType().FullName}");
+                _logger.Debug($"MainWindow.DataContext是否为null: {mainWindow.DataContext == null}");
+                
+                if (mainWindow.DataContext == null)
+                {
+                    _logger.Error("MainWindow.DataContext为null");
+                    System.Windows.MessageBox.Show(
+                        "应用程序状态异常，请尝试重启应用程序。",
+                        "错误",
+                        System.Windows.MessageBoxButton.OK,
+                        System.Windows.MessageBoxImage.Error);
+                    return;
+                }
+
+                _logger.Debug($"MainWindow.DataContext类型: {mainWindow.DataContext.GetType().FullName}");
+
+                if (mainWindow.DataContext is MainViewModel mainViewModel)
+                {
+                    _logger.Debug("成功获取MainViewModel，准备导航到QRCode页面");
+                    mainViewModel.NavigateCommand.Execute("QRCode");
+                    _logger.Debug("已执行导航命令");
+                }
+                else
+                {
+                    _logger.Error($"MainWindow.DataContext类型不正确: {mainWindow.DataContext.GetType().FullName}");
+                    System.Windows.MessageBox.Show(
+                        "应用程序状态异常，请尝试重启应用程序。",
+                        "错误",
+                        System.Windows.MessageBoxButton.OK,
+                        System.Windows.MessageBoxImage.Error);
+                }
             }
             catch (Exception ex)
             {
                 _logger.Error("显示二维码页面失败", ex);
+                System.Windows.MessageBox.Show(
+                    $"显示二维码页面时发生错误：{ex.Message}",
+                    "错误",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Error);
             }
         }
     }

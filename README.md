@@ -95,7 +95,7 @@
 
 ## ☕️ Buy us a coffe
 
-**如果您喜欢这个项目，可以支持一下作者，这将是对我极大的鼓励**  
+**驱动签名为自费购买，如果您喜欢这个项目可以支持一下作者，这将是对我极大的鼓励**  
   
 <img  src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/wechat_qr.png" width="200px"/>  
 
