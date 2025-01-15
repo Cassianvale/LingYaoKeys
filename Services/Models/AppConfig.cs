@@ -45,15 +45,17 @@ namespace WpfApp.Services.Models
     {
         public string CurrentVersion { get; set; } = "";
         public string LatestVersion { get; set; } = "";
-        public string ReleaseNotes { get; set; } = "";
         public string DownloadUrl { get; set; } = "";
     }
 
     public class VersionInfo
     {
-        public string Version { get; set; } = "";
-        public string ReleaseNotes { get; set; } = "";
-        public string DownloadUrl { get; set; } = "";
+        public string Version { get; set; } = "";  // 版本号
+        public string DownloadUrl { get; set; } = "";  // oss下载链接
+        public string? GithubUrl { get; set; }  // github下载链接
+        public string? ReleaseDate { get; set; }  // 发布日期
+        public string? MinVersion { get; set; }  // 最小版本号
+        public bool ForceUpdate { get; set; }  // 是否强制更新
     }
 
     public class KeyConfig

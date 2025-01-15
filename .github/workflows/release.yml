@@ -75,7 +75,6 @@ jobs:
           # 创建并上传 version.json
           @{
               version = "${{ github.event.inputs.version }}"
-              releaseNotes = "${{ github.event.inputs.releaseNotes }}"
               downloadUrl = "https://lykeys-remote.oss-cn-shanghai.aliyuncs.com/releases/v${{ github.event.inputs.version }}/$env:ZIP_FILE"
               githubUrl = "https://github.com/Cassianvale/LingYaoKeys/releases/download/v${{ github.event.inputs.version }}/$env:ZIP_FILE"
               releaseDate = [DateTime]::UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")

@@ -134,9 +134,8 @@ namespace WpfApp.ViewModels
                 if (updateInfo != null)
                 {
                     var message = $"发现新版本：{updateInfo.LatestVersion}\n" +
-                                $"当前版本：{updateInfo.CurrentVersion}\n\n" +
-                                $"更新内容：\n{updateInfo.ReleaseNotes}\n\n" +
-                                $"是否立即更新？";
+                                 $"当前版本：{updateInfo.CurrentVersion}\n\n" +
+                                 $"是否立即更新？";
 
                     var result = MessageBox.Show(
                         message,

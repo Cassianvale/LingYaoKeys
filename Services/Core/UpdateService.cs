@@ -108,7 +108,6 @@ namespace WpfApp.Services
                         {
                             CurrentVersion = FormatVersion(currentVersion),
                             LatestVersion = versionInfo.Version,
-                            ReleaseNotes = versionInfo.ReleaseNotes?.Replace("\\n", "\n") ?? "",
                             DownloadUrl = versionInfo.DownloadUrl
                         };
                     }
