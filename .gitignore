@@ -21,6 +21,7 @@ lykeys.sys
 lykeysdll.dll
 lykeys.cat
 
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
@@ -49,6 +50,7 @@ bld/
 *.dll
 *.pdb
 *.xml
+!FodyWeavers.xml  # 排除 Fody 配置文件
 *.cache
 *.json
 !AppConfig.json  # 排除应用配置文件
