@@ -63,7 +63,8 @@ jobs:
           Write-Host "Uploading to OSS..."
           Write-Host "Source file: $versionJsonPath"
           Write-Host "Destination: oss://lykeys-remote/version.json"
-          & aliyun.exe oss cp "$versionJsonPath" "oss://lykeys-remote/version.json" --force
+          cd $workDir
+          aliyun oss cp version.json oss://lykeys-remote/version.json --force
           if ($LASTEXITCODE -ne 0) {
               Write-Error "Failed to upload to OSS"
               exit 1
