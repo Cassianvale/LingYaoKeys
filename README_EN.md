@@ -15,8 +15,8 @@
     <img alt="license" src="https://img.shields.io/github/license/Cassianvale/LingYaoKeys">
 </div>
 <div>
-    <img alt="stars" src="https://img.shields.io/github/stars/Cassianvale/LingYaoKeys?style=social">
-    <img alt="downloads" src="https://img.shields.io/github/downloads/Cassianvale/LingYaoKeys/total?style=social">
+    <a href="https://github.com/Cassianvale/LingYaoKeys"><img alt="stars" src="https://img.shields.io/github/stars/Cassianvale/LingYaoKeys?style=social"></a>
+    <a href="https://github.com/Cassianvale/LingYaoKeys/releases/latest"><img alt="downloads" src="https://img.shields.io/github/downloads/Cassianvale/LingYaoKeys/total?style=social"></a>
 </div>
 <br>
 
