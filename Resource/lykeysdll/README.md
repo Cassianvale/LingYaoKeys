@@ -116,7 +116,9 @@ KdPrint(("Memory Region: 0x%p, Size: %d\n", address, size));
 ```
 bcdedit /debug on
 bcdedit /dbgsettings local
-bcdedit /set TESTSIGNING ON
+bcdedit /set nointegritychecks on
+bcdedit /set testsigning on
+shutdown  -r -t 0
 ```
 4. 收集到的信息应该包括：
 ```
