@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '新版本号'
+        description: '新版本号 (例如: 1.1.0)'
         required: true
         type: string
       releaseNotes:
@@ -24,7 +24,7 @@ jobs:
       Configuration: Release
       OSS_BUCKET: lykeys-remote
       EXE_FILE: LingYaoKeys.exe
-      ZIP_FILE: LingYaoKeys_${{ github.event.inputs.version }}_windows_x64.zip
+      ZIP_FILE: LingYaoKeys_v${{ github.event.inputs.version }}_windows_x64.zip
 
     steps:
       - name: Checkout
@@ -74,7 +74,7 @@ jobs:
           
           # 创建并上传 version.json
           @{
-              version = "${{ github.event.inputs.version }}"
+              version = "v${{ github.event.inputs.version }}"
               downloadUrl = "https://lykeys-remote.oss-cn-shanghai.aliyuncs.com/releases/v${{ github.event.inputs.version }}/$env:ZIP_FILE"
               githubUrl = "https://github.com/Cassianvale/LingYaoKeys/releases/download/v${{ github.event.inputs.version }}/$env:ZIP_FILE"
               releaseDate = [DateTime]::UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
@@ -90,7 +90,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ github.event.inputs.version }}
-          name: Release ${{ github.event.inputs.version }}
+          name: v${{ github.event.inputs.version }}
           body: |
             ${{ github.event.inputs.releaseNotes }}
             
@@ -102,5 +102,5 @@ jobs:
           files: |
             ${{ env.ZIP_FILE }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
