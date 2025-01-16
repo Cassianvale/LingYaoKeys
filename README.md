@@ -107,8 +107,8 @@
 - **若您遇到商家使用本软件进行收费，产生的任何问题及后果与本软件无关**  
 
 ## 📜 开源许可
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)  
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)  
 
-LingYaoKeys 使用 [GNU Affero General Public License v3.0](LICENSE) 开源许可证  
+LingYaoKeys 使用 [GNU General Public License v3.0](LICENSE) 开源许可证  
 
 Copyright © 2024 by Cassianvale.  
