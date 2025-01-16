@@ -2,12 +2,23 @@ using System;
 using System.IO;
 using System.Windows.Controls;
 using System.Windows;
-using Microsoft.Web.WebView2.Core;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Threading;
 using System.Diagnostics;
-using Microsoft.Web.WebView2.Wpf;
+using System.Windows.Documents;
+using System.Windows.Media.Imaging;
+using Markdig;
+using System.Text.RegularExpressions;
+using System.Windows.Data;
+using System.Windows.Markup;
+using WpfApp.Services;
+using Markdig.Syntax;
+using Markdig.Syntax.Inlines;
+using System.Windows.Navigation;
+using Color = System.Windows.Media.Color;
+using FontFamily = System.Windows.Media.FontFamily;
+using WpfApp.Services.Cache;
 
 namespace WpfApp.Views
 {
@@ -16,27 +27,12 @@ namespace WpfApp.Views
     /// </summary>
     public partial class AboutView : Page, IDisposable
     {
-        // 静态缓存
-        private static CoreWebView2Environment _webViewEnvironment;
-        private static string _cachedHtmlContent;
-        private static readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
-        private static bool _isEnvironmentInitialized;
-        private static Task _initializationTask;
-
         private readonly ViewModels.AboutViewModel _viewModel;
-        private bool _isWebViewInitialized;
         private bool _disposedValue;
-        private WebView2 _webView;
-        private Border _loadingIndicator;
-        private Border _errorMessage;
         private CancellationTokenSource _cts;
         private bool _isLoading;
-
-        static AboutView()
-        {
-            // 在静态构造函数中开始初始化环境
-            _initializationTask = InitializeEnvironmentAsync();
-        }
+        private readonly SerilogManager _logger = SerilogManager.Instance;
+        private readonly MarkdownCacheService _markdownCache = MarkdownCacheService.Instance;
 
         public AboutView()
         {
@@ -45,199 +41,354 @@ namespace WpfApp.Views
             DataContext = _viewModel;
             _cts = new CancellationTokenSource();
 
-            // 获取XAML中定义的控件引用
-            _webView = FindName("WebView") as WebView2;
-            _loadingIndicator = FindName("LoadingIndicator") as Border;
-            _errorMessage = FindName("ErrorMessage") as Border;
-
-            if (_webView != null && _loadingIndicator != null && _errorMessage != null)
-            {
-                // 设置初始可见性
-                _loadingIndicator.Visibility = Visibility.Visible;
-                _webView.Visibility = Visibility.Collapsed;
-                _errorMessage.Visibility = Visibility.Collapsed;
-
                 // 注册页面加载和卸载事件
                 Loaded += AboutView_Loaded;
                 Unloaded += AboutView_Unloaded;
-
-                // 如果环境已经初始化，直接使用
-                if (_isEnvironmentInitialized && _webViewEnvironment != null)
-                {
-                    _initializationTask = InitializeWebViewAsync(_cts.Token);
-                }
-            }
-            else
-            {
-                Debug.WriteLine("无法获取必要的控件引用");
-            }
-        }
-
-        private static async Task InitializeEnvironmentAsync()
-        {
-            try
-            {
-                await _initLock.WaitAsync();
-                if (!_isEnvironmentInitialized)
-                {
-                    _webViewEnvironment = await Services.WebView2Service.Instance.GetEnvironmentAsync();
-                    _isEnvironmentInitialized = true;
-                }
-            }
-            finally
-            {
-                _initLock.Release();
-            }
         }
 
         private void AboutView_Loaded(object sender, RoutedEventArgs e)
         {
-            if (!_isLoading && !_isWebViewInitialized && !_disposedValue)
+            if (!_isLoading && !_disposedValue)
             {
                 _isLoading = true;
-                if (_initializationTask?.IsCompleted == false)
+                _logger.Debug("AboutView页面加载事件触发");
+
+                try
                 {
-                    // 等待环境初始化完成后再初始化WebView
-                    _initializationTask.ContinueWith(async _ =>
+                    // 检查缓存中是否有内容
+                    if (_markdownCache.HasContent())
                     {
-                        await InitializeWebViewAsync(_cts.Token);
-                    }, TaskScheduler.Current);
+                        _logger.Debug("检测到缓存中存在Markdown内容，准备恢复显示");
+                        var (_, document) = _markdownCache.GetMarkdownContent();
+                        
+                        // 确保在UI线程上执行
+                        Dispatcher.InvokeAsync(() =>
+                        {
+                            if (!_disposedValue)
+                            {
+                                DisplayMarkdownDocument(document);
+                                _isLoading = false;
+                                _logger.Debug("从缓存恢复Markdown内容完成");
+                            }
+                        });
                 }
                 else
                 {
-                    InitializeWebViewAsync(_cts.Token).ContinueWith(task =>
+                        _logger.Debug("缓存中无内容，开始加载Markdown内容");
+                        LoadMarkdownContentAsync(_cts.Token).ContinueWith(task =>
                     {
                         _isLoading = false;
                         if (task.IsFaulted)
                         {
+                                _logger.Error("加载Markdown内容失败", task.Exception);
                             Dispatcher.InvokeAsync(() =>
                             {
                                 if (!_disposedValue)
                                 {
-                                    _loadingIndicator.Visibility = Visibility.Collapsed;
-                                    _errorMessage.Visibility = Visibility.Visible;
-                                    _viewModel?.HandleWebViewError(task.Exception?.InnerException ?? task.Exception);
+                                        if (LoadingIndicator != null)
+                                            LoadingIndicator.Visibility = Visibility.Collapsed;
+                                        if (ErrorMessage != null)
+                                            ErrorMessage.Visibility = Visibility.Visible;
+                                        if (ErrorDetails != null)
+                                            ErrorDetails.Text = task.Exception?.InnerException?.Message ?? "加载失败";
                                 }
                             });
                         }
                     }, TaskScheduler.Current);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error("页面加载失败", ex);
+                    _isLoading = false;
+                    if (!_disposedValue)
+                    {
+                        if (LoadingIndicator != null)
+                            LoadingIndicator.Visibility = Visibility.Collapsed;
+                        if (ErrorMessage != null)
+                            ErrorMessage.Visibility = Visibility.Visible;
+                        if (ErrorDetails != null)
+                            ErrorDetails.Text = ex.Message;
+                    }
                 }
             }
         }
 
         private void AboutView_Unloaded(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                // 取消正在进行的初始化
-                _cts.Cancel();
-                
-                // 在页面卸载时主动清理资源
-                if (_webView?.CoreWebView2 != null)
-                {
-                    _webView.CoreWebView2.NavigationCompleted -= CoreWebView2_NavigationCompleted;
-                    _webView.CoreWebView2.Stop();
-                    _webView.Source = null;
-                }
-                Dispose();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"页面卸载时清理资源发生错误: {ex.Message}");
-            }
+            Dispose();
         }
 
-        private async Task InitializeWebViewAsync(CancellationToken cancellationToken)
+        private async Task LoadMarkdownContentAsync(CancellationToken cancellationToken)
         {
-            if (_isWebViewInitialized || _webView == null || _disposedValue) return;
-
             try
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                // 等待环境初始化完成
-                if (!_isEnvironmentInitialized)
+                string markdown;
+                // 从嵌入式资源读取README.md
+                using (var stream = GetType().Assembly.GetManifestResourceStream("WpfApp.README.md"))
                 {
-                    await InitializeEnvironmentAsync();
-                }
-
-                cancellationToken.ThrowIfCancellationRequested();
-                if (_disposedValue) return;
-
-                // 初始化WebView2
-                await _webView.EnsureCoreWebView2Async(_webViewEnvironment);
-
-                cancellationToken.ThrowIfCancellationRequested();
-                if (_disposedValue) return;
-
-                // 配置WebView2
-                var webView = _webView.CoreWebView2;
-                if (webView != null)
-                {
-                    webView.Settings.IsScriptEnabled = true;
-                    webView.Settings.AreDefaultContextMenusEnabled = false;
-                    webView.Settings.IsZoomControlEnabled = false;
-                    webView.Settings.AreBrowserAcceleratorKeysEnabled = false;
-                    webView.Settings.IsStatusBarEnabled = false;
-
-                    // 注册事件处理程序
-                    webView.NavigationCompleted += CoreWebView2_NavigationCompleted;
-
-                    await Dispatcher.InvokeAsync(() =>
+                    if (stream != null)
                     {
-                        if (!_disposedValue)
-                        {
-                            // 显示WebView
-                            _webView.Visibility = Visibility.Visible;
-                            _loadingIndicator.Visibility = Visibility.Collapsed;
-
-                            // 初始化ViewModel并开始加载内容
-                            _viewModel?.Initialize(webView);
-                        }
-                    });
-
-                    _isWebViewInitialized = true;
+                        using var reader = new StreamReader(stream);
+                        markdown = await reader.ReadToEndAsync();
+                        _logger.Debug($"成功读取嵌入资源中的README文件，内容长度: {markdown.Length}");
+                    }
+                    else
+                    {
+                        _logger.Warning("未找到嵌入式README.md资源");
+                        markdown = "# 灵曜按键\n\n欢迎使用灵曜按键！";
+                    }
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                Debug.WriteLine("WebView2初始化被取消");
-                throw;
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                // 缓存Markdown内容
+                _markdownCache.SetMarkdownContent(markdown);
+                var (_, document) = _markdownCache.GetMarkdownContent();
+
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    if (!_disposedValue)
+                    {
+                        DisplayMarkdownDocument(document);
+                    }
+                });
             }
             catch (Exception ex)
             {
-                if (!cancellationToken.IsCancellationRequested)
-                {
-                    Debug.WriteLine($"WebView2初始化失败: {ex.Message}");
-                    _viewModel?.HandleWebViewError(ex);
-                    await Dispatcher.InvokeAsync(() =>
-                    {
-                        if (!_disposedValue && _loadingIndicator != null && _errorMessage != null)
-                        {
-                            _loadingIndicator.Visibility = Visibility.Collapsed;
-                            _errorMessage.Visibility = Visibility.Visible;
-                        }
-                    });
-                }
+                _logger.Error("加载Markdown内容失败", ex);
                 throw;
             }
         }
 
-        private void CoreWebView2_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
+        private void DisplayMarkdownDocument(MarkdownDocument document)
         {
-            if (!_disposedValue)
+            try
             {
-                if (!e.IsSuccess)
+                _logger.Debug("开始显示Markdown文档");
+                // 清理现有内容
+                if (MainDocument != null)
                 {
-                    Dispatcher.InvokeAsync(() =>
+                    MainDocument.Blocks.Clear();
+                    
+                    // 转换Markdown为FlowDocument
+                    ConvertMarkdownToFlowDocument(document, MainDocument);
+
+                    // 显示文档
+                    if (DocumentViewer != null)
+                        DocumentViewer.Visibility = Visibility.Visible;
+                    if (LoadingIndicator != null)
+                        LoadingIndicator.Visibility = Visibility.Collapsed;
+
+                    _logger.Debug("Markdown文档显示完成");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("显示Markdown文档失败", ex);
+                if (ErrorMessage != null)
+                    ErrorMessage.Visibility = Visibility.Visible;
+                if (ErrorDetails != null)
+                    ErrorDetails.Text = ex.Message;
+            }
+        }
+
+        private void ConvertMarkdownToFlowDocument(MarkdownDocument markdownDocument, FlowDocument flowDocument)
+        {
+            try
+            {
+                foreach (var block in markdownDocument)
+                {
+                    switch (block)
                     {
-                        if (!_disposedValue && _webView != null && _errorMessage != null)
-                        {
-                            _webView.Visibility = Visibility.Collapsed;
-                            _errorMessage.Visibility = Visibility.Visible;
-                            _viewModel?.HandleWebViewError(e.WebErrorStatus);
-                        }
-                    });
+                        case HeadingBlock heading:
+                            var headingPara = new Paragraph
+                            {
+                                FontSize = 24 - ((heading.Level - 1) * 2),
+                                FontWeight = FontWeights.Bold,
+                                Margin = new Thickness(0, 10, 0, 5)
+                            };
+                            AddInlineContent(heading.Inline, headingPara.Inlines);
+                            flowDocument.Blocks.Add(headingPara);
+                            break;
+
+                        case ParagraphBlock para:
+                            var paragraph = new Paragraph
+                            {
+                                Margin = new Thickness(0, 5, 0, 5)
+                            };
+                            AddInlineContent(para.Inline, paragraph.Inlines);
+                            flowDocument.Blocks.Add(paragraph);
+                            break;
+
+                        case ListBlock list:
+                            var wpfList = new List
+                            {
+                                Margin = new Thickness(0, 5, 0, 5),
+                                MarkerStyle = list.IsOrdered ? TextMarkerStyle.Decimal : TextMarkerStyle.Disc
+                            };
+
+                            foreach (var item in list)
+                            {
+                                if (item is ListItemBlock listItem)
+                                {
+                                    var listItemPara = new Paragraph();
+                                    foreach (var itemBlock in listItem)
+                                    {
+                                        if (itemBlock is ParagraphBlock itemPara)
+                                        {
+                                            AddInlineContent(itemPara.Inline, listItemPara.Inlines);
+                                        }
+                                    }
+                                    wpfList.ListItems.Add(new ListItem(listItemPara));
+                                }
+                            }
+                            flowDocument.Blocks.Add(wpfList);
+                            break;
+
+                        case FencedCodeBlock codeBlock:
+                            var codePara = new Paragraph
+                            {
+                                Background = new SolidColorBrush(Color.FromRgb(240, 240, 240)),
+                                FontFamily = new FontFamily("Consolas"),
+                                Padding = new Thickness(10),
+                                Margin = new Thickness(0, 5, 0, 5)
+                            };
+                            codePara.Inlines.Add(new Run(codeBlock.Lines.ToString()));
+                            flowDocument.Blocks.Add(codePara);
+                            break;
+
+                        case QuoteBlock quote:
+                            var quotePara = new Paragraph
+                            {
+                                Margin = new Thickness(20, 5, 0, 5),
+                                BorderThickness = new Thickness(4, 0, 0, 0),
+                                BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200)),
+                                Padding = new Thickness(10, 0, 0, 0)
+                            };
+                            foreach (var quoteBlock in quote)
+                            {
+                                if (quoteBlock is ParagraphBlock quoteParagraph)
+                                {
+                                    AddInlineContent(quoteParagraph.Inline, quotePara.Inlines);
+                                }
+                            }
+                            flowDocument.Blocks.Add(quotePara);
+                            break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("转换Markdown到FlowDocument失败", ex);
+                var errorParagraph = new Paragraph(new Run($"内容转换失败: {ex.Message}"))
+                {
+                    Foreground = new SolidColorBrush(Colors.Red)
+                };
+                flowDocument.Blocks.Add(errorParagraph);
+            }
+        }
+
+        private void AddInlineContent(ContainerInline container, InlineCollection inlines)
+        {
+            foreach (var inline in container)
+            {
+                try
+                {
+                    switch (inline)
+                    {
+                        case LiteralInline literal:
+                            inlines.Add(new Run(literal.Content.ToString()));
+                            break;
+
+                        case EmphasisInline emphasis:
+                            var span = new Span();
+                            if (emphasis.DelimiterCount == 2)
+                            {
+                                span.FontWeight = FontWeights.Bold;
+                            }
+                            else
+                            {
+                                span.FontStyle = FontStyles.Italic;
+                            }
+                            AddInlineContent(emphasis, span.Inlines);
+                            inlines.Add(span);
+                            break;
+
+                        case LinkInline link:
+                            try
+                            {
+                                string linkUrl = link.Url;
+                                // 检查URL是否是相对路径
+                                if (!linkUrl.StartsWith("http://") && !linkUrl.StartsWith("https://"))
+                                {
+                                    linkUrl = $"https://{linkUrl}";
+                                }
+
+                                if (Uri.TryCreate(linkUrl, UriKind.Absolute, out Uri? uri))
+                                {
+                                    var hyperlink = new Hyperlink(new Run(link.Title ?? link.Url))
+                                    {
+                                        NavigateUri = uri,
+                                        ToolTip = linkUrl
+                                    };
+                                    hyperlink.RequestNavigate += (s, e) =>
+                                    {
+                                        try
+                                        {
+                                            Process.Start(new ProcessStartInfo
+                                            {
+                                                FileName = e.Uri.AbsoluteUri,
+                                                UseShellExecute = true
+                                            });
+                                            e.Handled = true;
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            _logger.Error($"打开链接失败: {ex.Message}", ex);
+                                        }
+                                    };
+                                    inlines.Add(hyperlink);
+                                }
+                                else
+                                {
+                                    // 如果URL无效，就显示为普通文本
+                                    inlines.Add(new Run(link.Title ?? link.Url));
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.Error($"处理链接失败: {ex.Message}", ex);
+                                inlines.Add(new Run(link.Title ?? link.Url));
+                            }
+                            break;
+
+                        case CodeInline code:
+                            var codeSpan = new Span
+                            {
+                                FontFamily = new FontFamily("Consolas"),
+                                Background = new SolidColorBrush(Color.FromRgb(240, 240, 240))
+                            };
+                            codeSpan.Inlines.Add(new Run(code.Content));
+                            inlines.Add(codeSpan);
+                            break;
+
+                        default:
+                            if (inline is ContainerInline container2)
+                            {
+                                AddInlineContent(container2, inlines);
+                            }
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"处理内联内容失败: {ex.Message}", ex);
+                    // 如果处理某个内联元素失败，添加原始文本
+                    if (inline is LiteralInline literal)
+                    {
+                        inlines.Add(new Run(literal.Content.ToString()));
+                    }
                 }
             }
         }
@@ -250,39 +401,22 @@ namespace WpfApp.Views
                 {
                     try
                     {
-                        // 取消所有正在进行的操作
-                        _cts.Cancel();
-                        _cts.Dispose();
-
-                        // 清理 WebView2 资源
-                        if (_webView != null)
-                        {
-                            if (_webView.CoreWebView2 != null)
-                            {
-                                _webView.CoreWebView2.NavigationCompleted -= CoreWebView2_NavigationCompleted;
-                                _webView.CoreWebView2.Stop();
-                                _webView.Source = null;
-                            }
-                            _webView = null;
-                        }
-
-                        // 释放ViewModel资源
-                        if (_viewModel is IDisposable disposableViewModel)
-                        {
-                            disposableViewModel.Dispose();
-                        }
+                        _cts?.Cancel();
+                        _cts?.Dispose();
                         
-                        // 取消事件订阅
+                        // 清理事件订阅
                         Loaded -= AboutView_Loaded;
                         Unloaded -= AboutView_Unloaded;
 
-                        // 清理控件引用
-                        _loadingIndicator = null;
-                        _errorMessage = null;
+                        // 清理文档内容
+                        if (MainDocument != null)
+                        {
+                            MainDocument.Blocks.Clear();
+                        }
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"清理 WebView2 资源时发生错误: {ex.Message}");
+                        _logger.Error("资源清理失败", ex);
                     }
                 }
                 _disposedValue = true;

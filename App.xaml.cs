@@ -95,18 +95,6 @@ namespace WpfApp
             {
                 _logger.Debug($"开始清理服务... 清理级别: {level}");
 
-                // 清理 WebView2 环境
-                try
-                {
-                    var webView2Service = Services.WebView2Service.Instance;
-                    webView2Service.Dispose();
-                    _logger.Debug("WebView2 服务已清理");
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error("清理 WebView2 服务失败", ex);
-                }
-
                 // 确保所有服务都被释放
                 if (LyKeysDriver != null)
                 {

@@ -248,6 +248,14 @@ namespace WpfApp.ViewModels
             {
                 _logger.Debug($"尝试获取或创建页面: {parameter}");
 
+                // 对于 About 页面，每次都创建新实例以确保内容正确显示
+                if (parameter == "About")
+                {
+                    _logger.Debug("创建新的About页面实例");
+                    var aboutPage = new AboutView { DataContext = _aboutViewModel };
+                    return aboutPage;
+                }
+
                 if (_pageCache.TryGetValue(parameter, out var page))
                 {
                     _logger.Debug($"从缓存中获取页面: {parameter}");
@@ -263,7 +271,6 @@ namespace WpfApp.ViewModels
                     {
                         "FrontKeys" => new KeyMappingView { DataContext = _keyMappingViewModel },
                         "Feedback" => new FeedbackView { DataContext = _feedbackViewModel },
-                        "About" => new AboutView { DataContext = _aboutViewModel },
                         "QRCode" => new QRCodeView(),
                         "Settings" => new SettingsView { DataContext = new SettingsViewModel() },
                         _ => null
