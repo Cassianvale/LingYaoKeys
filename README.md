@@ -93,7 +93,7 @@
 
 - `dotnet publish -c Release`
 
-## ☕️ Buy us a coffe
+## ☕️ Buy me a coffee
 
 **驱动签名为自费购买，如果您喜欢这个项目可以支持一下作者，这将是对我极大的鼓励**  
   
