@@ -145,6 +145,7 @@ namespace WpfApp.Services
         public LyKeys(string driverPath)
         {
             _driverPath = driverPath ?? throw new ArgumentNullException(nameof(driverPath));
+            _logger.Debug($"LyKeys实例化，驱动路径: {driverPath}");
         }
 
         public async Task<bool> Initialize(CancellationToken cancellationToken = default)

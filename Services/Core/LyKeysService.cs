@@ -352,7 +352,8 @@ namespace WpfApp.Services
                 // 初始化驱动
                 _lyKeys = new LyKeys(driverPath);
                 if (!await _lyKeys.Initialize())
-                {
+                {   
+                    _logger.Error("注意：初始化已经失败，返回False");
                     return false; // 初始化失败返回false
                 }
                 

@@ -378,7 +378,7 @@ namespace WpfApp
                 // 4. 异步提取驱动文件
                 splashWindow.UpdateProgress("正在准备驱动文件...", 40);
                 string driverPath = Path.Combine(_userDataPath, "Resource", "lykeysdll");
-                await PrepareDriverFilesAsync(driverPath);
+                string tempDriverPath = await PrepareDriverFilesAsync(driverPath);
 
                 // 5. 初始化驱动服务
                 splashWindow.UpdateProgress("正在初始化驱动服务...", 60);
@@ -389,8 +389,7 @@ namespace WpfApp
 
                     // 初始化 LyKeys 服务
                     LyKeysDriver = new LyKeysService();
-                    string driverFile = Path.Combine(driverPath, "lykeys.sys");
-                    if (!await LyKeysDriver.InitializeAsync(driverFile))
+                    if (!await LyKeysDriver.InitializeAsync(tempDriverPath))
                     {
                         _logger.Error("驱动加载失败，无法加载LyKeys驱动文件");
                         MessageBox.Show("驱动加载失败，请检查是否以管理员身份运行程序", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -464,52 +463,61 @@ namespace WpfApp
             };
         }
 
-        private async Task PrepareDriverFilesAsync(string driverPath)
+        private async Task<string> PrepareDriverFilesAsync(string driverPath)
         {
             try
             {
-                // 确保驱动目录存在
-                Directory.CreateDirectory(driverPath);
+                // 创建临时目录用于存放驱动文件
+                string tempPath = Path.Combine(Path.GetTempPath(), "LyKeys", Guid.NewGuid().ToString());
+                Directory.CreateDirectory(tempPath);
 
-                string driverFile = Path.Combine(driverPath, "lykeys.sys");
-                string dllFile = Path.Combine(driverPath, "lykeysdll.dll");
-                string catFile = Path.Combine(driverPath, "lykeys.cat");
+                string driverFile = Path.Combine(tempPath, "lykeys.sys");
+                string dllFile = Path.Combine(tempPath, "lykeysdll.dll");
+                string catFile = Path.Combine(tempPath, "lykeys.cat");
 
-                // 检查驱动文件是否存在且完整
-                bool needExtractFiles = !File.Exists(driverFile) || 
-                                      !File.Exists(dllFile) || 
-                                      !File.Exists(catFile);
+                _logger.Debug($"临时驱动文件目录: {tempPath}");
 
-                if (needExtractFiles)
+                // 从嵌入式资源提取驱动文件
+                await Task.Run(() =>
                 {
-                    _logger.Debug("驱动文件不存在或不完整，开始提取...");
-                    await Task.Run(() =>
-                    {
-                        // 从嵌入式资源提取驱动文件
-                        ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeys.sys", driverFile);
-                        ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeysdll.dll", dllFile);
-                        ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeys.cat", catFile);
-                    });
-                    _logger.Debug($"驱动文件已提取到用户数据目录: {driverPath}");
-                }
-                else
-                {
-                    _logger.Debug("驱动文件已存在且完整，跳过提取步骤");
-                }
+                    ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeys.sys", driverFile);
+                    ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeysdll.dll", dllFile);
+                    ExtractEmbeddedResource("WpfApp.Resource.lykeysdll.lykeys.cat", catFile);
+                });
 
                 if (!File.Exists(driverFile) || !File.Exists(dllFile))
                 {
-                    throw new FileNotFoundException("驱动文件丢失");
+                    throw new FileNotFoundException("驱动文件提取失败");
                 }
 
-                _logger.Debug($"驱动文件目录: {driverPath}");
+                _logger.Debug($"驱动文件已提取到临时目录: {tempPath}");
                 _logger.Debug($"驱动文件: {driverFile}");
                 _logger.Debug($"DLL文件: {dllFile}");
                 _logger.Debug($"CAT文件: {catFile}");
+
+                // 注册应用程序退出时删除临时文件
+                Current.Exit += (s, e) =>
+                {
+                    try
+                    {
+                        if (Directory.Exists(tempPath))
+                        {
+                            Directory.Delete(tempPath, true);
+                            _logger.Debug($"临时驱动文件目录已清理: {tempPath}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error($"清理临时文件失败: {ex.Message}", ex);
+                    }
+                };
+
+                // 返回驱动文件路径
+                return driverFile;
             }
             catch (Exception ex)
             {
-                _logger.Error($"提取驱动文件失败: {ex.Message}", ex);
+                _logger.Error($"准备驱动文件失败: {ex.Message}", ex);
                 throw;
             }
         }
@@ -546,11 +554,11 @@ namespace WpfApp
                         throw new FileNotFoundException($"找不到嵌入式资源: {resourceName}");
                     }
 
-                    // 使用 FileShare.Delete 允许其他进程删除文件
+                    // 使用FileShare.Delete允许其他进程删除文件
                     using (FileStream fileStream = new FileStream(
-                        outputPath, 
-                        FileMode.Create, 
-                        FileAccess.Write, 
+                        outputPath,
+                        FileMode.Create,
+                        FileAccess.Write,
                         FileShare.Delete))
                     {
                         stream.CopyTo(fileStream);

@@ -89,6 +89,7 @@
     <!-- 驱动文件配置为嵌入式资源 -->
     <EmbeddedResource Include="Resource\lykeysdll\**">
       <LogicalName>WpfApp.Resource.lykeysdll.%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
 
     <!-- 音频文件配置为嵌入式资源 -->
