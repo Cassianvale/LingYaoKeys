@@ -93,31 +93,31 @@
 
 ### 发布打包
 
-- `dotnet publish -c Release`
+- `dotnet publish -c Release`  
 
 ## 🔧 驱动使用说明
 
 ### 驱动文件说明
-- `lykeysdll.dll`: 核心驱动动态链接库(*必须)
-- `lykeys.sys`: 内核级驱动文件(*必须)
-- `lykeys.cat`: 驱动签名文件
-- `Resource\lykeysdll\README.md`: 驱动接口使用说明
-- `Resource\lykeysdll\csharp_example`: C#示例代码
-- `Resource\lykeysdll\python_example`: Python示例代码
+- `lykeysdll.dll`: 核心驱动动态链接库(*必须)  
+- `lykeys.sys`: 内核级驱动文件(*必须)  
+- `lykeys.cat`: 驱动签名文件  
+- `Resource\lykeysdll\README.md`: 驱动接口使用说明  
+- `Resource\lykeysdll\csharp_example`: C#示例代码  
+- `Resource\lykeysdll\python_example`: Python示例代码  
 
 ### ⚠️ 注意事项
-1. **驱动签名**
-   - 驱动已通过正版签名认证
-   - 请勿修改驱动文件，否则会导致签名失效
+1. **驱动签名**  
+   - 驱动已通过正版签名认证  
+   - 请勿修改驱动文件，否则会导致签名失效  
 
-2. **系统要求**
-   - 支持 Windows 7/10/11 (x86/x64)
-   - 需要管理员权限运行
+2. **系统要求**  
+   - 支持 Windows 7/10/11 (x86/x64)  
+   - 需要管理员权限运行  
 
-3. **使用限制**
-   - 仅供个人学习研究使用
-   - 禁止用于商业用途
-   - 禁止修改或反编译驱动文件
+3. **使用限制**  
+   - 仅供个人学习研究使用  
+   - 严禁用于商业用途！！！  
+   - 禁止修改或反编译驱动文件  
 
 ## ☕️ Buy me a coffee
 
