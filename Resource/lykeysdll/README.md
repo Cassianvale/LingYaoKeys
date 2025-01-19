@@ -63,6 +63,19 @@
 - 多线程环境下无需额外同步措施
 - 建议在主线程中进行驱动加载和卸载操作
 
+## Python 使用示例
+- 使用`pip`或`conda`安装win32gui库  
+    - `pip install pywin32`  
+- 运行示例代码：  
+    - `python gui.py`
+    - **`gui.py` 分为两种模式运行：**  
+        - 正常模式：`python gui.py`  
+        - Debug模式：`python gui.py --debug`  
+
+- ⚠ python下构建高频按键需要特别注意 
+  - Python `time.sleep()` 函数的精度问题:   
+    windows下 `time.sleep(0.001)` 的最小精度约为15ms，需要使用 `time.perf_counter()` 作为高精度计时器，才可以精确到纳秒，否则将会大幅降低按键运行速度  
+
 ## 调试系统错误代码
 
 1. 错误代码查询：[Error Codes](https://docs.microsoft.com/zh-cn/windows/win32/debug/system-error-codes)  
