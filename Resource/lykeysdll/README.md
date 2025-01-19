@@ -41,9 +41,9 @@
 ### DEVICE_STATUS 枚举值
 | 定义 | 含义 |
 |----|------|
-| DEVICE_STATUS_UNKNOWN (0) | 设备状态未知 |
-| DEVICE_STATUS_READY (1) | 设备就绪 |
-| DEVICE_STATUS_ERROR (2) | 设备错误 |
+| DEVICE_STATUS_UNKNOWN (0) | 设备状态未知，设备刚初始化的状态 |
+| DEVICE_STATUS_READY (1) | 设备就绪，设备初始化完成的状态 |
+| DEVICE_STATUS_ERROR (2) | 设备错误，设备初始化错误的状态 |
 
 ## 使用注意事项
 1. 使用前必须先调用 `LoadNTDriver` 加载驱动
@@ -64,30 +64,36 @@
 - 建议在主线程中进行驱动加载和卸载操作
 
 ## Python 使用示例
-- 使用`pip`或`conda`安装win32gui库  
+
+- 以管理员方式打开`Python调用示例库`  
+    - `cd Resource\lykeysdll\python_example`  
+
+- 创建`python3.10`环境，使用`pip`或`conda`安装win32gui库  
     - `pip install pywin32`  
-- 运行示例代码：  
-    - `python gui.py`
+    
+- 运行示例代码
     - **`gui.py` 分为两种模式运行：**  
         - 正常模式：`python gui.py`  
         - Debug模式：`python gui.py --debug`  
 
 - ⚠ python下构建高频按键需要特别注意 
-  - Python `time.sleep()` 函数的精度问题:   
-    windows下 `time.sleep(0.001)` 的最小精度约为15ms，需要使用 `time.perf_counter()` 作为高精度计时器，才可以精确到纳秒，否则将会大幅降低按键运行速度  
+    - Python中 `time.sleep()` 函数的精度问题:   
+        - windows下 `time.sleep(0.001)` 的最小精度约为15ms，需要使用 `time.perf_counter()` 作为高精度计时器，才可以精确到纳秒，使用 `time.sleep()` 函数会大幅降低按键运行速度  
 
-## 调试系统错误代码
+## 相关资料
 
+1. Windows虚拟键码：[Virtual-Key Codes键码表](https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes)
 1. 错误代码查询：[Error Codes](https://docs.microsoft.com/zh-cn/windows/win32/debug/system-error-codes)  
 2. WDK下载: [WDK](https://learn.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk)  
-3. (已签名驱动不需要此步骤)驱动测试请关闭Bios中的`安全启动`，并且cmd输入以下指令开启`测试模式` & `禁用强制驱动签名` 模式 & `重启`  
-```
+3. (已签名驱动不需要此步骤)驱动测试请关闭Bios中的`安全启动`，并打开`cmd`输入以下指令
+```shell
+# `禁用强制驱动签名` & `测试模式` & `重启`  
 bcdedit /set nointegritychecks on
 bcdedit /set testsigning on
 shutdown  -r -t 0
 ```
 
-## 调试&蓝屏分析工具
+## 调试&蓝屏分析工具  
 
 ### 1. WinDbg  
 1. 配置系统生成完整转储：
@@ -104,13 +110,15 @@ shutdown  -r -t 0
 3. 安装 WinDbg (Windows Debugger)
 ```
 3. 使用 WinDbg 分析：
+
+使用powershell管理员方式执行以下命令安装 WinDbg
 ```
-// 使用powershell管理员方式执行以下命令安装 WinDbg
 winget install Microsoft.WinDbg
+```
 1. 打开 WinDbg
 2. File -> Open Crash Dump
 3. 选择 C:\Windows\MEMORY.DMP 或 Minidump 文件
-```
+
 4. 在命令窗口输入：
 ```
    !analyze -v    # 详细分析崩溃原因
