@@ -12,6 +12,7 @@ using System.Windows;
 using WpfApp.Views;
 using System.Runtime.InteropServices;
 using System.Timers;
+using System;
 
 
 // 按键映射核心业务逻辑层
@@ -58,6 +59,9 @@ namespace WpfApp.ViewModels
         private readonly System.Timers.Timer _activeWindowCheckTimer;
         private const int ACTIVE_WINDOW_CHECK_INTERVAL = 50; // 50ms检查一次活动窗口
 
+        // 添加窗口句柄变化事件
+        public event Action<IntPtr>? WindowHandleChanged;
+
         /// <summary>
         /// 获取当前是否处于初始化状态
         /// </summary>
@@ -74,19 +78,34 @@ namespace WpfApp.ViewModels
         public IntPtr SelectedWindowHandle
         {
             get => _selectedWindowHandle;
-            private set => SetProperty(ref _selectedWindowHandle, value);
+            private set
+            {
+                if (_selectedWindowHandle != value)
+                {
+                    _selectedWindowHandle = value;
+                    OnPropertyChanged();
+                    
+                    // 触发窗口句柄变化事件
+                    WindowHandleChanged?.Invoke(value);
+                    
+                    // 同步到热键服务
+                    _hotkeyService.TargetWindowHandle = value;
+                    
+                    _logger.Debug($"窗口句柄已更新: {value}, 已同步到热键服务");
+                }
+            }
+        }
+
+        public string SelectedWindowProcessName
+        {
+            get => _selectedWindowProcessName;
+            set => SetProperty(ref _selectedWindowProcessName, value);
         }
 
         private string SelectedWindowClassName
         {
             get => _selectedWindowClassName;
             set => SetProperty(ref _selectedWindowClassName, value);
-        }
-
-        private string SelectedWindowProcessName
-        {
-            get => _selectedWindowProcessName;
-            set => SetProperty(ref _selectedWindowProcessName, value);
         }
 
         // 更新选中的窗口句柄信息
@@ -585,6 +604,13 @@ namespace WpfApp.ViewModels
             _activeWindowCheckTimer = new System.Timers.Timer(ACTIVE_WINDOW_CHECK_INTERVAL);
             _activeWindowCheckTimer.Elapsed += ActiveWindowCheckTimer_Elapsed;
             _activeWindowCheckTimer.Start();
+
+            // 添加窗口句柄变化事件订阅
+            WindowHandleChanged += (handle) =>
+            {
+                _hotkeyService.TargetWindowHandle = handle;
+                _logger.Debug($"窗口句柄变化事件处理完成: {handle}");
+            };
 
             // 最后标记初始化完成
             _isInitializing = false;
@@ -1518,7 +1544,6 @@ namespace WpfApp.ViewModels
                     {
                         if (windows.Any())
                         {
-                            // 由于FindWindowsByProcessName已经按标题过滤，这里直接取第一个
                             var targetWindow = windows.First();
                             bool needsUpdate = false;
 
@@ -1527,6 +1552,7 @@ namespace WpfApp.ViewModels
                             {
                                 SelectedWindowHandle = targetWindow.Handle;
                                 needsUpdate = true;
+                                _logger.Debug($"检测到窗口句柄变化: {targetWindow.Handle}");
                             }
 
                             // 检查类名是否变化
@@ -1572,7 +1598,7 @@ namespace WpfApp.ViewModels
         {
             if (_windowCheckTimer == null)
             {
-                _windowCheckTimer = new System.Timers.Timer(30000); // 30秒
+                _windowCheckTimer = new System.Timers.Timer(5000); // 5秒
                 _windowCheckTimer.Elapsed += WindowCheckTimer_Elapsed;
             }
             _windowCheckTimer.Start();

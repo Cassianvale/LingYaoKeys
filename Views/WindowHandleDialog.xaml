@@ -22,7 +22,7 @@
 
         <!-- 提示信息 -->
         <TextBlock Grid.Row="1" Margin="10,0,10,10" TextWrapping="Wrap" Foreground="#666666">
-            <Run Text="提示：选择窗口后，系统会每30秒自动枚举一次窗口类名，以确保配置信息保持最新。"/>
+            <Run Text="提示: 选择窗口后，系统会每5秒自动枚举一次窗口类名，以确保配置信息保持最新!"/>
         </TextBlock>
 
         <!-- 窗口列表 -->

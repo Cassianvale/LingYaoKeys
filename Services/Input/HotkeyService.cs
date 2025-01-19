@@ -39,6 +39,14 @@ namespace WpfApp.Services
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr GetModuleHandle(string lpModuleName);
 
+        // 获取前台窗口句柄
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        // 检查窗口是否有效
+        [DllImport("user32.dll")]
+        private static extern bool IsWindow(IntPtr hWnd);
+
         // Windows消息常量
         private const int WH_KEYBOARD_LL = 13;
         private const int WH_MOUSE_LL = 14;
@@ -89,6 +97,16 @@ namespace WpfApp.Services
         private IntPtr _targetWindowHandle;
         private bool _isTargetWindowActive;
 
+        // 窗口状态枚举
+        private enum WindowState
+        {
+            NoTargetWindow,      // 未选择目标窗口
+            ProcessNotRunning,   // 进程未运行
+            WindowInvalid,       // 窗口无效
+            WindowInactive,      // 窗口未激活
+            WindowActive         // 窗口激活
+        }
+
         // 构造函数
         public HotkeyService(Window mainWindow, LyKeysService lyKeysService)
         {
@@ -114,6 +132,7 @@ namespace WpfApp.Services
             _mainWindow.Closed += (s, e) => Dispose();
         }
 
+        // 加载初始状态
         private void LoadInitialState()
         {
             var config = AppConfigService.Config;
@@ -139,6 +158,7 @@ namespace WpfApp.Services
             _lyKeysService.IsHoldMode = config.keyMode != 0;
         }
 
+        // 释放资源
         public void Dispose()
         {
             lock (_hookLock)
@@ -164,7 +184,7 @@ namespace WpfApp.Services
             }
         }
 
-        // 热键注册方法
+        // 注册开始热键
         public bool RegisterStartHotkey(LyKeysCode keyCode, ModifierKeys modifiers)
         {
             try
@@ -181,6 +201,7 @@ namespace WpfApp.Services
             }
         }
 
+        // 注册停止热键
         public bool RegisterStopHotkey(LyKeysCode keyCode, ModifierKeys modifiers)
         {
             try
@@ -197,6 +218,7 @@ namespace WpfApp.Services
             }
         }
 
+        // 保存热键配置
         private void SaveHotkeyConfig(bool isStart, LyKeysCode keyCode, ModifierKeys modifiers)
         {
             AppConfigService.UpdateConfig(config =>
@@ -214,20 +236,16 @@ namespace WpfApp.Services
             });
         }
 
-        // 序列控制
+        // 启动序列控制
         public void StartSequence()
         {
             try
             {
                 _logger.Debug("开始启动按键序列");
                 
-                // 检查目标窗口是否激活
-                IntPtr activeWindow = GetForegroundWindow();
-                bool isTargetWindowActive = _targetWindowHandle == IntPtr.Zero || activeWindow == _targetWindowHandle;
-                
-                if (!isTargetWindowActive)
+                // 使用新的窗口状态检查
+                if (!CanTriggerHotkey())
                 {
-                    _logger.Warning("目标窗口未激活，无法启动序列");
                     return;
                 }
 
@@ -254,7 +272,8 @@ namespace WpfApp.Services
                 }
 
                 _logger.Debug($"序列已启动 - 模式: {(_lyKeysService.IsHoldMode ? "按压" : "顺序")}, " +
-                             $"按键数: {_keyList.Count}, 间隔: {_lyKeysService.KeyInterval}ms");
+                             $"按键数: {_keyList.Count}, 间隔: {_lyKeysService.KeyInterval}ms, " +
+                             $"目标窗口句柄: {_targetWindowHandle}");
                 
                 SequenceModeStarted?.Invoke();
             }
@@ -267,6 +286,7 @@ namespace WpfApp.Services
             }
         }
 
+        // 停止序列控制
         public void StopSequence()
         {
             if (!_isSequenceRunning) return;
@@ -282,35 +302,36 @@ namespace WpfApp.Services
             SequenceModeStopped?.Invoke();
         }
 
-        // 钩子回调处理
+        // 键盘钩子回调处理
         private IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
             if (nCode >= 0 && !_isInputFocused)
             {
                 try
                 {
-                    // 获取当前活动窗口
-                    IntPtr activeWindow = GetForegroundWindow();
-                    bool isTargetWindowActive = _targetWindowHandle == IntPtr.Zero || activeWindow == _targetWindowHandle;
-
                     var hookStruct = (KBDLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT))!;
                     bool isStartKey = hookStruct.vkCode == _startVirtualKey;
                     bool isStopKey = hookStruct.vkCode == _stopVirtualKey;
 
-                    // 如果是热键且窗口未激活，直接返回
-                    if ((isStartKey || isStopKey) && !isTargetWindowActive)
+                    // 获取当前窗口状态
+                    var windowState = GetWindowState();
+                    
+                    // 如果序列正在运行，但窗口状态异常，则停止序列
+                    if (_isSequenceRunning && windowState != WindowState.WindowActive && 
+                        windowState != WindowState.NoTargetWindow)
                     {
-                        return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);
-                    }
-
-                    // 如果目标窗口未激活，停止当前执行
-                    if (!isTargetWindowActive && _isSequenceRunning)
-                    {
-                        _lyKeysService.EmergencyStop(); // 使用紧急停止
+                        _lyKeysService.EmergencyStop();
                         StopSequence();
                         return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);
                     }
 
+                    // 如果是热键，检查是否可以触发
+                    if ((isStartKey || isStopKey) && !CanTriggerHotkey())
+                    {
+                        return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);
+                    }
+
+                    // 处理热键
                     if (isStartKey || isStopKey)
                     {
                         if (_lyKeysService.IsHoldMode)
@@ -393,6 +414,7 @@ namespace WpfApp.Services
             return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);
         }
 
+        // 鼠标钩子回调处理
         private IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
             if (nCode >= 0 && !_isInputFocused)
@@ -450,6 +472,7 @@ namespace WpfApp.Services
             return CallNextHookEx(_mouseHookHandle, nCode, wParam, lParam);
         }
 
+        // 处理鼠标按键按下
         private void HandleMouseButtonDown(int wParam, MSLLHOOKSTRUCT hookStruct)
         {
             LyKeysCode buttonCode = GetMouseButtonCode(wParam, hookStruct);
@@ -490,6 +513,7 @@ namespace WpfApp.Services
             }
         }
 
+        // 处理鼠标按键释放
         private void HandleMouseButtonUp(int wParam, MSLLHOOKSTRUCT hookStruct)
         {
             LyKeysCode buttonCode = GetMouseButtonCode(wParam, hookStruct);
@@ -517,6 +541,7 @@ namespace WpfApp.Services
             }
         }
 
+        // 处理滚轮事件
         private void HandleMouseWheel(MSLLHOOKSTRUCT hookStruct)
         {
             // 获取滚轮方向（向上为正，向下为负）
@@ -579,6 +604,7 @@ namespace WpfApp.Services
             }
         }
 
+        // 获取鼠标按键代码
         private LyKeysCode GetMouseButtonCode(int wParam, MSLLHOOKSTRUCT hookStruct)
         {
             if (wParam == WM_MBUTTONDOWN || wParam == WM_MBUTTONUP)
@@ -602,6 +628,7 @@ namespace WpfApp.Services
             return (int)lyKeyCode;
         }
 
+        // 模式切换事件处理
         private void OnModeSwitched(object? sender, bool isHoldMode)
         {
             StopSequence();
@@ -745,19 +772,104 @@ namespace WpfApp.Services
         // 获取连发功能启用状态
         public bool IsRapidFireEnabled => _isRapidFireEnabled;
 
+        // 目标窗口句柄
         public IntPtr TargetWindowHandle
         {
             get => _targetWindowHandle;
-            set => _targetWindowHandle = value;
+            set
+            {
+                if (_targetWindowHandle != value)
+                {
+                    _targetWindowHandle = value;
+                    _logger.Debug($"热键服务窗口句柄已更新: {value}");
+                    
+                    // 如果句柄变为0，停止当前执行
+                    if (value == IntPtr.Zero && _isSequenceRunning)
+                    {
+                        _lyKeysService.EmergencyStop();
+                        StopSequence();
+                        _logger.Debug("目标窗口已关闭，停止当前执行");
+                    }
+                }
+            }
         }
 
+        // 获取目标窗口是否激活
         public bool IsTargetWindowActive
         {
             get => _isTargetWindowActive;
             set => _isTargetWindowActive = value;
         }
 
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetForegroundWindow();
+        // 获取窗口状态
+        private WindowState GetWindowState()
+        {
+            try
+            {
+                // 1. 检查是否选择了窗口
+                if (_targetWindowHandle == IntPtr.Zero && 
+                    string.IsNullOrEmpty(_mainViewModel.KeyMappingViewModel.SelectedWindowProcessName))
+                {
+                    return WindowState.NoTargetWindow;
+                }
+
+                // 2. 检查进程是否运行
+                if (_targetWindowHandle == IntPtr.Zero && 
+                    !string.IsNullOrEmpty(_mainViewModel.KeyMappingViewModel.SelectedWindowProcessName))
+                {
+                    return WindowState.ProcessNotRunning;
+                }
+
+                // 3. 检查窗口是否有效
+                if (!IsWindow(_targetWindowHandle))
+                {
+                    return WindowState.WindowInvalid;
+                }
+
+                // 4. 检查窗口是否激活
+                IntPtr activeWindow = GetForegroundWindow();
+                return activeWindow == _targetWindowHandle ? 
+                    WindowState.WindowActive : WindowState.WindowInactive;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("检查窗口状态时发生异常", ex);
+                return WindowState.WindowInvalid;
+            }
+        }
+
+        // 判断是否可以触发热键
+        private bool CanTriggerHotkey()
+        {
+            var state = GetWindowState();
+            
+            // 记录状态变化
+            _logger.Debug($"当前窗口状态: {state}");
+            
+            switch (state)
+            {
+                case WindowState.NoTargetWindow:
+                    return true; // 未选择窗口时允许全局触发
+                    
+                case WindowState.ProcessNotRunning:
+                    _mainViewModel.UpdateStatusMessage("目标进程未运行，请等待程序启动", true);
+                    return false;
+                    
+                case WindowState.WindowInvalid:
+                    _mainViewModel.UpdateStatusMessage("目标窗口无效，请重新选择窗口", true);
+                    return false;
+                    
+                case WindowState.WindowInactive:
+                    _mainViewModel.UpdateStatusMessage("请先激活目标窗口", true);
+                    return false;
+                    
+                case WindowState.WindowActive:
+                    return true;
+                    
+                default:
+                    _logger.Error($"未处理的窗口状态: {state}");
+                    return false;
+            }
+        }
     }
 }
