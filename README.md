@@ -98,12 +98,12 @@
 ## 🔧 驱动使用说明
 
 ### 驱动文件说明
-- `lykeysdll.dll`: 核心驱动动态链接库(*必须)  
-- `lykeys.sys`: 内核级驱动文件(*必须)  
-- `lykeys.cat`: 驱动签名文件  
+- `Resource\lykeysdll\lykeysdll.dll`: 核心驱动动态链接库(*必须)  
+- `Resource\lykeysdll\lykeys.sys`: 内核级驱动文件(*必须)  
+- `Resource\lykeysdll\lykeys.cat`: 驱动签名文件  
 - `Resource\lykeysdll\README.md`: 驱动接口使用说明  
-- `Resource\lykeysdll\csharp_example`: C#示例代码  
-- `Resource\lykeysdll\python_example`: Python示例代码  
+- `Resource\lykeysdll\csharp_example\*`: C#示例代码  
+- `Resource\lykeysdll\python_example\*`: Python示例代码  
 
 ### ⚠️ 注意事项
 1. **驱动签名**  

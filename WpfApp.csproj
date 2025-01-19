@@ -79,8 +79,16 @@
     <Resource Include="Resource\svg\**" />
     
     <!-- 驱动文件配置为嵌入式资源 -->
-    <EmbeddedResource Include="Resource\lykeysdll\**">
-      <LogicalName>WpfApp.Resource.lykeysdll.%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+    <EmbeddedResource Include="Resource\lykeysdll\lykeysdll.dll">
+      <LogicalName>WpfApp.Resource.lykeysdll.lykeysdll.dll</LogicalName>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resource\lykeysdll\lykeys.sys">
+      <LogicalName>WpfApp.Resource.lykeysdll.lykeys.sys</LogicalName>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resource\lykeysdll\lykeys.cat">
+      <LogicalName>WpfApp.Resource.lykeysdll.lykeys.cat</LogicalName>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
 
