@@ -101,7 +101,7 @@
 - `Resource\lykeysdll\lykeysdll.dll`: 核心驱动动态链接库(*必须)  
 - `Resource\lykeysdll\lykeys.sys`: 内核级驱动文件(*必须)  
 - `Resource\lykeysdll\lykeys.cat`: 驱动签名文件  
-- `Resource\lykeysdll\README.md`: 驱动接口使用说明  
+- `Resource\lykeysdll\README.md`: [驱动接口&调试说明](https://github.com/Cassianvale/LingYaoKeys/blob/main/Resource/lykeysdll/README.md)  
 - `Resource\lykeysdll\csharp_example\*`: C#示例代码  
 - `Resource\lykeysdll\python_example\*`: Python示例代码  
 

@@ -39,7 +39,7 @@
 ## 状态码说明
 
 ### DEVICE_STATUS 枚举值
-| 值 | 含义 |
+| 定义 | 含义 |
 |----|------|
 | DEVICE_STATUS_UNKNOWN (0) | 设备状态未知 |
 | DEVICE_STATUS_READY (1) | 设备就绪 |
@@ -63,9 +63,20 @@
 - 多线程环境下无需额外同步措施
 - 建议在主线程中进行驱动加载和卸载操作
 
-## 调试&蓝屏分析
+## 调试系统错误代码
 
-### WinDbg  
+1. 错误代码查询：[Error Codes](https://docs.microsoft.com/zh-cn/windows/win32/debug/system-error-codes)  
+2. WDK下载: [WDK](https://learn.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk)  
+3. (已签名驱动不需要此步骤)驱动测试请关闭Bios中的`安全启动`，并且cmd输入以下指令开启`测试模式` & `禁用强制驱动签名` 模式 & `重启`  
+```
+bcdedit /set nointegritychecks on
+bcdedit /set testsigning on
+shutdown  -r -t 0
+```
+
+## 调试&蓝屏分析工具
+
+### 1. WinDbg  
 1. 配置系统生成完整转储：
 ```
 1. 右键"此电脑" -> 属性
@@ -116,9 +127,6 @@ KdPrint(("Memory Region: 0x%p, Size: %d\n", address, size));
 ```
 bcdedit /debug on
 bcdedit /dbgsettings local
-bcdedit /set nointegritychecks on
-bcdedit /set testsigning on
-shutdown  -r -t 0
 ```
 4. 收集到的信息应该包括：
 ```
@@ -149,8 +157,9 @@ shutdown  -r -t 0
 4. IRQL验证（针对IRQL问题）
 `verifier /flags 0x2 /driver lykeys.sys`
 
+## 常见问题
 
-### 程序闪退cmd命令手动关闭服务
+### 驱动程序闪退导致无法正常结束驱动服务
 ```
 // 手动cmd命令停止服务
 sc query lykeys
