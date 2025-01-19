@@ -68,6 +68,7 @@
 - _**游戏模式关闭**_：解除按键速度限制平均速度320+，适用于一般场景  
 - _**自定义音频**_：打开 `C:\Users\用户\.lykeys\sound`，保持文件名替换 `start.mp3`/`stop.mp3` 即可  
 
+
 ## 📃常见问题
 因为本项目使用的微软最新的`.Net Core 8.0`，有部分用户可能需要下载内核  
 <img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/download_core.png" heigh="400px"/> 
@@ -94,9 +95,33 @@
 
 - `dotnet publish -c Release`
 
+## 🔧 驱动使用说明
+
+### 驱动文件说明
+- `lykeysdll.dll`: 核心驱动动态链接库(*必须)
+- `lykeys.sys`: 内核级驱动文件(*必须)
+- `lykeys.cat`: 驱动签名文件
+- `Resource\lykeysdll\README.md`: 驱动接口使用说明
+- `Resource\lykeysdll\csharp_example`: C#示例代码
+- `Resource\lykeysdll\python_example`: Python示例代码
+
+### ⚠️ 注意事项
+1. **驱动签名**
+   - 驱动已通过正版签名认证
+   - 请勿修改驱动文件，否则会导致签名失效
+
+2. **系统要求**
+   - 支持 Windows 7/10/11 (x86/x64)
+   - 需要管理员权限运行
+
+3. **使用限制**
+   - 仅供个人学习研究使用
+   - 禁止用于商业用途
+   - 禁止修改或反编译驱动文件
+
 ## ☕️ Buy me a coffee
 
-**驱动签名为自费购买，如果您喜欢这个项目可以支持一下作者，这将是对我极大的鼓励**  
+ ♥ 驱动签名为自费购买，如果您喜欢这个项目可以支持一下作者，这将是对我极大的鼓励 ♥ 
   
 <img  src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/wechat_qr.png" width="200px"/>  
 

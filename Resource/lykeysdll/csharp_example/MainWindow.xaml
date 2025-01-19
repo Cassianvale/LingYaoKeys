@@ -1,0 +1,82 @@
+﻿<Window x:Class="LyKeys.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:LyKeys"
+        mc:Ignorable="d"
+        Title="LyKeys 驱动管理器" Height="450" Width="800"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="LyKeys 驱动管理器" 
+                   FontSize="24" 
+                   FontWeight="Bold" 
+                   Margin="0,0,0,10"/>
+
+        <StackPanel Grid.Row="1" Margin="0,0,0,10">
+            <DockPanel Margin="0,0,0,5">
+                <TextBlock Text="驱动文件(sys)：" VerticalAlignment="Center"/>
+                <Button x:Name="SelectSysButton" 
+                        Content="选择文件" 
+                        Width="80" 
+                        Height="25" 
+                        Margin="5,0,0,0"
+                        Click="SelectSysButton_Click"
+                        DockPanel.Dock="Right"/>
+                <TextBox x:Name="SysPathText" 
+                         IsReadOnly="True"
+                         Margin="5,0,0,0"/>
+            </DockPanel>
+            <DockPanel>
+                <TextBlock Text="驱动DLL文件：" VerticalAlignment="Center"/>
+                <Button x:Name="SelectDllButton" 
+                        Content="选择文件" 
+                        Width="80" 
+                        Height="25" 
+                        Margin="5,0,0,0"
+                        Click="SelectDllButton_Click"
+                        DockPanel.Dock="Right"/>
+                <TextBox x:Name="DllPathText" 
+                         IsReadOnly="True"
+                         Margin="5,0,0,0"/>
+            </DockPanel>
+        </StackPanel>
+
+        <TextBlock Grid.Row="2" 
+                   Text="日志输出："
+                   Margin="0,0,0,5"/>
+
+        <ScrollViewer Grid.Row="4" 
+                      Margin="0,0,0,20">
+            <TextBox x:Name="LogTextBox" 
+                     IsReadOnly="True"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"/>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="5" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right">
+            <Button x:Name="InstallButton"
+                    Content="安装驱动"
+                    Width="100"
+                    Height="30"
+                    Margin="0,0,10,0"
+                    Click="InstallButton_Click"/>
+            <Button x:Name="UninstallButton"
+                    Content="卸载驱动"
+                    Width="100"
+                    Height="30"
+                    Click="UninstallButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
