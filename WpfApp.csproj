@@ -1,11 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <!-- 项目信息配置 -->
     <Version>1.3.0</Version>
     <Product>LingYaoKeys</Product>
     <Authors>慕长秋</Authors>
-    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
+    <PackageLicenseExpression>GPL-3.0</PackageLicenseExpression>
     <Copyright>Copyright © 2025 Cassianvale</Copyright>
     <Description>灵曜按键 (LingYao Keys)</Description>
 
