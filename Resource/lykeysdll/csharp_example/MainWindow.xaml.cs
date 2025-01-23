@@ -47,7 +47,7 @@ namespace LyKeys
 
         private void SelectSysButton_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new OpenFileDialog
+            var dialog = new Microsoft.Win32.OpenFileDialog
             {
                 Filter = "驱动文件|*.sys|所有文件|*.*",
                 Title = "选择驱动文件"
@@ -62,7 +62,7 @@ namespace LyKeys
 
         private void SelectDllButton_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new OpenFileDialog
+            var dialog = new Microsoft.Win32.OpenFileDialog
             {
                 Filter = "DLL文件|*.dll|所有文件|*.*",
                 Title = "选择DLL文件"
@@ -88,7 +88,7 @@ namespace LyKeys
             }
             catch (ArgumentException ex)
             {
-                MessageBox.Show($"设置驱动路径失败：{ex.Message}", 
+                System.Windows.MessageBox.Show($"设置驱动路径失败：{ex.Message}", 
                     "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -102,12 +102,12 @@ namespace LyKeys
             }
             catch (UnauthorizedAccessException)
             {
-                MessageBox.Show("需要管理员权限才能安装驱动。\n请以管理员身份运行程序。", 
+                System.Windows.MessageBox.Show("需要管理员权限才能安装驱动。\n请以管理员身份运行程序。", 
                     "权限错误", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"安装驱动时发生错误：{ex.Message}", 
+                System.Windows.MessageBox.Show($"安装驱动时发生错误：{ex.Message}", 
                     "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -125,7 +125,7 @@ namespace LyKeys
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"卸载驱动时发生错误：{ex.Message}", 
+                System.Windows.MessageBox.Show($"卸载驱动时发生错误：{ex.Message}", 
                     "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
