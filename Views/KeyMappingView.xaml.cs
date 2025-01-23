@@ -1,17 +1,12 @@
-using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Navigation;
 using System.Windows.Input;
-using System.Text;
-using System.Collections.ObjectModel;
 using WpfApp.ViewModels;
-using WpfApp.Services;
-using WpfApp.Services.Models;
 using System.Windows.Media;
-using System.Windows.Controls.Primitives;
 using WpfApp.Behaviors;
-using System.Windows.Media.Animation;
+using WpfApp.Services.Core;
+using WpfApp.Services.Utils;
 
 // 提供按键映射视图
 namespace WpfApp.Views
@@ -19,7 +14,7 @@ namespace WpfApp.Views
     /// <summary>
     /// KeyMappingView.xaml 的交互逻辑
     /// </summary>
-    public partial class KeyMappingView : Page
+    public partial class KeyMappingView
     {   
         private readonly SerilogManager _logger = SerilogManager.Instance;
         private const string KEY_ERROR = "无法识别按键，请检查输入法是否关闭";

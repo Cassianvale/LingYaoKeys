@@ -1,31 +1,21 @@
-using System;
 using System.IO;
-using System.Windows.Controls;
 using System.Windows;
-using System.Threading.Tasks;
 using System.Windows.Media;
-using System.Threading;
 using System.Diagnostics;
 using System.Windows.Documents;
-using System.Windows.Media.Imaging;
-using Markdig;
-using System.Text.RegularExpressions;
-using System.Windows.Data;
-using System.Windows.Markup;
-using WpfApp.Services;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
-using System.Windows.Navigation;
 using Color = System.Windows.Media.Color;
 using FontFamily = System.Windows.Media.FontFamily;
 using WpfApp.Services.Cache;
+using WpfApp.Services.Utils;
 
 namespace WpfApp.Views
 {
     /// <summary>
     /// AboutView.xaml 的交互逻辑
     /// </summary>
-    public partial class AboutView : Page, IDisposable
+    public partial class AboutView
     {
         private readonly ViewModels.AboutViewModel _viewModel;
         private bool _disposedValue;

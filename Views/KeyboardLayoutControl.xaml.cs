@@ -1,12 +1,10 @@
-using System;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Forms;
 using WpfApp.Services.Models;
+using WpfApp.Services.Config;
 
-namespace WpfApp.Views.Controls
+namespace WpfApp.Views
 {
-    public partial class KeyboardLayoutControl : System.Windows.Controls.UserControl
+    public partial class KeyboardLayoutControl
     {
         public static readonly DependencyProperty KeyboardConfigProperty =
             DependencyProperty.Register(nameof(KeyboardConfig), typeof(KeyboardLayoutConfig), typeof(KeyboardLayoutControl),

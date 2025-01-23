@@ -9,6 +9,7 @@ using WpfApp.Services.Utils;
 using MessageBox = System.Windows.MessageBox;
 using Application = System.Windows.Application;
 using System.Net.Http;
+using WpfApp.Services.Core;
 
 namespace WpfApp.ViewModels
 {

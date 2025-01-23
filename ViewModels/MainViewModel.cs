@@ -1,20 +1,13 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using WpfApp.Services.Utils;
 using WpfApp.Views;
-using System.IO;
-using System.Threading;
-using WpfApp.Services;
-using WpfApp.ViewModels;
-using WpfApp.Services.Models;
-using System.Windows.Media;
 using System.Windows.Threading;
-using System;
-using System.Collections.Generic;
 using System.Windows.Media.Animation;
-using System.Threading.Tasks;
 using WpfApp.Services.Config;
+using WpfApp.Services.Core;
+using WpfApp.Services.Utils;
+using WpfApp.Services.Events;
 
 namespace WpfApp.ViewModels
 {

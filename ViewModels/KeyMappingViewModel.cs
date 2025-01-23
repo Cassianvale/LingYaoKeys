@@ -13,7 +13,7 @@ using WpfApp.Views;
 using System.Runtime.InteropServices;
 using System.Timers;
 using System;
-
+using WpfApp.Services.Core;
 
 // 按键映射核心业务逻辑层
 namespace WpfApp.ViewModels

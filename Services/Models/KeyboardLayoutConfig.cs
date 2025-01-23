@@ -1,6 +1,6 @@
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using WpfApp.Services.Core;
 
 // 键盘布局配置
 namespace WpfApp.Services.Models

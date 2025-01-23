@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace WpfApp.Services
+namespace WpfApp.Services.Core
 {
     public enum LyKeysCode
     {

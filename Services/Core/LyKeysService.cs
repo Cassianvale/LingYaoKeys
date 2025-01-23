@@ -1,15 +1,12 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
-using System.Linq;
 using WpfApp.Services.Models;
 using WpfApp.ViewModels;
 using WpfApp.Services.Config;
+using WpfApp.Services.Events;
+using WpfApp.Services.Utils;
 
-namespace WpfApp.Services
+namespace WpfApp.Services.Core
 {
     /// <summary>
     /// LyKeys服务类 - 提供键盘模拟和按键序列管理功能

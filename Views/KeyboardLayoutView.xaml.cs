@@ -1,21 +1,19 @@
-using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 using System.Text.RegularExpressions;
 
-namespace WpfApp.Views.Controls
+namespace WpfApp.Views
 {
     /// <summary>
     /// KeyboardLayoutView.xaml 的交互逻辑
     /// </summary>
-    public partial class KeyboardLayoutView : System.Windows.Controls.UserControl
+    public partial class KeyboardLayoutView
     {
         public KeyboardLayoutView()
         {
             InitializeComponent();
         }
 
-        private void NumberValidationTextBox(object sender, TextCompositionEventArgs e)
+        public void NumberValidationTextBox(object sender, TextCompositionEventArgs e)
         {
             Regex regex = new Regex("[^0-9]+");
             e.Handled = regex.IsMatch(e.Text);

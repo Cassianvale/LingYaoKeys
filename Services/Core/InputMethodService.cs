@@ -1,13 +1,12 @@
-using System;
 using System.Runtime.InteropServices;
+using WpfApp.Services.Utils;
 
-namespace WpfApp.Services
+namespace WpfApp.Services.Core
 {
     public class InputMethodService
     {
         private const int WM_INPUTLANGCHANGEREQUEST = 0x0050;
         private const int INPUTLANGCHANGE_FORWARD = 0x0002;
-        private const int KL_ENGLISH = 0x0409; // 英语(美国) 的 Language ID
 
         [DllImport("user32.dll")]
         private static extern IntPtr PostMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);

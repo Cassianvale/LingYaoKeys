@@ -1,7 +1,6 @@
-using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using WpfApp.Services;
+using WpfApp.Services.Core;
 
 namespace WpfApp.Services.Models
 {

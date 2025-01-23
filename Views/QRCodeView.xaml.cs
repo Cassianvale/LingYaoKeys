@@ -1,7 +1,7 @@
-using System;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using System.Windows;
+using MessageBox = System.Windows.MessageBox;
 
 namespace WpfApp.Views
 {
@@ -53,7 +53,7 @@ namespace WpfApp.Views
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"加载二维码图片失败，请检查资源文件是否完整，错误信息:{ex}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"加载二维码图片失败，请检查资源文件是否完整，错误信息:{ex}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

@@ -1,28 +1,23 @@
-﻿using System;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using WpfApp.ViewModels;
-using WpfApp.Services;
 using System.Runtime.InteropServices;
-using System.Windows.Interop;
-using Forms = System.Windows.Forms;
-using Drawing = System.Drawing;
 using System.IO;
-using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
+using WpfApp.ViewModels;
 using WpfApp.Services.Config;
-using System.Threading;
-using System.Threading.Tasks;
+using WpfApp.Services.Utils;
+using Forms = System.Windows.Forms;
+using Drawing = System.Drawing;
 
 namespace WpfApp
 {
     /// <summary>
     /// MainWindow.xaml 的交互逻辑
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow
     {
         private readonly SerilogManager _logger = SerilogManager.Instance;
         private readonly MainViewModel _viewModel;

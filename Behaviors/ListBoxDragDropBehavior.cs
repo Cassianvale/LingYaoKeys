@@ -1,11 +1,9 @@
-using System;
 using System.Collections.ObjectModel;
 using Microsoft.Xaml.Behaviors;
 using WpfApp.Services.Models;
 using WpfApp.ViewModels;
 using System.Windows.Media.Animation;
 using System.Windows.Documents;
-using WpfApp.Behaviors;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;

@@ -1,17 +1,14 @@
-using System;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using System.Runtime.InteropServices;
-using WpfApp.Services.Models;
 using WpfApp.Services.Config;
-using WpfApp.Services;
+using WpfApp.Services.Utils;
 
 namespace WpfApp.Views
 {
-    public partial class FloatingStatusWindow : Window
+    public partial class FloatingStatusWindow
     {
         private readonly AppConfig _config;
         private System.Windows.Point _dragStartPoint;

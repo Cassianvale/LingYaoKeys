@@ -5,6 +5,7 @@ using WpfApp.Services;
 using WpfApp.Services.Models;
 using WpfApp.Services.Utils;
 using WpfApp.Services.Config;
+using WpfApp.Services.Core;
 
 namespace WpfApp.ViewModels
 {

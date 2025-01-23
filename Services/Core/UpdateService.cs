@@ -1,14 +1,11 @@
-using System;
 using System.Net.Http;
-using System.Threading.Tasks;
 using System.Text.Json;
 using System.Reflection;
 using System.Diagnostics;
-using System.IO;
-using Microsoft.Extensions.Configuration;
-using WpfApp.Services.Models;
+using WpfApp.Services.Config;
+using WpfApp.Services.Utils;
 
-namespace WpfApp.Services
+namespace WpfApp.Services.Core
 {
     public class UpdateService : IDisposable
     {

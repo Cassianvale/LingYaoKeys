@@ -1,20 +1,16 @@
-﻿using System;
-using System.IO;
-using System.Threading.Tasks;
+﻿using System.IO;
 using WpfApp.Services;
 using WpfApp.Services.Config;
 using WpfApp.Services.Utils;
-using System.Reflection;
 using System.Windows;
-using Forms = System.Windows.Forms;
 using System.Runtime.InteropServices;
-using System.ComponentModel;
 using System.Diagnostics;
+using WpfApp.Services.Core;
 using MessageBox = System.Windows.MessageBox;
 
 namespace WpfApp
 {
-    public partial class App : System.Windows.Application
+    public partial class App
     {
         private readonly SerilogManager _logger = SerilogManager.Instance;
         public static LyKeysService LyKeysDriver { get; private set; }
@@ -153,11 +149,11 @@ namespace WpfApp
                     try
                     {
                         ConsoleManager.Release();
-                        System.Threading.Thread.Sleep(100); // 给一点时间让控制台完全释放
+                        Thread.Sleep(100); // 给一点时间让控制台完全释放
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"释放控制台失败: {ex.Message}");
+                        Debug.WriteLine($"释放控制台失败: {ex.Message}");
                     }
                 }
 
@@ -166,7 +162,7 @@ namespace WpfApp
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"清理服务异常: {ex.Message}");
+                Debug.WriteLine($"清理服务异常: {ex.Message}");
             }
             finally
             {

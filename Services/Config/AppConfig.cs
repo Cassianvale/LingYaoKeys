@@ -1,9 +1,9 @@
 using System.Reflection;
 using Newtonsoft.Json;
 using System.Windows.Input;
-using System.Collections.Generic;
+using WpfApp.Services.Core;
 
-namespace WpfApp.Services.Models
+namespace WpfApp.Services.Config
 {
 
     public class LogFileSettings
@@ -140,7 +140,6 @@ namespace WpfApp.Services.Models
         public string Version 
         { 
             get => Assembly.GetName().Version?.ToString() ?? "1.0.0";
-            set { /* 允许从配置文件加载但忽略 */ } 
         }
         
         [JsonIgnore]

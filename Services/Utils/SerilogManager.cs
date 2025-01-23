@@ -1,15 +1,11 @@
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
-using System;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using WpfApp.Services.Utils;
-using WpfApp.Services.Models;
+using WpfApp.Services.Config;
 
-namespace WpfApp.Services
+namespace WpfApp.Services.Utils
 {
     public class SerilogManager : ILogger, IDisposable
     {

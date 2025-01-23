@@ -1,21 +1,14 @@
-using System;
 using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Interop;
 using System.Windows.Input;
-using System.Security.Principal;
-using System.Threading.Tasks;
 using System.Diagnostics;
-using System.Runtime.InteropServices.ComTypes;
-using System.Collections.Generic;
-using System.Threading;
 using System.ComponentModel;
 using WpfApp.ViewModels;
-using WpfApp.Services.Models;
 using WpfApp.Services.Config;
+using WpfApp.Services.Utils;
 
 // 提供快捷键服务
-namespace WpfApp.Services
+namespace WpfApp.Services.Core
 {
     public class HotkeyService
     {

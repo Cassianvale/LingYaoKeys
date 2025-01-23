@@ -5,7 +5,7 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
       xmlns:behaviors="clr-namespace:WpfApp.Behaviors"
-      xmlns:controls="clr-namespace:WpfApp.Views.Controls"
+      xmlns:controls="clr-namespace:WpfApp.Views"
       mc:Ignorable="d"
       Title="按键映射"
       PreviewMouseDown="Page_PreviewMouseDown">
