@@ -35,6 +35,7 @@ namespace WpfApp.Services.Core
         private volatile bool _emergencyStop;
         private const int EMERGENCY_STOP_THRESHOLD = 100; // 100ms内未能停止则强制停止
         private readonly object _emergencyStopLock = new object();
+        private bool _autoSwitchIME = true; // 是否自动切换输入法
         // 存储每个按键的间隔信息
         private Dictionary<LyKeysCode, int> _keyIntervals = new Dictionary<LyKeysCode, int>();
         #endregion
@@ -92,10 +93,18 @@ namespace WpfApp.Services.Core
                     
                     if (_isEnabled)
                     {
-                        // 启动前保存输入法状态
-                        _inputMethodService.StoreCurrentLayout();
-                        _inputMethodService.SwitchToEnglish();
-                        _logger.Debug("服务启用：已切换到英文输入法");
+                        // 根据设置决定是否切换输入法
+                        if (_autoSwitchIME)
+                        {
+                            // 启动前保存输入法状态
+                            _inputMethodService.StoreCurrentLayout();
+                            _inputMethodService.SwitchToEnglish();
+                            _logger.Debug("服务启用：已切换到英文输入法");
+                        }
+                        else
+                        {
+                            _logger.Debug("服务启用：保持当前输入法不变");
+                        }
 
                         if (_isHoldMode)
                         {
@@ -221,6 +230,20 @@ namespace WpfApp.Services.Core
             _isHoldMode = false;
             _virtualKeyMap = InitializeVirtualKeyMap();
             _inputMethodService = new InputMethodService();  // 初始化InputMethodService
+            
+            // 从配置中读取是否自动切换输入法
+            try
+            {
+                var config = AppConfigService.Config;
+                _autoSwitchIME = config.AutoSwitchToEnglishIME ?? true;
+                _logger.Debug($"LyKeysService构造函数：输入法自动切换设置为 {(_autoSwitchIME ? "开启" : "关闭")}");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("读取输入法切换配置失败，使用默认值(开启)", ex);
+                _autoSwitchIME = true;
+            }
+            
             _logger.Debug("LyKeysService构造函数：已初始化InputMethodService");
         }
         #endregion
@@ -1229,14 +1252,28 @@ namespace WpfApp.Services.Core
 
         #region 输入法管理
         /// <summary>
+        /// 设置是否自动切换输入法
+        /// </summary>
+        /// <param name="autoSwitch">是否自动切换</param>
+        public void SetAutoSwitchIME(bool autoSwitch)
+        {
+            _autoSwitchIME = autoSwitch;
+            _logger.Debug($"输入法自动切换设置已更新: {(autoSwitch ? "开启" : "关闭")}");
+        }
+
+        /// <summary>
         /// 恢复输入法到之前的状态
         /// </summary>
         public void RestoreIME()
         {
             try
             {
-                _inputMethodService.RestorePreviousLayout();
-                _logger.Debug("已恢复原始输入法");
+                // 只有在自动切换输入法开启时才恢复
+                if (_autoSwitchIME)
+                {
+                    _inputMethodService.RestorePreviousLayout();
+                    _logger.Debug("已恢复原始输入法");
+                }
             }
             catch (Exception ex)
             {

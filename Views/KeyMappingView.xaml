@@ -553,6 +553,17 @@
                               Margin="0,0,0,0"
                               Padding="0,0,0,0"
                               IsChecked="{Binding KeyboardLayoutViewModel.IsRapidFireEnabled, Mode=TwoWay}"/>
+                              
+                    <!-- 自动切换输入法 -->
+                    <CheckBox Style="{StaticResource ModernSwitch}"
+                              Content="自动切换输入法" 
+                              Height="32"
+                              VerticalContentAlignment="Center"
+                              HorizontalAlignment="Left"
+                              Margin="0,0,0,0"
+                              Padding="0,0,0,0"
+                              IsChecked="{Binding AutoSwitchToEnglishIME, Mode=TwoWay}"
+                              ToolTip="启用后，程序会在启动时自动切换到英文输入法，停止时恢复原输入法"/>
                 </StackPanel>
             </StackPanel>
         </Grid>

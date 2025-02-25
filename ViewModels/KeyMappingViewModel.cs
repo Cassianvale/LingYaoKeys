@@ -52,6 +52,7 @@ namespace WpfApp.ViewModels
         private bool _isInitializing = true; // 添加一个标志来标识是否在初始化
         private bool _isExecuting = false; // 添加执行状态标志
         private bool _isFloatingWindowEnabled;
+        private bool _autoSwitchToEnglishIME = true; // 默认开启自动切换输入法
         private FloatingStatusWindow _floatingWindow;
         private FloatingStatusViewModel _floatingViewModel;
         private KeyItem? _selectedKeyItem;
@@ -110,7 +111,7 @@ namespace WpfApp.ViewModels
             set => SetProperty(ref _selectedWindowProcessName, value);
         }
 
-        private string SelectedWindowClassName
+        public string SelectedWindowClassName
         {
             get => _selectedWindowClassName;
             set => SetProperty(ref _selectedWindowClassName, value);
@@ -387,25 +388,41 @@ namespace WpfApp.ViewModels
             get => _isFloatingWindowEnabled;
             set
             {
-                if (_isFloatingWindowEnabled != value)
+                if (SetProperty(ref _isFloatingWindowEnabled, value))
                 {
-                    _isFloatingWindowEnabled = value;
-                    OnPropertyChanged(nameof(IsFloatingWindowEnabled));
-                    
-                    // 更新配置
-                    AppConfigService.UpdateConfig(config =>
+                    if (!_isInitializing)
                     {
-                        config.UI.FloatingWindow.IsEnabled = value;
-                    });
+                        SaveConfig();
+                    }
                     
-                    // 更新浮窗显示状态
-                    if (_isFloatingWindowEnabled)
+                    if (value)
                     {
                         ShowFloatingWindow();
                     }
                     else
                     {
                         HideFloatingWindow();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取或设置是否自动切换到英文输入法
+        /// </summary>
+        public bool AutoSwitchToEnglishIME
+        {
+            get => _autoSwitchToEnglishIME;
+            set
+            {
+                if (SetProperty(ref _autoSwitchToEnglishIME, value))
+                {
+                    if (!_isInitializing)
+                    {
+                        SaveConfig();
+                        
+                        // 通知LyKeysService更新输入法切换设置
+                        _lyKeysService.SetAutoSwitchIME(value);
                     }
                 }
             }
@@ -747,6 +764,7 @@ namespace WpfApp.ViewModels
                 IsSoundEnabled = appConfig.soundEnabled ?? true;
                 IsGameMode = appConfig.IsGameMode ?? true;
                 IsFloatingWindowEnabled = appConfig.UI.FloatingWindow.IsEnabled;
+                AutoSwitchToEnglishIME = appConfig.AutoSwitchToEnglishIME ?? true;
 
                 _logger.Debug($"配置加载完成 - 模式: {(IsSequenceMode ? "顺序模式" : "按压模式")}, 游戏模式: {IsGameMode}");
             }
@@ -1181,6 +1199,12 @@ namespace WpfApp.ViewModels
                 if (config.UI.FloatingWindow.IsEnabled != IsFloatingWindowEnabled)
                 {
                     config.UI.FloatingWindow.IsEnabled = IsFloatingWindowEnabled;
+                    configChanged = true;
+                }
+
+                if (config.AutoSwitchToEnglishIME != AutoSwitchToEnglishIME)
+                {
+                    config.AutoSwitchToEnglishIME = AutoSwitchToEnglishIME;
                     configChanged = true;
                 }
 

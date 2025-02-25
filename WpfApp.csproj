@@ -12,16 +12,6 @@
     <!-- 输出类型为WinExe -->
     <OutputType>WinExe</OutputType>
 
-    <!-- 修改输出类型为控制台应用 -->
-    <!-- <OutputType>Exe</OutputType> -->
-    
-    <!-- 启用本机代码调试 -->
-    <!-- <EnableNativeCodeDebugging>true</EnableNativeCodeDebugging> -->
-    
-    <!-- 如果需要同时保留窗口程序功能,添加以下配置 -->
-    <!-- <DisableWinExeOutputInference>true</DisableWinExeOutputInference>
-    <DebugType>full</DebugType> -->
-
     <TargetFramework>net8.0-windows</TargetFramework>
     <AssemblyName>LingYaoKeys</AssemblyName>
     <Nullable>enable</Nullable>
@@ -97,6 +87,7 @@
       <LogicalName>WpfApp.Resource.sound.%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Remove="Resource\lykeysdll\csharp_example\**" />
   </ItemGroup>
 
   <!-- 新增：配置程序集依赖项 -->
@@ -162,6 +153,18 @@
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
     <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
     <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Resource\lykeysdll\csharp_example\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Remove="Resource\lykeysdll\csharp_example\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Resource\lykeysdll\csharp_example\**" />
   </ItemGroup>
 
 </Project>

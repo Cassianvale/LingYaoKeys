@@ -115,6 +115,9 @@ namespace WpfApp.Services.Config
         // 连发功能是否启用
         public bool? IsRapidFireEnabled { get; set; }
 
+        // 是否自动切换到英文输入法
+        public bool? AutoSwitchToEnglishIME { get; set; } = true;
+
         // 窗口句柄相关信息
         public string? TargetWindowClassName { get; set; }
         public string? TargetWindowProcessName { get; set; }

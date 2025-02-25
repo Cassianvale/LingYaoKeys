@@ -883,51 +883,25 @@ namespace WpfApp
 
         private void NavToggleButton_Click(object sender, RoutedEventArgs e)
         {
-            try
+            // 获取ViewModel
+            if (DataContext is MainViewModel viewModel)
             {
-                _isNavExpanded = !_isNavExpanded;
-                var navPanel = FindName("NavPanel") as Border;
-                var navShadow = FindName("NavShadow") as DropShadowEffect;
-                var toggleButton = sender as System.Windows.Controls.Button;
-
-                if (navPanel != null && toggleButton != null && navShadow != null)
+                // 切换导航栏状态
+                viewModel.IsNavExpanded = !viewModel.IsNavExpanded;
+                
+                // 创建列宽动画
+                var animation = new GridLengthAnimation
                 {
-                    // 创建宽度动画
-                    var widthAnimation = new DoubleAnimation
-                    {
-                        Duration = TimeSpan.FromMilliseconds(250),
-                        EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
-                    };
-
-                    // 创建阴影动画
-                    var shadowAnimation = new DoubleAnimation
-                    {
-                        Duration = TimeSpan.FromMilliseconds(250),
-                        EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
-                    };
-
-                    // 设置动画目标值
-                    if (_isNavExpanded)
-                    {
-                        widthAnimation.To = 200; // 展开宽度
-                        shadowAnimation.To = 0.2; // 显示阴影
-                        toggleButton.Content = "\uE700"; // 收起图标
-                    }
-                    else
-                    {
-                        widthAnimation.To = 40; // 收起后只显示图标的宽度
-                        shadowAnimation.To = 0; // 隐藏阴影
-                        toggleButton.Content = "\uE701"; // 展开图标
-                    }
-
-                    // 应用动画
-                    navPanel.BeginAnimation(FrameworkElement.WidthProperty, widthAnimation);
-                    navShadow.BeginAnimation(DropShadowEffect.OpacityProperty, shadowAnimation);
+                    Duration = TimeSpan.FromMilliseconds(300),
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+                    To = viewModel.NavColumnWidth
+                };
+                
+                // 获取Grid并应用动画
+                if (MainBorder.Parent is Grid mainGrid && mainGrid.ColumnDefinitions.Count > 0)
+                {
+                    mainGrid.ColumnDefinitions[0].BeginAnimation(ColumnDefinition.WidthProperty, animation);
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("导航栏切换失败", ex);
             }
         }
 
