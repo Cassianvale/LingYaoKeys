@@ -139,13 +139,6 @@ namespace WpfApp.Services.Core
                     _keyInterval = validValue;
                     KeyIntervalChanged?.Invoke(this, validValue);
                     _logger.SequenceEvent($"按键间隔已更新为: {validValue}ms");
-                    
-                    // 实时保存到AppConfig
-                    AppConfigService.UpdateConfig(config =>
-                    {
-                        config.interval = validValue;
-                    });
-                    _logger.Debug($"已将默认按键间隔值{validValue}ms保存到配置");
                 }
             }
         }

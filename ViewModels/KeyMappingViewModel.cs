@@ -215,10 +215,10 @@ namespace WpfApp.ViewModels
             {
                 if (SetProperty(ref _keyInterval, value))
                 {
-                    // 更新到驱动服务
+                    // 更新到驱动服务，让它保持与UI一致
                     _lyKeysService.KeyInterval = value;
                     
-                    // 实时保存到配置
+                    // 实时保存到配置，作为配置管理的唯一入口
                     if (!_isInitializing)
                     {
                         AppConfigService.UpdateConfig(config =>
@@ -736,7 +736,12 @@ namespace WpfApp.ViewModels
                 }
 
                 // 加载其他设置
-                _lyKeysService.KeyInterval = appConfig.interval;
+                // 配置流程说明：
+                // 1. 从AppConfig获取配置值，设置到ViewModel的属性中
+                // 2. ViewModel的属性setter会自动将值同步到LyKeysService服务层
+                // 3. 形成"配置 -> ViewModel -> 服务层"的单向数据流
+                _keyInterval = appConfig.interval; // 先直接设置字段，避免触发属性变更事件
+                _lyKeysService.KeyInterval = appConfig.interval; // 再同步到服务
                 SelectedKeyMode = appConfig.keyMode;
                 IsSequenceMode = appConfig.keyMode == 0;
                 IsSoundEnabled = appConfig.soundEnabled ?? true;
