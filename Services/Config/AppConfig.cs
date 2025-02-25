@@ -63,12 +63,14 @@ namespace WpfApp.Services.Config
         public LyKeysCode Code { get; set; }
         public bool IsSelected { get; set; }
         public bool IsKeyBurst { get; set; }
+        public int KeyInterval { get; set; } = 5;
 
-        public KeyConfig(LyKeysCode code, bool isSelected = true, bool isKeyBurst = false)
+        public KeyConfig(LyKeysCode code, bool isSelected = true, bool isKeyBurst = false, int keyInterval = 5)
         {
             Code = code;
             IsSelected = isSelected;
             IsKeyBurst = isKeyBurst;
+            KeyInterval = keyInterval;
         }
     }
 
@@ -102,6 +104,7 @@ namespace WpfApp.Services.Config
         public List<KeyBurstConfig> KeyBurst { get; set; } = new List<KeyBurstConfig>();
         public bool IsRapidFire { get; set; }
         public int keyMode { get; set; }
+        // 默认按键间隔，仅用于新添加按键时的默认值
         public int interval { get; set; } = 10;
         public bool? soundEnabled { get; set; }
         public bool? IsGameMode { get; set; }

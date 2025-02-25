@@ -5,6 +5,7 @@ using WpfApp.ViewModels;
 using WpfApp.Services.Config;
 using WpfApp.Services.Events;
 using WpfApp.Services.Utils;
+using System.Text;
 
 namespace WpfApp.Services.Core
 {
@@ -34,6 +35,8 @@ namespace WpfApp.Services.Core
         private volatile bool _emergencyStop;
         private const int EMERGENCY_STOP_THRESHOLD = 100; // 100ms内未能停止则强制停止
         private readonly object _emergencyStopLock = new object();
+        // 存储每个按键的间隔信息
+        private Dictionary<LyKeysCode, int> _keyIntervals = new Dictionary<LyKeysCode, int>();
         #endregion
 
         #region 事件定义
@@ -136,6 +139,13 @@ namespace WpfApp.Services.Core
                     _keyInterval = validValue;
                     KeyIntervalChanged?.Invoke(this, validValue);
                     _logger.SequenceEvent($"按键间隔已更新为: {validValue}ms");
+                    
+                    // 实时保存到AppConfig
+                    AppConfigService.UpdateConfig(config =>
+                    {
+                        config.interval = validValue;
+                    });
+                    _logger.Debug($"已将默认按键间隔值{validValue}ms保存到配置");
                 }
             }
         }
@@ -393,8 +403,24 @@ namespace WpfApp.Services.Core
                     return;
                 }
 
-                // 获取所有按键项
+                // 获取所有按键项和它们的间隔
                 var keyItems = keyList.Select(k => new { Code = k, Item = GetKeyItem(k) }).ToList();
+                
+                // 记录所有按键的间隔详情
+                var intervalLog = new StringBuilder();
+                intervalLog.AppendLine($"按键列表详情 [{keyItems.Count}个]:");
+                foreach (var item in keyItems)
+                {
+                    if (item.Item != null)
+                    {
+                        intervalLog.AppendLine($"  按键: {item.Code}, 间隔: {item.Item.KeyInterval}ms");
+                    }
+                    else
+                    {
+                        intervalLog.AppendLine($"  按键: {item.Code}, KeyItem为空，将使用默认间隔: {_keyInterval}ms");
+                    }
+                }
+                _logger.Debug(intervalLog.ToString());
 
                 // 根据连发状态过滤按键
                 var filteredKeys = keyList;
@@ -410,8 +436,20 @@ namespace WpfApp.Services.Core
                                 $"过滤掉的连发按键数量: {keyList.Count - filteredKeys.Count}");
                 }
 
+                // 清除并重新收集每个按键的间隔信息
+                _keyIntervals.Clear();
+                foreach (var item in keyItems)
+                {
+                    int interval = _keyInterval; // 默认使用全局间隔
+                    if (item.Item != null)
+                    {
+                        interval = item.Item.KeyInterval;
+                    }
+                    _keyIntervals[item.Code] = interval;
+                }
+
                 _keyList = new List<LyKeysCode>(filteredKeys);
-                _logger.Debug($"按键列表已更新 - 按键数量: {_keyList.Count}");
+                _logger.Debug($"按键列表已更新 - 按键数量: {_keyList.Count}, 间隔信息已存储: {_keyIntervals.Count}个");
             }
             catch (Exception ex)
             {
@@ -432,12 +470,14 @@ namespace WpfApp.Services.Core
                 var mainWindow = System.Windows.Application.Current?.MainWindow;
                 if (mainWindow == null)
                 {
+                    _logger.Debug($"[GetKeyItem] 主窗口为空");
                     return null;
                 }
 
                 var mainViewModel = mainWindow.DataContext as MainViewModel;
                 if (mainViewModel == null)
                 {
+                    _logger.Debug($"[GetKeyItem] MainViewModel为空");
                     return null;
                 }
 
@@ -447,24 +487,34 @@ namespace WpfApp.Services.Core
                     // 只在调试模式下输出日志
                     if (AppConfigService.Config.Debug.IsDebugMode)
                     {
-                        _logger.Debug($"KeyMappingViewModel未初始化，跳过获取KeyItem: {keyCode}");
+                        _logger.Debug($"[GetKeyItem] KeyMappingViewModel未初始化，跳过获取KeyItem: {keyCode}");
                     }
                     return null;
                 }
 
                 if (keyMappingViewModel.KeyList == null)
                 {
+                    _logger.Debug($"[GetKeyItem] KeyList为空");
                     return null;
                 }
 
-                return keyMappingViewModel.KeyList.FirstOrDefault(k => k?.KeyCode == keyCode);
+                var keyItem = keyMappingViewModel.KeyList.FirstOrDefault(k => k?.KeyCode == keyCode);
+                if (keyItem == null)
+                {
+                    _logger.Debug($"[GetKeyItem] 未找到按键{keyCode}的KeyItem");
+                }
+                else
+                {
+                    _logger.Debug($"[GetKeyItem] 找到按键{keyCode}的KeyItem, 间隔值: {keyItem.KeyInterval}ms");
+                }
+                return keyItem;
             }
             catch (Exception ex)
             {
                 // 只记录非初始化阶段的异常
                 if (!IsInitializing())
                 {
-                    _logger.Debug($"获取KeyItem时发生异常: {keyCode}, 错误: {ex.Message}");
+                    _logger.Debug($"[GetKeyItem] 获取KeyItem时发生异常: {keyCode}, 错误: {ex.Message}");
                 }
                 return null;
             }
@@ -817,19 +867,23 @@ namespace WpfApp.Services.Core
                             return;
                         }
 
+                        // 获取当前按键的独立间隔值，如果找不到则使用默认间隔
+                        int keyInterval = GetKeyInterval(key);
+                        
                         stopwatch.Restart();
                         SendKeyPress(key, _keyPressInterval);
+                        _logger.Debug($"顺序模式 - 执行按键: {key}, 按下时长: {_keyPressInterval}ms, 使用间隔: {keyInterval}ms");
 
                         // 计算剩余等待时间
                         var elapsedMs = stopwatch.ElapsedMilliseconds;
-                        var remainingDelay = Math.Max(0, _keyInterval - elapsedMs);
+                        var remainingDelay = Math.Max(0, keyInterval - elapsedMs);
 
                         if (remainingDelay > 0)
                         {
                             // 对于短延迟使用自旋等待
                             if (remainingDelay <= 2)
                             {
-                                while (stopwatch.ElapsedMilliseconds < _keyInterval)
+                                while (stopwatch.ElapsedMilliseconds < keyInterval)
                                 {
                                     if (!_isEnabled || _isHoldMode || _emergencyStop)
                                     {
@@ -863,6 +917,32 @@ namespace WpfApp.Services.Core
                     break;
                 }
             }
+        }
+
+        // 获取按键的独立间隔，如果没有找到则使用默认间隔
+        public int GetKeyInterval(LyKeysCode keyCode)
+        {
+            // 首先尝试从缓存字典中获取间隔
+            if (_keyIntervals.TryGetValue(keyCode, out int interval))
+            {
+                _logger.Debug($"从缓存中获取按键{keyCode}的间隔: {interval}ms");
+                return interval;
+            }
+            
+            // 如果缓存中没有，尝试从KeyItem获取间隔
+            var keyItem = GetKeyItem(keyCode);
+            if (keyItem != null)
+            {
+                interval = keyItem.KeyInterval;
+                // 更新缓存
+                _keyIntervals[keyCode] = interval;
+                _logger.Debug($"已找到按键{keyCode}的KeyItem，使用独立间隔: {interval}ms");
+                return interval;
+            }
+            
+            // 使用默认间隔
+            _logger.Debug($"未找到按键{keyCode}的间隔信息，使用默认间隔: {_keyInterval}ms");
+            return _keyInterval;
         }
 
         private void StartHoldMode()
@@ -1000,18 +1080,20 @@ namespace WpfApp.Services.Core
                     {
                         // 执行按键操作
                         SendKeyPress(key, _keyPressInterval);
-                        _logger.Debug($"按压模式 - 执行按键: {key}, 按下时长: {_keyPressInterval}ms");
+                        _logger.Debug($"按压模式 - 执行按键: {key}, 按下时长: {_keyPressInterval}ms, 使用间隔: {GetKeyInterval(key)}ms");
                         
                         // 计算剩余等待时间
                         var elapsedMs = stopwatch.ElapsedMilliseconds;
-                        var remainingDelay = Math.Max(0, _keyInterval - elapsedMs);
+                        // 获取当前按键的独立间隔值
+                        int keyInterval = GetKeyInterval(key);
+                        var remainingDelay = Math.Max(0, keyInterval - elapsedMs);
                         
                         if (remainingDelay > 0)
                         {
                             // 对于短延迟使用自旋等待
                             if (remainingDelay <= 2)
                             {
-                                while (stopwatch.ElapsedMilliseconds < _keyInterval)
+                                while (stopwatch.ElapsedMilliseconds < keyInterval)
                                 {
                                     if (token.IsCancellationRequested || !_isEnabled || !_isHoldMode)
                                     {

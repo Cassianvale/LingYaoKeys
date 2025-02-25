@@ -61,7 +61,8 @@ namespace WpfApp.Services.Models
                     {
                         // 执行按键操作
                         PressKey(key);
-                        Thread.Sleep(GetInterval());
+                        // 使用按键的独立间隔，而不是全局间隔
+                        Thread.Sleep(GetInterval(key));
                         
                         // 更新索引
                         currentIndex = (currentIndex + 1) % selectedKeys.Count;

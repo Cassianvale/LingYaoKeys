@@ -100,6 +100,7 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
 
                                     <!-- 连发标记 -->
@@ -189,6 +190,28 @@
                                             </Style>
                                         </CheckBox.Style>
                                     </CheckBox>
+                                    
+                                    <!-- 按键间隔输入框 -->
+                                    <DockPanel Grid.Column="2" 
+                                               Width="60" 
+                                               Margin="4,0,0,0" 
+                                               VerticalAlignment="Center">
+                                        <TextBox Style="{StaticResource ModernTextBox}"
+                                                 Height="26"
+                                                 Width="60"
+                                                 VerticalContentAlignment="Center"
+                                                 TextAlignment="Center"
+                                                 FontSize="12"
+                                                 HorizontalAlignment="Right"
+                                                 ToolTip="按键间隔(ms)"
+                                                 PreviewTextInput="NumberValidationTextBox"
+                                                 Text="{Binding KeyInterval, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <TextBlock Text="ms" 
+                                                  Margin="2,0,0,0" 
+                                                  VerticalAlignment="Center" 
+                                                  FontSize="12"
+                                                  Foreground="#707070"/>
+                                    </DockPanel>
                                 </Grid>
                             </Border>
                         </DataTemplate>
@@ -421,7 +444,7 @@
                 </DockPanel>
 
                 <DockPanel Margin="0,0,0,10">
-                    <TextBlock Text="按键间隔" 
+                    <TextBlock Text="默认间隔" 
                                DockPanel.Dock="Left" 
                                VerticalAlignment="Center"
                                Margin="0,0,0,0"
@@ -453,9 +476,13 @@
                                 Width="280">
                             <StackPanel>
                                 <TextBlock Style="{StaticResource HelpTextStyle}"
-                                           Text="按键间隔是指连续按键之间的时间间隔，单位为毫秒(ms)，1秒=1000毫秒。"/>
+                                           Text="按键间隔是指连续按键之间的时间间隔，单位为毫秒(ms)，1秒=1000毫秒。应用现在对每个按键使用独立的间隔设置。"/>
                                 <TextBlock Style="{StaticResource HelpTextStyle}"
                                            Margin="0,8,0,0">
+                                    <Run Text="• 此处设置仅用于新添加按键的默认间隔值" FontWeight="SemiBold"/>
+                                    <LineBreak/>
+                                    <Run Text="• 每个按键都有自己的间隔设置，可在列表中单独修改"/>
+                                    <LineBreak/>
                                     <Run Text="• 间隔越短，按键速度越快"/>
                                     <LineBreak/>
                                     <Run Text="• 间隔越长，按键速度越慢"/>
@@ -471,6 +498,7 @@
                             </StackPanel>
                         </Border>
                     </Popup>
+                    
                     <TextBox x:Name="txtKeyInterval"
                              Style="{StaticResource ModernTextBox}"
                              IsEnabled="{Binding IsNotExecuting}"
@@ -478,6 +506,7 @@
                              VerticalContentAlignment="Center"
                              TextAlignment="Center"
                              IsReadOnly="False"
+                             ToolTip="新添加按键时使用的默认间隔值"
                              PreviewTextInput="NumberValidationTextBox"
                              GotFocus="NumberInput_GotFocus"
                              LostFocus="NumberInput_LostFocus"

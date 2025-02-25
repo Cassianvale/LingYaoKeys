@@ -131,8 +131,18 @@ namespace WpfApp.Services.Core
 
             try
             {
+                // 设置按键列表到驱动服务
                 _lyKeysService.SetKeyList(selectedKeys);
-                _hotkeyService.SetKeySequence(selectedKeys, KeyInterval);
+                
+                // 将选中的按键及其间隔传递给HotkeyService
+                _hotkeyService.SetKeySequence(
+                    _keyList.Where(k => k.IsSelected)
+                    .Select(k => new KeyItemSettings
+                    {
+                        KeyCode = k.KeyCode,
+                        Interval = k.KeyInterval
+                    }).ToList());
+                
                 _lyKeysService.IsHoldMode = isHoldMode;
                 _lyKeysService.IsEnabled = true;
 
@@ -180,8 +190,18 @@ namespace WpfApp.Services.Core
         private void UpdateHotkeyServiceKeyList()
         {
             var selectedKeys = GetSelectedKeys();
-            _hotkeyService.SetKeySequence(selectedKeys, KeyInterval);
+            
+            // 将选中的按键及其间隔传递给HotkeyService
+            _hotkeyService.SetKeySequence(
+                _keyList.Where(k => k.IsSelected)
+                .Select(k => new KeyItemSettings
+                {
+                    KeyCode = k.KeyCode,
+                    Interval = k.KeyInterval
+                }).ToList());
+            
             _lyKeysService.SetKeyList(selectedKeys);
+            _logger.Debug($"更新按键列表 - 选中按键数: {selectedKeys.Count}, 使用独立按键间隔");
         }
 
         private List<LyKeysCode> GetSelectedKeys()

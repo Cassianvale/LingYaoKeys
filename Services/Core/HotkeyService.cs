@@ -67,6 +67,7 @@ namespace WpfApp.Services.Core
         private readonly MainViewModel _mainViewModel;
         private readonly Window _mainWindow;
         private List<LyKeysCode> _keyList = new List<LyKeysCode>();
+        private List<KeyItemSettings> _keySettings = new List<KeyItemSettings>();
 
         // 热键状态
         private int _startVirtualKey;  // 启动热键虚拟键码
@@ -143,7 +144,6 @@ namespace WpfApp.Services.Core
                 {
                     _keyList = selectedKeys;
                     _lyKeysService.SetKeyList(selectedKeys);
-                    _lyKeysService.KeyInterval = config.interval;
                 }
             }
 
@@ -265,7 +265,7 @@ namespace WpfApp.Services.Core
                 }
 
                 _logger.Debug($"序列已启动 - 模式: {(_lyKeysService.IsHoldMode ? "按压" : "顺序")}, " +
-                             $"按键数: {_keyList.Count}, 间隔: {_lyKeysService.KeyInterval}ms, " +
+                             $"按键数: {_keyList.Count}, 使用独立按键间隔设置, " +
                              $"目标窗口句柄: {_targetWindowHandle}");
                 
                 SequenceModeStarted?.Invoke();
@@ -673,11 +673,29 @@ namespace WpfApp.Services.Core
         }
 
         // 设置按键序列
+        public void SetKeySequence(List<KeyItemSettings> keySettings)
+        {
+            // 仅保存按键码列表
+            _keyList = keySettings.Select(k => k.KeyCode).ToList();
+            
+            // 保存按键设置，包括每个按键的间隔
+            _keySettings = keySettings.ToList();
+            
+            _logger.Debug($"设置按键序列: 按键数={keySettings.Count}, 使用独立按键间隔");
+        }
+
+        // 旧方法保留用于兼容现有代码，但标记为弃用
+        [Obsolete("请使用接受KeyItemSettings列表的重载")]
         public void SetKeySequence(List<LyKeysCode> keys, int interval)
         {
-            _keyList = keys;
-            _lyKeysService.KeyInterval = interval;
-            _logger.Debug($"设置按键序列: 按键数={keys.Count}, 间隔={interval}ms");
+            // 转换为新的格式调用新方法
+            var settings = keys.Select(k => new KeyItemSettings 
+            { 
+                KeyCode = k, 
+                Interval = interval 
+            }).ToList();
+            
+            SetKeySequence(settings);
         }
 
         // 判断是否为鼠标按键
