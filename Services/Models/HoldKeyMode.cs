@@ -1,7 +1,4 @@
-using System;
-using System.Threading;
-using System.Collections.Generic;
-using System.Linq;
+using WpfApp.Services.Core;
 
 // 按键按压模式
 namespace WpfApp.Services.Models
@@ -12,13 +9,12 @@ namespace WpfApp.Services.Models
         private readonly SemaphoreSlim _executionLock = new SemaphoreSlim(1, 1);
         private readonly object _stateLock = new object();
         private bool _isExecuting;  // 当前是否有按键序列正在执行
-        private readonly LyKeysService _driverService;
+        
         // 添加状态消息更新事件
         public event Action<string, bool>? OnStatusMessageUpdated;
         
         public HoldKeyMode(LyKeysService driverService) : base(driverService)
         {
-            _driverService = driverService;
             _isKeyHeld = false; // 用于按压模式的执行控制
             _isExecuting = false;   // 当前是否有按键序列正在执行
         }
@@ -65,7 +61,8 @@ namespace WpfApp.Services.Models
                     {
                         // 执行按键操作
                         PressKey(key);
-                        Thread.Sleep(GetInterval());
+                        // 使用按键的独立间隔，而不是全局间隔
+                        Thread.Sleep(GetInterval(key));
                         
                         // 更新索引
                         currentIndex = (currentIndex + 1) % selectedKeys.Count;

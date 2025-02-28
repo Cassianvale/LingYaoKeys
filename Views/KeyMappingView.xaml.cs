@@ -1,17 +1,14 @@
-using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Navigation;
 using System.Windows.Input;
-using System.Text;
-using System.Collections.ObjectModel;
 using WpfApp.ViewModels;
-using WpfApp.Services;
-using WpfApp.Services.Models;
 using System.Windows.Media;
-using System.Windows.Controls.Primitives;
 using WpfApp.Behaviors;
-using System.Windows.Media.Animation;
+using WpfApp.Services.Core;
+using WpfApp.Services.Utils;
+using WpfApp.Services.Models;
+using System;
 
 // 提供按键映射视图
 namespace WpfApp.Views
@@ -19,7 +16,7 @@ namespace WpfApp.Views
     /// <summary>
     /// KeyMappingView.xaml 的交互逻辑
     /// </summary>
-    public partial class KeyMappingView : Page
+    public partial class KeyMappingView
     {   
         private readonly SerilogManager _logger = SerilogManager.Instance;
         private const string KEY_ERROR = "无法识别按键，请检查输入法是否关闭";
@@ -870,6 +867,37 @@ namespace WpfApp.Views
             {
                 _logger.Error("清除窗口句柄时发生异常", ex);
                 ShowError("清除窗口句柄失败，请查看日志");
+            }
+        }
+
+        /// <summary>
+        /// 删除按键按钮点击事件处理
+        /// </summary>
+        private void DeleteKeyButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Button button && button.Tag is KeyItem keyItem)
+            {
+                // 显示确认对话框
+                var result = System.Windows.MessageBox.Show(
+                    $"确定要删除按键 {keyItem.DisplayName} 吗？",
+                    "删除确认",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    try
+                    {
+                        // 删除按键
+                        ViewModel.DeleteKey(keyItem);
+                        _logger.Debug($"已删除按键: {keyItem.KeyCode}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error("删除按键时发生异常", ex);
+                        System.Windows.MessageBox.Show($"删除按键失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
             }
         }
 

@@ -1,9 +1,9 @@
 using System.Reflection;
 using Newtonsoft.Json;
 using System.Windows.Input;
-using System.Collections.Generic;
+using WpfApp.Services.Core;
 
-namespace WpfApp.Services.Models
+namespace WpfApp.Services.Config
 {
 
     public class LogFileSettings
@@ -63,12 +63,14 @@ namespace WpfApp.Services.Models
         public LyKeysCode Code { get; set; }
         public bool IsSelected { get; set; }
         public bool IsKeyBurst { get; set; }
+        public int KeyInterval { get; set; } = 5;
 
-        public KeyConfig(LyKeysCode code, bool isSelected = true, bool isKeyBurst = false)
+        public KeyConfig(LyKeysCode code, bool isSelected = true, bool isKeyBurst = false, int keyInterval = 5)
         {
             Code = code;
             IsSelected = isSelected;
             IsKeyBurst = isKeyBurst;
+            KeyInterval = keyInterval;
         }
     }
 
@@ -102,6 +104,7 @@ namespace WpfApp.Services.Models
         public List<KeyBurstConfig> KeyBurst { get; set; } = new List<KeyBurstConfig>();
         public bool IsRapidFire { get; set; }
         public int keyMode { get; set; }
+        // 默认按键间隔，仅用于新添加按键时的默认值
         public int interval { get; set; } = 10;
         public bool? soundEnabled { get; set; }
         public bool? IsGameMode { get; set; }
@@ -111,6 +114,9 @@ namespace WpfApp.Services.Models
 
         // 连发功能是否启用
         public bool? IsRapidFireEnabled { get; set; }
+
+        // 是否自动切换到英文输入法
+        public bool? AutoSwitchToEnglishIME { get; set; } = true;
 
         // 窗口句柄相关信息
         public string? TargetWindowClassName { get; set; }
@@ -140,7 +146,6 @@ namespace WpfApp.Services.Models
         public string Version 
         { 
             get => Assembly.GetName().Version?.ToString() ?? "1.0.0";
-            set { /* 允许从配置文件加载但忽略 */ } 
         }
         
         [JsonIgnore]

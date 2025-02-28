@@ -1,7 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
+using WpfApp.Services.Core;
+using WpfApp.Services.Utils;
 
 // 按键模式基类
 namespace WpfApp.Services.Models
@@ -57,7 +55,7 @@ namespace WpfApp.Services.Models
         
         protected virtual void LogModeStart()
         {
-            _logger.SequenceEvent("开始", $"模式: {GetType().Name} | 按键列表: {string.Join(", ", _keyList)} | 间隔: {_driverService.KeyInterval}ms");
+            _logger.SequenceEvent("开始", $"模式: {GetType().Name} | 按键列表: {string.Join(", ", _keyList)} | 使用独立按键间隔");
         }
 
         protected virtual void LogModeEnd()
@@ -66,6 +64,14 @@ namespace WpfApp.Services.Models
         }
 
 
+        // 修改为接收按键代码并获取独立间隔
+        protected int GetInterval(LyKeysCode keyCode)
+        {
+            // 通过驱动服务获取特定按键的间隔
+            return _driverService.GetKeyInterval(keyCode);
+        }
+
+        // 保留无参数版本作为后备（返回默认间隔）
         protected int GetInterval() => _driverService.KeyInterval;
 
         // 设置按键 [按下->松开] 的时间间隔

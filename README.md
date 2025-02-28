@@ -23,8 +23,9 @@
 简体中文 / [English](./README_EN.md)
 
 ❤  如果喜欢本项目可右上角送作者一个`Star`🌟 ❤
-</div>
 </br>
+</div>
+
 <!-- markdownlint-restore -->
 
 ## ✨ 主要功能

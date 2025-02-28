@@ -1,6 +1,4 @@
-using System;
-
-namespace WpfApp.Services
+namespace WpfApp.Services.Events
 {
     /// <summary>
     /// 状态消息事件参数

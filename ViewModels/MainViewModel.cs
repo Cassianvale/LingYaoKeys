@@ -1,20 +1,13 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using WpfApp.Services.Utils;
 using WpfApp.Views;
-using System.IO;
-using System.Threading;
-using WpfApp.Services;
-using WpfApp.ViewModels;
-using WpfApp.Services.Models;
-using System.Windows.Media;
 using System.Windows.Threading;
-using System;
-using System.Collections.Generic;
 using System.Windows.Media.Animation;
-using System.Threading.Tasks;
 using WpfApp.Services.Config;
+using WpfApp.Services.Core;
+using WpfApp.Services.Utils;
+using WpfApp.Services.Events;
 
 namespace WpfApp.ViewModels
 {
@@ -54,6 +47,32 @@ namespace WpfApp.ViewModels
         public void ShowErrorMessage(string message) => UpdateStatusMessage(message, STATUS_COLOR_ERROR);
         public void ShowInfoMessage(string message) => UpdateStatusMessage(message, STATUS_COLOR_INFO);
 
+        // 导航栏状态相关属性
+        private bool _isNavExpanded = true;
+        public bool IsNavExpanded
+        {
+            get => _isNavExpanded;
+            set
+            {
+                if (_isNavExpanded != value)
+                {
+                    _isNavExpanded = value;
+                    OnPropertyChanged(nameof(IsNavExpanded));
+                    OnPropertyChanged(nameof(NavColumnWidth));
+                    OnPropertyChanged(nameof(NavTextVisibility));
+                    OnPropertyChanged(nameof(NavToggleIcon));
+                }
+            }
+        }
+
+        // 导航栏列宽度
+        public GridLength NavColumnWidth => IsNavExpanded ? new GridLength(200) : new GridLength(50);
+
+        // 导航文本可见性
+        public Visibility NavTextVisibility => IsNavExpanded ? Visibility.Visible : Visibility.Collapsed;
+
+        // 导航切换按钮图标
+        public string NavToggleIcon => IsNavExpanded ? "\uE700" : "\uE701";
 
         public AppConfig Config
         {

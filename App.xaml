@@ -1,8 +1,7 @@
 ﻿<Application x:Class="WpfApp.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:converters="clr-namespace:WpfApp.Converters"
-             xmlns:local="clr-namespace:WpfApp">
+             xmlns:converters="clr-namespace:WpfApp.Converters">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>

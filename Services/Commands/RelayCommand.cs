@@ -1,4 +1,3 @@
-using System;
 using System.Windows.Input;
 
 namespace WpfApp.Services.Utils
@@ -8,17 +7,20 @@ namespace WpfApp.Services.Utils
         private readonly Action<T> _execute;
         private readonly Func<T, bool>? _canExecute;
 
+        // 构造函数
         public RelayCommand(Action<T> execute, Func<T, bool>? canExecute = null)
         {
             _execute = execute ?? throw new ArgumentNullException(nameof(execute));
             _canExecute = canExecute;
         }
 
+        // 命令是否可用
         public bool CanExecute(object? parameter)
         {
             return _canExecute?.Invoke((T)parameter!) ?? true;
         }
 
+        // 执行命令
         public void Execute(object? parameter)
         {
             _execute((T)parameter!);

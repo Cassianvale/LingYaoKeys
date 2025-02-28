@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 using System.IO;
 using System.Text;
@@ -20,10 +19,10 @@ namespace WpfApp.Services.Utils
         private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
         [DllImport("kernel32.dll")]
-        private static extern bool SetConsoleOutputCP(uint wCodePageID);
+        private static extern bool SetConsoleOutputCP(uint wCodePageId);
 
         [DllImport("kernel32.dll")]
-        private static extern bool SetConsoleCP(uint wCodePageID);
+        private static extern bool SetConsoleCP(uint wCodePageId);
 
         private const int SW_HIDE = 0;
         private const int SW_SHOW = 5;

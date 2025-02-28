@@ -1,14 +1,12 @@
-using System;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using WpfApp.Services;
 using TextBox = System.Windows.Controls.TextBox;
 using ComboBox = System.Windows.Controls.ComboBox;
 using Application = System.Windows.Application;
 using RichTextBox = System.Windows.Controls.RichTextBox;
 using PasswordBox = System.Windows.Controls.PasswordBox;
+using WpfApp.Services.Utils;
 
 namespace WpfApp.Behaviors
 {

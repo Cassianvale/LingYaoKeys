@@ -1,9 +1,7 @@
-using NAudio.Wave;
-using System;
 using System.IO;
-using System.Threading.Tasks;
-using System.Threading;
 using System.Reflection;
+using NAudio.Wave;
+using WpfApp.Services.Utils;
 
 namespace WpfApp.Services
 {

@@ -1,8 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Windows.Documents;
 using Markdig;
 using Markdig.Syntax;
+using WpfApp.Services.Utils;
 
 namespace WpfApp.Services.Cache
 {

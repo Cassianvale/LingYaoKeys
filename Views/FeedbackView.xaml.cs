@@ -1,10 +1,8 @@
-using System;
-using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace WpfApp.Views
 {
-    public partial class FeedbackView : Page, IDisposable
+    public partial class FeedbackView
     {
         private bool _disposedValue;
         private readonly ViewModels.FeedbackViewModel _viewModel;

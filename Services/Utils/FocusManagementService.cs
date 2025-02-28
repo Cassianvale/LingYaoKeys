@@ -1,15 +1,11 @@
-using System;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Windows.Data;
 using Application = System.Windows.Application;
 using TextBox = System.Windows.Controls.TextBox;
 using ComboBox = System.Windows.Controls.ComboBox;
 
-namespace WpfApp.Services
+namespace WpfApp.Services.Utils
 {
     /// <summary>
     /// 焦点管理服务 - 统一管理应用程序的焦点状态
@@ -28,13 +24,7 @@ namespace WpfApp.Services
         private readonly SerilogManager _logger = SerilogManager.Instance;
 
         public event PropertyChangedEventHandler PropertyChanged;
-        public event EventHandler<FocusChangedEventArgs> FocusChanged;
-
-        private FocusManagementService()
-        {
-            // 私有构造函数，确保单例模式
-        }
-
+        public event EventHandler<FocusChangedEventArgs> FocusChanged;        
         /// <summary>
         /// 当前获得焦点的元素
         /// </summary>

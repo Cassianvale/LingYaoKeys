@@ -1,14 +1,7 @@
-using System;
-using System.IO;
-using System.Text;
 using System.Windows;
-using WpfApp.Services;
-using Markdig;
 using System.Windows.Input;
 using System.Diagnostics;
 using WpfApp.Services.Utils;
-using WpfApp.Views;
-using WpfApp.Services.Models;
 using WpfApp.Services.Config;
 
 namespace WpfApp.ViewModels
@@ -22,11 +15,6 @@ namespace WpfApp.ViewModels
 
         public ICommand OpenGitHubCommand => _openGitHubCommand ??= new RelayCommand(OpenGitHub);
         public ICommand ShowQRCodeCommand => _showQRCodeCommand ??= new RelayCommand(ShowQRCode);
-
-        public AboutViewModel()
-        {
-            // 构造函数保持简单
-        }
 
         private void OpenGitHub()
         {

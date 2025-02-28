@@ -3,7 +3,7 @@ using System.Windows.Input;
 
 namespace WpfApp.Views
 {
-    public partial class UpdateDialog : Window
+    public partial class UpdateDialog
     {
         public string LatestVersion { get; set; }
         public string CurrentVersion { get; set; }

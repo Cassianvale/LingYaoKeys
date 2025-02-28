@@ -3,11 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:WpfApp"
-        xmlns:converters="clr-namespace:WpfApp.Converters"
-        xmlns:viewModels="clr-namespace:WpfApp.ViewModels"
-        xmlns:views="clr-namespace:WpfApp.Views"
-        xmlns:tb="http://www.hardcodet.net/taskbar"
         xmlns:behaviors="clr-namespace:WpfApp.Behaviors"
         xmlns:svgc="http://sharpvectors.codeplex.com/svgc/"
         mc:Ignorable="d"
@@ -85,9 +80,16 @@
                                 <RowDefinition Height="*"/>
                                 <RowDefinition Height="25"/>
                             </Grid.RowDefinitions>
+                            
+                            <Grid.ColumnDefinitions>
+                                <!-- 导航栏列 - 使用绑定宽度实现动态调整 -->
+                                <ColumnDefinition Width="{Binding NavColumnWidth}"/>
+                                <!-- 主内容区域列 -->
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
 
-                            <!-- 标题栏 -->
-                            <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                            <!-- 标题栏 - 跨越所有列 -->
+                            <Grid Grid.Row="0" Grid.ColumnSpan="2" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
@@ -125,15 +127,131 @@
                                 </StackPanel>
                             </Grid>
 
-                            <!-- 主内容区域 -->
-                            <Grid Grid.Row="1" Margin="45,0,0,0">
-                                <Frame x:Name="MainFrame"
-                                       NavigationUIVisibility="Hidden"
-                                       Content="{Binding CurrentPage}"/>
-                            </Grid>
+                            <!-- 左侧导航栏 -->
+                            <Border Grid.Row="1" 
+                                    Grid.Column="0"
+                                    x:Name="NavPanel"
+                                    Background="White"
+                                    BorderThickness="0,0,1,0" 
+                                    BorderBrush="#EEEEEE">
+                                
+                                <DockPanel LastChildFill="True">
+                                    <!-- 折叠按钮 -->
+                                    <Button DockPanel.Dock="Top"
+                                            x:Name="NavToggleButton"
+                                            Style="{StaticResource NavToggleButtonStyle}"
+                                            Content="{Binding NavToggleIcon}"
+                                            Click="NavToggleButton_Click"/>
+                                    
+                                    <!-- 设置按钮 -->
+                                    <RadioButton DockPanel.Dock="Bottom"
+                                               GroupName="NavGroup"
+                                               Style="{StaticResource NavButtonStyle}"
+                                               Command="{Binding NavigateCommand}"
+                                               CommandParameter="Settings"
+                                               Click="NavButton_Click">
+                                        <StackPanel Orientation="Horizontal">
+                                            <svgc:SvgViewbox Source="/Resource/svg/setting.svg" 
+                                                            Width="20" 
+                                                            Height="20"
+                                                            Stretch="Uniform">
+                                                <svgc:SvgViewbox.Resources>
+                                                    <Style TargetType="Path">
+                                                        <Setter Property="Fill" Value="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"/>
+                                                    </Style>
+                                                </svgc:SvgViewbox.Resources>
+                                            </svgc:SvgViewbox>
+                                            <TextBlock Text="设置" 
+                                                     Margin="15,0,0,0"
+                                                     VerticalAlignment="Center"
+                                                     Visibility="{Binding NavTextVisibility}"/>
+                                        </StackPanel>
+                                    </RadioButton>
+                                    
+                                    <!-- 导航菜单 -->
+                                    <StackPanel Margin="0,10,0,0">
+                                        <RadioButton Style="{StaticResource NavButtonStyle}"
+                                                    GroupName="NavGroup"
+                                                    IsChecked="True"
+                                                    Command="{Binding NavigateCommand}"
+                                                    CommandParameter="FrontKeys"
+                                                    Click="NavButton_Click">
+                                            <StackPanel Orientation="Horizontal">
+                                                <svgc:SvgViewbox Source="/Resource/svg/game.svg" 
+                                                                Width="20" 
+                                                                Height="20"
+                                                                Stretch="Uniform">
+                                                    <svgc:SvgViewbox.Resources>
+                                                        <Style TargetType="Path">
+                                                            <Setter Property="Fill" Value="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"/>
+                                                        </Style>
+                                                    </svgc:SvgViewbox.Resources>
+                                                </svgc:SvgViewbox>
+                                                <TextBlock Text="前台按键" 
+                                                         Margin="15,0,0,0"
+                                                         VerticalAlignment="Center"
+                                                         Visibility="{Binding NavTextVisibility}"/>
+                                            </StackPanel>
+                                        </RadioButton>
+                                        
+                                        <RadioButton Style="{StaticResource NavButtonStyle}"
+                                                    GroupName="NavGroup"
+                                                    Command="{Binding NavigateCommand}"
+                                                    CommandParameter="Feedback"
+                                                    Click="NavButton_Click">
+                                            <StackPanel Orientation="Horizontal">
+                                                <svgc:SvgViewbox Source="/Resource/svg/feedback.svg" 
+                                                                Width="20" 
+                                                                Height="20"
+                                                                Stretch="Uniform">
+                                                    <svgc:SvgViewbox.Resources>
+                                                        <Style TargetType="Path">
+                                                            <Setter Property="Fill" Value="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"/>
+                                                        </Style>
+                                                    </svgc:SvgViewbox.Resources>
+                                                </svgc:SvgViewbox>
+                                                <TextBlock Text="问题反馈" 
+                                                         Margin="15,0,0,0"
+                                                         VerticalAlignment="Center"
+                                                         Visibility="{Binding NavTextVisibility}"/>
+                                            </StackPanel>
+                                        </RadioButton>
+                                        
+                                        <RadioButton Style="{StaticResource NavButtonStyle}"
+                                                    GroupName="NavGroup"
+                                                    Command="{Binding NavigateCommand}"
+                                                    CommandParameter="About"
+                                                    Click="NavButton_Click">
+                                            <StackPanel Orientation="Horizontal">
+                                                <svgc:SvgViewbox Source="/Resource/svg/about.svg" 
+                                                                Width="20" 
+                                                                Height="20"
+                                                                Stretch="Uniform">
+                                                    <svgc:SvgViewbox.Resources>
+                                                        <Style TargetType="Path">
+                                                            <Setter Property="Fill" Value="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"/>
+                                                        </Style>
+                                                    </svgc:SvgViewbox.Resources>
+                                                </svgc:SvgViewbox>
+                                                <TextBlock Text="关于" 
+                                                         Margin="15,0,0,0"
+                                                         VerticalAlignment="Center"
+                                                         Visibility="{Binding NavTextVisibility}"/>
+                                            </StackPanel>
+                                        </RadioButton>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
 
-                            <!-- 状态栏 -->
-                            <StatusBar Grid.Row="2" Background="Transparent">
+                            <!-- 主内容区域 -->
+                            <Frame Grid.Row="1" 
+                                   Grid.Column="1"
+                                   x:Name="MainFrame"
+                                   NavigationUIVisibility="Hidden"
+                                   Content="{Binding CurrentPage}"/>
+
+                            <!-- 状态栏 - 跨越所有列 -->
+                            <StatusBar Grid.Row="2" Grid.ColumnSpan="2" Background="Transparent">
                                 <StatusBar.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <Grid>
@@ -155,127 +273,6 @@
                                 </StatusBarItem>
                             </StatusBar>
                         </Grid>
-                    </Border>
-
-                    <!-- 左侧导航栏 -->
-                    <Border x:Name="NavPanel"
-                            Width="40"
-                            HorizontalAlignment="Left"
-                            Background="White"
-                            BorderThickness="0,0,1,0" 
-                            BorderBrush="#EEEEEE"
-                            Margin="7,37,0,30"
-                            Panel.ZIndex="1">
-                        <Border.Effect>
-                            <DropShadowEffect x:Name="NavShadow"
-                                            BlurRadius="15"
-                                            Direction="0"
-                                            ShadowDepth="0"
-                                            Color="#000000"
-                                            Opacity="0"/>
-                        </Border.Effect>
-                        <DockPanel LastChildFill="True">
-                            <!-- 折叠按钮 -->
-                            <Button DockPanel.Dock="Top"
-                                    x:Name="NavToggleButton"
-                                    Style="{StaticResource NavToggleButtonStyle}"
-                                    Content="&#xE701;"
-                                    Click="NavToggleButton_Click"/>
-                            
-                            <!-- 设置按钮 -->
-                            <RadioButton DockPanel.Dock="Bottom"
-                                       GroupName="NavGroup"
-                                       Style="{StaticResource NavButtonStyle}"
-                                       Command="{Binding NavigateCommand}"
-                                       CommandParameter="Settings"
-                                       Click="NavButton_Click">
-                                <StackPanel Orientation="Horizontal">
-                                    <svgc:SvgViewbox Source="/Resource/svg/setting.svg" 
-                                                    Width="16" 
-                                                    Height="16"
-                                                    Stretch="Uniform">
-                                        <svgc:SvgViewbox.Resources>
-                                            <Style TargetType="Path">
-                                                <Setter Property="Fill" Value="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"/>
-                                            </Style>
-                                        </svgc:SvgViewbox.Resources>
-                                    </svgc:SvgViewbox>
-                                    <TextBlock Text="设置" 
-                                             Margin="15,0,0,0"
-                                             VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </RadioButton>
-                            
-                            <!-- 导航菜单 -->
-                            <StackPanel>
-                                <RadioButton Style="{StaticResource NavButtonStyle}"
-                                            GroupName="NavGroup"
-                                            IsChecked="True"
-                                            Command="{Binding NavigateCommand}"
-                                            CommandParameter="FrontKeys"
-                                            Click="NavButton_Click">
-                                    <StackPanel Orientation="Horizontal">
-                                        <svgc:SvgViewbox Source="/Resource/svg/game.svg" 
-                                                        Width="16" 
-                                                        Height="16"
-                                                        Stretch="Uniform">
-                                            <svgc:SvgViewbox.Resources>
-                                                <Style TargetType="Path">
-                                                    <Setter Property="Fill" Value="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"/>
-                                                </Style>
-                                            </svgc:SvgViewbox.Resources>
-                                        </svgc:SvgViewbox>
-                                        <TextBlock Text="前台按键" 
-                                                 Margin="15,0,0,0"
-                                                 VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </RadioButton>
-                                
-                                <RadioButton Style="{StaticResource NavButtonStyle}"
-                                            GroupName="NavGroup"
-                                            Command="{Binding NavigateCommand}"
-                                            CommandParameter="Feedback"
-                                            Click="NavButton_Click">
-                                    <StackPanel Orientation="Horizontal">
-                                        <svgc:SvgViewbox Source="/Resource/svg/feedback.svg" 
-                                                        Width="16" 
-                                                        Height="16"
-                                                        Stretch="Uniform">
-                                            <svgc:SvgViewbox.Resources>
-                                                <Style TargetType="Path">
-                                                    <Setter Property="Fill" Value="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"/>
-                                                </Style>
-                                            </svgc:SvgViewbox.Resources>
-                                        </svgc:SvgViewbox>
-                                        <TextBlock Text="问题反馈" 
-                                                 Margin="15,0,0,0"
-                                                 VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </RadioButton>
-                                
-                                <RadioButton Style="{StaticResource NavButtonStyle}"
-                                            GroupName="NavGroup"
-                                            Command="{Binding NavigateCommand}"
-                                            CommandParameter="About"
-                                            Click="NavButton_Click">
-                                    <StackPanel Orientation="Horizontal">
-                                        <svgc:SvgViewbox Source="/Resource/svg/about.svg" 
-                                                        Width="16" 
-                                                        Height="16"
-                                                        Stretch="Uniform">
-                                            <svgc:SvgViewbox.Resources>
-                                                <Style TargetType="Path">
-                                                    <Setter Property="Fill" Value="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"/>
-                                                </Style>
-                                            </svgc:SvgViewbox.Resources>
-                                        </svgc:SvgViewbox>
-                                        <TextBlock Text="关于" 
-                                                 Margin="15,0,0,0"
-                                                 VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </RadioButton>
-                            </StackPanel>
-                        </DockPanel>
                     </Border>
                 </Grid>
             </Grid>

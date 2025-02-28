@@ -23,8 +23,9 @@
 [简体中文](./README.md) / English
 
 ❤ If you like this project, please give it a `Star`🌟 ❤
-</div>
 </br>
+</div>
+
 <!-- markdownlint-restore -->
 
 ## ✨ Main Features
@@ -56,6 +57,29 @@ You can download the latest version from:
 - [View All Versions](https://github.com/Cassianvale/LingYaoKeys/releases)
 
 > Note: Always download the latest version from the GitHub Releases page to ensure you have the latest features and security updates.
+
+## 🔧 Driver Usage Instructions
+
+### Driver File Description
+- `Resource\lykeysdll\lykeysdll.dll`: Core driver DLL (*Required)  
+- `Resource\lykeysdll\lykeys.sys`: Kernel-level driver file (*Required)  
+- `Resource\lykeysdll\lykeys.cat`: Driver signature file  
+- `Resource\lykeysdll\README.md`: [Driver Interface & Debug Guide](https://github.com/Cassianvale/LingYaoKeys/blob/main/Resource/lykeysdll/README.md)  
+- `Resource\lykeysdll\csharp_example\*`: C# Example Code  
+- `Resource\lykeysdll\python_example\*`: Python Example Code  
+
+### ⚠️ Important Notes
+1. **Driver Signature**  
+   - Driver has genuine digital signature  
+   - Do NOT modify driver files to avoid signature invalidation  
+
+2. **System Requirements**  
+   - Supports Windows 7/10/11 (x86/x64)  
+   - Requires Administrator privileges  
+
+3. **Usage Restrictions**  
+   - For personal study and research only  
+   - Reverse engineering or modification prohibited  
 
 ## 📖 Usage Instructions
 
@@ -99,16 +123,16 @@ Since this project uses Microsoft's latest `.Net Core 8.0`, some users may need 
 
 <img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/wechat_qr.png" width="200px"/>
 
-## 📢 Disclaimer
+## 📢 Disclaimer  
 - **For personal study and research use only, commercial and illegal use is prohibited**
 - **The developer reserves the final right of interpretation for this project**
 - **Strictly prohibited for any use that violates the laws and regulations of the `People's Republic of China (including Taiwan Province)` or the user's region**
 - **Users must comply with relevant laws and regulations when using this project and must not use it for any commercial or illegal purposes. In case of violation, all consequences shall be borne by the user. Meanwhile, users should bear the risks and responsibilities arising from using this project. The project developer makes no warranties regarding the services and content provided by this project**
 - **If you encounter merchants charging for this software, any resulting issues and consequences are not related to this project**
 
-## 📜 License
+## 📜 Open Source License  
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 LingYaoKeys is licensed under [GNU General Public License v3.0](LICENSE)
 
-Copyright © 2025 by Cassianvale. 
+Copyright © 2025 by Cassianvale.
