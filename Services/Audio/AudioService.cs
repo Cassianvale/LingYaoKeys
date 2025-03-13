@@ -17,8 +17,10 @@ namespace WpfApp.Services
         private bool _isPlayingStopSound;
         private bool _isDisposed;
         private readonly object _disposeLock = new object();
+        private bool _audioDeviceAvailable = true;
         
         public bool IsDisposed => _isDisposed;
+        public bool AudioDeviceAvailable => _audioDeviceAvailable;
 
         public AudioService()
         {
@@ -51,12 +53,21 @@ namespace WpfApp.Services
                     throw new FileNotFoundException("音频文件初始化失败，文件不存在");
                 }
 
-                // 验证音频文件可访问性
-                using (var testReader = new MediaFoundationReader(_startSoundPath))
-                using (var testDevice = new WaveOutEvent())
+                // 检测音频设备，但不强制要求可用
+                try
                 {
-                    testDevice.Init(testReader);
-                    _logger.Debug("音频设备初始化测试成功");
+                    using (var testReader = new MediaFoundationReader(_startSoundPath))
+                    using (var testDevice = new WaveOutEvent())
+                    {
+                        testDevice.Init(testReader);
+                        _logger.Debug("音频设备初始化测试成功");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // 捕获音频设备初始化异常，但不影响程序继续运行
+                    _audioDeviceAvailable = false;
+                    _logger.Warning($"音频设备初始化失败，应用将在无声模式下运行: {ex.Message}");
                 }
             }
             catch (Exception ex)
@@ -104,6 +115,13 @@ namespace WpfApp.Services
 
         public async Task PlayStartSound()
         {
+            // 如果音频设备不可用，直接返回
+            if (!_audioDeviceAvailable)
+            {
+                _logger.Debug("音频设备不可用，跳过音效播放");
+                return;
+            }
+            
             lock (_lockObject)
             {
                 // 如果正在播放停止音效，立即停止
@@ -117,6 +135,13 @@ namespace WpfApp.Services
 
         public async Task PlayStopSound()
         {
+            // 如果音频设备不可用，直接返回
+            if (!_audioDeviceAvailable)
+            {
+                _logger.Debug("音频设备不可用，跳过音效播放");
+                return;
+            }
+            
             await PlaySound(_stopSoundPath, false);
         }
 
