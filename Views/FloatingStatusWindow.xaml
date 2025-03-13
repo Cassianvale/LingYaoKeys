@@ -9,7 +9,7 @@
         mc:Ignorable="d"
         Title="浮动状态窗口" 
         Height="40" 
-        Width="100"
+        Width="80"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
