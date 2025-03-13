@@ -147,16 +147,16 @@ namespace WpfApp.Services.Config
     public class WindowConfig
     {
         [JsonIgnore]
-        public double DefaultWidth { get; set; } = 970;
+        public double DefaultWidth { get; set; } = 880;
         [JsonIgnore]
         public double DefaultHeight { get; set; } = 650;
         [JsonIgnore]
-        public double MinWidth { get; set; } = 630;
+        public double MinWidth { get; set; } = 800;
         [JsonIgnore]
-        public double MinHeight { get; set; } = 530;
+        public double MinHeight { get; set; } = 650;
         
         // 当前窗口尺寸
-        public double Width { get; set; } = 970;
+        public double Width { get; set; } = 880;
         public double Height { get; set; } = 650;
     }
 

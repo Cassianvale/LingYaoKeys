@@ -12,772 +12,793 @@
     <Grid>
         <!-- 主要内容 -->
         <Grid x:Name="MainContent" Margin="10">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" MinWidth="300"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-
-            <!-- 左侧按键列表区域 -->
-            <DockPanel Grid.Column="0" Margin="0,0,10,0" MinWidth="300">
-                <!-- 区域标题 -->
-                <Border DockPanel.Dock="Top" 
-                        Background="#F5F5F5" 
-                        CornerRadius="4" 
-                        Padding="10,8" 
-                        Margin="0,0,0,10">
-                    <DockPanel>
-                        <TextBlock Text="按键列表" 
-                                  FontSize="14" 
-                                  FontWeight="SemiBold" 
-                                  Foreground="#333333"
-                                  VerticalAlignment="Center"/>
-                        <TextBlock Text="拖动可调整顺序" 
-                                  FontSize="12" 
-                                  Foreground="#707070" 
-                                  HorizontalAlignment="Right"
-                                  VerticalAlignment="Center"/>
-                    </DockPanel>
-                </Border>
-                
-                <!-- 顶部输入区域 -->
-                <DockPanel DockPanel.Dock="Top" 
-                          Height="32" 
-                          Margin="0,0,0,10">
-                    <Button Style="{StaticResource RoundedShadowButtonSmall}"
-                            Command="{Binding AddKeyCommand}"
-                            Name="btnAddKey"
-                            IsEnabled="{Binding IsNotExecuting}"
-                            Width="95" Height="32"
-                            Margin="0,0,10,0"
-                            DockPanel.Dock="Left"
-                            ToolTip="添加当前输入的按键">
-                        <DockPanel>
-                            <Path Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"
-                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                  Width="16" Height="16"
-                                  Stretch="Uniform"
-                                  Margin="0,0,8,0"/>
-                            <TextBlock Text="添加按键"
-                                      FontSize="13"
-                                      FontWeight="Medium"
-                                      Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                      VerticalAlignment="Center"/>
-                        </DockPanel>
-                    </Button>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <!-- 功能开关组 - 现在作为顶部横向布局 -->
+            <Border Grid.Row="0" 
+                    Background="#FFFFFF" 
+                    BorderBrush="#E0E0E0" 
+                    BorderThickness="1" 
+                    CornerRadius="4" 
+                    Padding="15" 
+                    Margin="0,0,0,10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
                     
-                    <TextBox x:Name="KeyInputBox"
-                             Style="{StaticResource ModernTextBox}"
-                             IsEnabled="{Binding IsNotExecuting}"
-                             Text="{Binding CurrentKeyText, Mode=OneWay}"
-                             PreviewKeyDown="KeyInputBox_PreviewKeyDown"
-                             PreviewMouseDown="KeyInputBox_PreviewMouseDown"
-                             GotFocus="KeyInputBox_GotFocus"
-                             LostFocus="KeyInputBox_LostFocus"
-                             TextAlignment="Center"
-                             Tag="点此输入按键"
-                             IsReadOnly="True"
-                             IsUndoEnabled="False"
-                             CaretBrush="Transparent"/>
-                </DockPanel>
-                        
-                <ListBox x:Name="KeysList" 
-                         IsEnabled="{Binding IsNotExecuting}"
-                         BorderThickness="1"
-                         ItemsSource="{Binding KeyList}"
-                         Background="White"
-                         BorderBrush="#BDBDBD"
-                         PreviewMouseDown="KeysList_PreviewMouseDown"
-                         ScrollViewer.CanContentScroll="True"
-                         VirtualizingStackPanel.IsVirtualizing="True"
-                         VirtualizingStackPanel.VirtualizationMode="Recycling"
-                         Margin="0,0,0,0">
-                    <b:Interaction.Behaviors>
-                        <behaviors:ListBoxDragDropBehavior />
-                    </b:Interaction.Behaviors>
-                    <ListBox.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <UniformGrid Columns="1" 
-                                       HorizontalAlignment="Stretch"
-                                       VerticalAlignment="Top"/>
-                        </ItemsPanelTemplate>
-                    </ListBox.ItemsPanel>
-                    <ListBox.Template>
-                        <ControlTemplate TargetType="ListBox">
-                            <Border Background="{TemplateBinding Background}"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="4">
-                                <ScrollViewer x:Name="ScrollViewer" 
-                                            Padding="4" 
-                                            Focusable="False"
-                                            VerticalScrollBarVisibility="Auto"
-                                            HorizontalScrollBarVisibility="Disabled"
-                                            Template="{DynamicResource ScrollViewerControlTemplate}">
-                                    <StackPanel>
-                                        <!-- 表头 -->
-                                        <Grid Margin="4,2,4,6">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="32"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="80"/>
-                                                <ColumnDefinition Width="50"/>
-                                            </Grid.ColumnDefinitions>
-                                            
-                                            <!-- 删除列表头 -->
-                                            <TextBlock Grid.Column="0"
-                                                      Width="24"
-                                                      TextAlignment="Center"
-                                                      VerticalAlignment="Center"
-                                                      FontSize="12"
-                                                      FontWeight="SemiBold"
-                                                      Foreground="#505050"
-                                                      Text=""/>
-                                            
-                                            <!-- 按键名称列表头 -->
-                                            <TextBlock Grid.Column="1"
-                                                      Margin="4,0,0,0"
-                                                      VerticalAlignment="Center"
-                                                      FontSize="12"
-                                                      FontWeight="SemiBold"
-                                                      Foreground="#505050"
-                                                      Text="按键名称"/>
-                                                
-                                            <!-- 间隔列表头 -->
-                                            <TextBlock Grid.Column="2"
-                                                      TextAlignment="Center"
-                                                      VerticalAlignment="Center"
-                                                      FontSize="12"
-                                                      FontWeight="SemiBold"
-                                                      Foreground="#505050"
-                                                      Margin="0,0,4,0"
-                                                      Text="间隔(ms)"/>
-                                            
-                                            <!-- 状态列表头 -->
-                                            <TextBlock Grid.Column="3"
-                                                      TextAlignment="Center"
-                                                      VerticalAlignment="Center"
-                                                      FontSize="12"
-                                                      FontWeight="SemiBold"
-                                                      Foreground="#505050"
-                                                      Text="状态"/>
-                                        </Grid>
-                                        
-                                        <!-- 分隔线 -->
-                                        <Border Height="1" 
-                                                Margin="4,0,4,6" 
-                                                Background="#BDBDBD"/>
-                                        
-                                        <ItemsPresenter />
-                                    </StackPanel>
-                                </ScrollViewer>
-                            </Border>
-                        </ControlTemplate>
-                    </ListBox.Template>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Border x:Name="itemBorder" 
-                                    Background="Transparent" 
-                                    CornerRadius="4" 
-                                    Padding="4">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="32"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="80"/>
-                                        <ColumnDefinition Width="50"/>
-                                    </Grid.ColumnDefinitions>
+                    <!-- 区域标题 -->
+                    <TextBlock Grid.Row="0" 
+                               Text="功能开关" 
+                               FontSize="14" 
+                               FontWeight="SemiBold" 
+                               Foreground="#333333" 
+                               Margin="0,0,0,10"/>
+                    
+                    <!-- 功能开关区域 - 横向布局 -->
+                    <WrapPanel Grid.Row="1" 
+                              Orientation="Horizontal">
+                        <!-- 总开关 -->
+                        <DockPanel Margin="0,0,20,10">
+                            <TextBlock Text="总开关" 
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,0,0"/>
+                            <CheckBox Style="{StaticResource ModernSwitch}"
+                                     Height="32"
+                                     VerticalContentAlignment="Center"
+                                     HorizontalAlignment="Left"
+                                     Padding="0,0,0,0"
+                                     IsChecked="{Binding IsHotkeyControlEnabled, Mode=TwoWay}"
+                                     ToolTip="启用/禁用所有热键响应功能"/>
+                        </DockPanel>
 
-                                    <!-- 删除按钮 -->
-                                    <Button Grid.Column="0"
-                                            Width="24"
-                                            Height="24"
-                                            VerticalAlignment="Center"
-                                            Style="{StaticResource CircleButtonStyle}"
-                                            Click="DeleteKeyButton_Click"
-                                            Tag="{Binding}">
-                                        <Path Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
-                                              Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                              Width="12" Height="12"
-                                              Stretch="Uniform"/>
-                                        <Button.ToolTip>
-                                            <ToolTip>
-                                                <TextBlock Text="删除此按键"/>
-                                            </ToolTip>
-                                        </Button.ToolTip>
-                                    </Button>
+                        <!-- 声音提示开关 -->
+                        <DockPanel Margin="0,0,20,10">
+                            <TextBlock Text="声音提示" 
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,0,0"/>
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox x:Name="soundToggle"
+                                         Style="{StaticResource ModernSwitch}"
+                                         Height="32"
+                                         VerticalContentAlignment="Center"
+                                         HorizontalAlignment="Left"
+                                         Padding="0,0,0,0"
+                                         IsChecked="{Binding IsSoundEnabled, Mode=TwoWay}"/>
+                                <Button x:Name="btnSoundSettings"
+                                        Style="{StaticResource CircleButtonStyle}"
+                                        Width="24" Height="24"
+                                        Margin="8,0,0,0"
+                                        Click="SoundSettings_Click">
+                                    <Path Data="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"
+                                          Fill="#707070"
+                                          Width="14" Height="14"
+                                          Stretch="Uniform"/>
+                                    <Button.ToolTip>
+                                        <ToolTip>
+                                            <TextBlock Text="音量设置"/>
+                                        </ToolTip>
+                                    </Button.ToolTip>
+                                </Button>
+                            </StackPanel>
+                        </DockPanel>
 
-                                    <!-- 按键名称 -->
-                                    <TextBlock Grid.Column="1"
-                                               Text="{Binding DisplayName}"
-                                               VerticalAlignment="Center"
-                                               FontWeight="Medium"
-                                               Margin="4,0,0,0"
-                                               />
-                                    
-                                    <!-- 按键间隔输入框 -->
-                                    <StackPanel Grid.Column="2" 
-                                                Orientation="Horizontal" 
-                                                VerticalAlignment="Center"
-                                                HorizontalAlignment="Center">
-                                        <TextBox Style="{StaticResource ModernTextBox}"
-                                                 Height="28"
-                                                 Width="70"
-                                                 VerticalContentAlignment="Center"
-                                                 TextAlignment="Center"
-                                                 FontSize="12"
-                                                 Padding="2,4,2,4"
-                                                 ToolTip="按键间隔(ms)"
-                                                 PreviewTextInput="NumberValidationTextBox"
-                                                 GotFocus="NumberInput_GotFocus"
-                                                 LostFocus="NumberInput_LostFocus"
-                                                 Text="{Binding KeyInterval, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                                        <TextBlock Margin="0,0,0,0" 
-                                                  VerticalAlignment="Center" 
+                        <!-- 音量设置浮窗 -->
+                        <Popup x:Name="soundSettingsPopup"
+                               PlacementTarget="{Binding ElementName=btnSoundSettings}"
+                               Placement="Bottom"
+                               AllowsTransparency="True"
+                               PopupAnimation="Fade"
+                               StaysOpen="False">
+                            <Border Background="White"
+                                    BorderBrush="#E0E0E0"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="12">
+                                <Grid Width="240">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- 音量控制 -->
+                                    <Grid Grid.Row="0" 
+                                          IsEnabled="{Binding CanAdjustVolume}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- 低音量图标 -->
+                                        <Path Grid.Column="0"
+                                              Data="M5,9V15H9L14,20V4L9,9H5M18.5,12C18.5,10.23 17.5,8.71 16,7.97V16C17.5,15.29 18.5,13.76 18.5,12Z"
+                                              Fill="#707070"
+                                              Width="16"
+                                              Height="16"
+                                              Stretch="Uniform"
+                                              Margin="0,0,8,0"
+                                              VerticalAlignment="Center"/>
+
+                                        <!-- 音量滑动条 -->
+                                        <Slider Grid.Column="1"
+                                                x:Name="volumeSlider"
+                                                Style="{StaticResource VolumeSliderStyle}"
+                                                Minimum="0"
+                                                Maximum="1"
+                                                SmallChange="0.01"
+                                                LargeChange="0.05"
+                                                TickFrequency="0.1"
+                                                Margin="0,0,8,0"
+                                                Value="{Binding SoundVolume, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                VerticalAlignment="Center"/>
+
+                                        <!-- 高音量图标 -->
+                                        <Path Grid.Column="2"
+                                              Data="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"
+                                              Fill="#707070"
+                                              Width="16"
+                                              Height="16"
+                                              Stretch="Uniform"
+                                              Margin="0,0,8,0"
+                                              VerticalAlignment="Center"/>
+
+                                        <!-- 当前音量百分比文本 -->
+                                        <TextBlock Grid.Column="3"
+                                                  Text="{Binding SoundVolume, StringFormat={}{0:P0}}"
+                                                  Width="40"
+                                                  Foreground="#505050"
                                                   FontSize="12"
-                                                  Foreground="#707070"/>
-                                    </StackPanel>
-                                    
-                                    <!-- ModernSwitch 开关 -->
-                                    <CheckBox Grid.Column="3"
-                                             Height="32"
-                                             Width="50"
-                                             HorizontalAlignment="Center"
-                                             VerticalAlignment="Center"
-                                             VerticalContentAlignment="Center">
-                                        <CheckBox.Style>
-                                            <Style TargetType="CheckBox" BasedOn="{StaticResource ModernSwitch}">
-                                                <Setter Property="IsChecked" Value="{Binding IsSelected}"/>
-                                            </Style>
-                                        </CheckBox.Style>
-                                    </CheckBox>
+                                                  TextAlignment="Right"
+                                                  VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <!-- 提示文本 -->
+                                    <TextBlock Grid.Row="1"
+                                              Margin="0,8,0,0"
+                                              Foreground="#707070"
+                                              FontSize="12"
+                                              TextWrapping="Wrap"
+                                              Text="注意：如果音量滑动条被禁用，说明系统未检测到有效的音频设备"/>
                                 </Grid>
                             </Border>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="Height" Value="42"/>
-                            <Setter Property="Margin" Value="4,1"/>
-                            <Setter Property="Padding" Value="0"/>
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                            <Setter Property="VerticalContentAlignment" Value="Center"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ListBoxItem">
-                                        <Border x:Name="Bd"
-                                                Background="{TemplateBinding Background}"
-                                                BorderThickness="0"
-                                                CornerRadius="4"
-                                                Padding="{TemplateBinding Padding}"
-                                                SnapsToDevicePixels="true">
-                                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="true">
-                                                <Setter Property="Background" Value="#F5F9FF"/>
-                                            </Trigger>
-                                            <Trigger Property="IsSelected" Value="true">
-                                                <Setter Property="Background" Value="#E3F2FD"/>
-                                            </Trigger>
-                                            <Trigger Property="behaviors:DragDropProperties.IsDragTarget" Value="true">
-                                                <Setter Property="Background" Value="#E3F2FD"/>
-                                            </Trigger>
-                                            <MultiTrigger>
-                                                <MultiTrigger.Conditions>
-                                                    <Condition Property="IsSelected" Value="true"/>
-                                                    <Condition Property="Selector.IsSelectionActive" Value="false"/>
-                                                </MultiTrigger.Conditions>
-                                                <Setter Property="Background" Value="#E3F2FD"/>
-                                            </MultiTrigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </ListBox.ItemContainerStyle>
-                </ListBox>
-            </DockPanel>
+                        </Popup>
+                        
+                        <!-- 游戏模式 -->
+                        <DockPanel Margin="0,0,20,10">
+                            <TextBlock Text="游戏模式" 
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,0,0"/>
+                            <CheckBox Style="{StaticResource ModernSwitch}"
+                                     Height="32"
+                                     VerticalContentAlignment="Center"
+                                     HorizontalAlignment="Left"
+                                     Padding="0,0,0,0"
+                                     IsChecked="{Binding IsGameMode, Mode=TwoWay}"/>
+                        </DockPanel>
+                        
+                        <!-- 状态浮窗 -->
+                        <DockPanel Margin="0,0,20,10">
+                            <TextBlock Text="状态浮窗" 
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,0,0"/>
+                            <CheckBox Style="{StaticResource ModernSwitch}"
+                                     Height="32"
+                                     VerticalContentAlignment="Center"
+                                     HorizontalAlignment="Left"
+                                     Padding="0,0,0,0"
+                                     IsChecked="{Binding IsFloatingWindowEnabled, Mode=TwoWay}"/>
+                        </DockPanel>
+                        
+                        <!-- 切换输入法 -->
+                        <DockPanel Margin="0,0,0,0">
+                            <TextBlock Text="切换输入法" 
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,0,0"/>
+                            <CheckBox Style="{StaticResource ModernSwitch}"
+                                     Height="32"
+                                     VerticalContentAlignment="Center"
+                                     HorizontalAlignment="Left"
+                                     Padding="0,0,0,0"
+                                     IsChecked="{Binding AutoSwitchToEnglishIME, Mode=TwoWay}"
+                                     ToolTip="启用后，程序会在启动时自动切换到英文输入法，停止时恢复原输入法"/>
+                        </DockPanel>
+                    </WrapPanel>
+                </Grid>
+            </Border>
 
-            <!-- 右侧设置区域 -->
-            <StackPanel Grid.Column="1" Width="220">
-                <!-- 区域标题 -->
-                <Border Background="#F5F5F5" 
-                        CornerRadius="4" 
-                        Padding="10,8" 
-                        Margin="0,0,0,10">
-                    <TextBlock Text="按键设置" 
-                              FontSize="14" 
-                              FontWeight="SemiBold" 
-                              Foreground="#333333"/>
-                </Border>
-                
-                <!-- 窗口句柄组 -->
-                <Border Background="#FFFFFF" 
-                        BorderBrush="#E0E0E0" 
-                        BorderThickness="1" 
-                        CornerRadius="4" 
-                        Padding="10" 
-                        Margin="0,0,0,10">
-                    <StackPanel>
-                        <TextBlock Text="窗口句柄" 
-                                  FontSize="12" 
-                                  FontWeight="SemiBold" 
-                                  Foreground="#505050" 
-                                  Margin="0,0,0,8"/>
-                                  
-                        <!-- 获取窗口句柄按钮 -->
+            <!-- 主要内容区域 -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="300"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 左侧按键列表区域 -->
+                <DockPanel Grid.Column="0" Margin="0,0,10,0" MinWidth="300">
+                    <!-- 区域标题 -->
+                    <Border DockPanel.Dock="Top" 
+                            Background="#F5F5F5" 
+                            CornerRadius="4" 
+                            Padding="10,8" 
+                            Margin="0,0,0,10">
+                        <DockPanel>
+                            <TextBlock Text="按键列表" 
+                                      FontSize="14" 
+                                      FontWeight="SemiBold" 
+                                      Foreground="#333333"
+                                      VerticalAlignment="Center"/>
+                            <TextBlock Text="拖动可调整顺序" 
+                                      FontSize="12" 
+                                      Foreground="#707070" 
+                                      HorizontalAlignment="Right"
+                                      VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </Border>
+                    
+                    <!-- 顶部输入区域 -->
+                    <DockPanel DockPanel.Dock="Top" 
+                              Height="32" 
+                              Margin="0,0,0,10">
                         <Button Style="{StaticResource RoundedShadowButtonSmall}"
-                                Name="btnGetWindowHandle"
+                                Command="{Binding AddKeyCommand}"
+                                Name="btnAddKey"
                                 IsEnabled="{Binding IsNotExecuting}"
-                                Height="32"
-                                Margin="0,0,0,8"
-                                Click="GetWindowHandle_Click">
+                                Width="95" Height="32"
+                                Margin="0,0,10,0"
+                                DockPanel.Dock="Left"
+                                ToolTip="添加当前输入的按键">
                             <DockPanel>
-                                <Path Data="M13,9V3.5L18.5,9M6,2C4.89,2 4,2.89 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6Z"
+                                <Path Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"
                                       Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
                                       Width="16" Height="16"
                                       Stretch="Uniform"
                                       Margin="0,0,8,0"/>
-                                <TextBlock Text="获取窗口句柄"
-                                         VerticalAlignment="Center"/>
+                                <TextBlock Text="添加按键"
+                                          FontSize="13"
+                                          FontWeight="Medium"
+                                          Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                          VerticalAlignment="Center"/>
                             </DockPanel>
                         </Button>
-
-                        <!-- 窗口句柄显示 -->
-                        <DockPanel Margin="0,0,0,0">
-                            <TextBlock Text="句柄" 
-                                      DockPanel.Dock="Left" 
-                                      VerticalAlignment="Center"
-                                      Margin="0,0,10,0"/>
-                            <Button Style="{StaticResource CircleButtonStyle}"
-                                    DockPanel.Dock="Right"
-                                    Width="24" Height="24"
-                                    Margin="8,0,0,0"
-                                    Click="ClearWindowHandle_Click"
-                                    ToolTip="清除选择">
-                                <Path Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
-                                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                      Width="14" Height="14"
-                                      Stretch="Uniform"/>
-                            </Button>
-                            <TextBox x:Name="txtWindowHandle"
-                                    Style="{StaticResource ModernTextBox}"
-                                    IsReadOnly="True"
-                                    Text="{Binding SelectedWindowTitle, Mode=OneWay}"
-                                    Tag="未选择窗口"
-                                    ToolTip="{Binding SelectedWindowClassName}"/>
-                        </DockPanel>
-                    </StackPanel>
-                </Border>
-                
-                <!-- 热键设置组 -->
-                <Border Background="#FFFFFF" 
-                        BorderBrush="#E0E0E0" 
-                        BorderThickness="1" 
-                        CornerRadius="4" 
-                        Padding="10" 
-                        Margin="0,0,0,10">
-                    <StackPanel>
-                        <TextBlock Text="热键设置" 
-                                  FontSize="12" 
-                                  FontWeight="SemiBold" 
-                                  Foreground="#505050" 
-                                  Margin="0,0,0,8"/>
-                                  
-                        <!-- 热键总开关 -->
-                        <DockPanel Margin="0,0,0,8">
-                            <TextBlock Text="总开关" 
-                                      DockPanel.Dock="Left" 
-                                      VerticalAlignment="Center" 
-                                      Width="50"
-                                      Margin="0,0,10,0"/>
-                            <CheckBox Style="{StaticResource ModernSwitch}"
-                                     Height="32"
-                                     Width="50"
-                                     IsChecked="{Binding IsHotkeyControlEnabled, Mode=TwoWay}"
-                                     HorizontalAlignment="Left"
-                                     VerticalAlignment="Center"
-                                     ToolTip="启用/禁用所有热键响应功能">
-                            </CheckBox>
-                        </DockPanel>
-                                  
-                        <!-- 按键设置区域 -->
-                        <DockPanel Margin="0,0,0,8">
-                            <TextBlock Text="启动键" 
-                                      DockPanel.Dock="Left" 
-                                      VerticalAlignment="Center" 
-                                      Width="50"
-                                      Margin="0,0,10,0"/>
-                            <TextBox x:Name="txtStartHotkey"
-                                     Style="{StaticResource ModernTextBox}"
-                                     IsEnabled="{Binding IsNotExecuting}"
-                                     Tag="空"
-                                     IsReadOnly="True"
-                                     Text="{Binding StartHotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                                     IsUndoEnabled="False"
-                                     CaretBrush="Transparent"
-                                     TextAlignment="Center"
-                                     PreviewKeyDown="StartHotkeyInput_PreviewKeyDown"
-                                     KeyDown="StartHotkeyInput_KeyDown"
-                                     PreviewMouseDown="StartHotkeyInput_PreviewMouseDown"
-                                     PreviewMouseUp="StartHotkeyInput_PreviewMouseUp"
-                                     PreviewMouseWheel="StartHotkeyInput_PreviewMouseWheel"
-                                     MouseDown="StartHotkeyInput_MouseDown"
-                                     GotFocus="HotkeyInputBox_GotFocus"
-                                     LostFocus="HotkeyInputBox_LostFocus"/>
-                        </DockPanel>
-
-                        <DockPanel Margin="0,0,0,0" 
-                                   Visibility="{Binding IsSequenceMode, Converter={StaticResource BoolToVisibilityConverter}}">
-                            <TextBlock Text="停止键" 
-                                      DockPanel.Dock="Left" 
-                                      VerticalAlignment="Center" 
-                                      Width="50"
-                                      Margin="0,0,10,0"/>
-                            <TextBox x:Name="txtStopHotkey"
-                                     Style="{StaticResource ModernTextBox}"
-                                     IsEnabled="{Binding IsNotExecuting}"
-                                     Tag="空"
-                                     IsReadOnly="True"
-                                     Text="{Binding StopHotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                                     IsUndoEnabled="False"
-                                     CaretBrush="Transparent"
-                                     TextAlignment="Center"
-                                     PreviewKeyDown="StopHotkeyInput_PreviewKeyDown"
-                                     PreviewMouseDown="StopHotkeyInput_PreviewMouseDown"
-                                     PreviewMouseWheel="StopHotkeyInput_PreviewMouseWheel"
-                                     GotFocus="HotkeyInputBox_GotFocus"
-                                     LostFocus="HotkeyInputBox_LostFocus"/>
-                        </DockPanel>
-                    </StackPanel>
-                </Border>
-                
-                <!-- 按键模式和间隔设置组 -->
-                <Border Background="#FFFFFF" 
-                        BorderBrush="#E0E0E0" 
-                        BorderThickness="1" 
-                        CornerRadius="4" 
-                        Padding="10" 
-                        Margin="0,0,0,10">
-                    <StackPanel>
-                        <TextBlock Text="模式与间隔" 
-                                  FontSize="12" 
-                                  FontWeight="SemiBold" 
-                                  Foreground="#505050" 
-                                  Margin="0,0,0,8"/>
-                                  
-                        <!-- 按键模式和间隔设置 -->
-                        <DockPanel Margin="0,0,0,8">
-                            <TextBlock Text="按键模式" 
-                                       DockPanel.Dock="Left" 
-                                       VerticalAlignment="Center" 
-                                       Width="50"
-                                       Margin="0,0,0,0"/>
-                            <Button x:Name="btnModeHelp"
-                                    DockPanel.Dock="Left"
-                                    Style="{StaticResource CircleHelpButtonStyle}"
-                                    Width="18" Height="18"
-                                    FontSize="11"
-                                    Margin="0,0,10,0"
-                                    Click="ModeHelp_Click"
-                                    Content="?"
-                                    FontWeight="SemiBold">
-                                <Button.ToolTip>
-                                    <ToolTip>
-                                        <TextBlock Text="点击查看按键模式说明"/>
-                                    </ToolTip>
-                                </Button.ToolTip>
-                            </Button>
-
-                            <!-- 按键模式帮助提示浮窗 -->
-                            <Popup x:Name="modeHelpPopup" 
-                                   PlacementTarget="{Binding ElementName=btnModeHelp}"
-                                   Placement="Right" 
-                                   AllowsTransparency="True" 
-                                   PopupAnimation="Fade"
-                                   StaysOpen="False">
-                                <Border Style="{StaticResource HelpPopupStyle}"
-                                        Width="280">
-                                    <StackPanel>
-                                        <TextBlock Style="{StaticResource HelpTextStyle}"
-                                                   Text="按键模式决定了按键的触发方式："/>
-                                        <TextBlock Style="{StaticResource HelpTextStyle}"
-                                                   Margin="0,8,0,0">
-                                            <Run Text="• 顺序模式" FontWeight="SemiBold"/>
-                                            <LineBreak/>
-                                            <Run Text="  按下启动键开始，按下停止键结束"/>
-                                            <LineBreak/>
-                                            <Run Text="  适合需要精确控制开始和结束的场景"/>
-                                            <LineBreak/>
-                                            <LineBreak/>
-                                            <Run Text="• 按压模式" FontWeight="SemiBold"/>
-                                            <LineBreak/>
-                                            <Run Text="  按住启动键时持续执行，松开后停止"/>
-                                            <LineBreak/>
-                                            <Run Text="  适合需要快速切换状态的场景"/>
-                                        </TextBlock>
-                                    </StackPanel>
+                        
+                        <TextBox x:Name="KeyInputBox"
+                                 Style="{StaticResource ModernTextBox}"
+                                 IsEnabled="{Binding IsNotExecuting}"
+                                 Text="{Binding CurrentKeyText, Mode=OneWay}"
+                                 PreviewKeyDown="KeyInputBox_PreviewKeyDown"
+                                 PreviewMouseDown="KeyInputBox_PreviewMouseDown"
+                                 GotFocus="KeyInputBox_GotFocus"
+                                 LostFocus="KeyInputBox_LostFocus"
+                                 TextAlignment="Center"
+                                 Tag="点此输入按键"
+                                 IsReadOnly="True"
+                                 IsUndoEnabled="False"
+                                 CaretBrush="Transparent"/>
+                    </DockPanel>
+                        
+                    <ListBox x:Name="KeysList" 
+                             IsEnabled="{Binding IsNotExecuting}"
+                             BorderThickness="1"
+                             ItemsSource="{Binding KeyList}"
+                             Background="White"
+                             BorderBrush="#BDBDBD"
+                             PreviewMouseDown="KeysList_PreviewMouseDown"
+                             ScrollViewer.CanContentScroll="True"
+                             VirtualizingStackPanel.IsVirtualizing="True"
+                             VirtualizingStackPanel.VirtualizationMode="Recycling"
+                             Margin="0,0,0,0">
+                        <b:Interaction.Behaviors>
+                            <behaviors:ListBoxDragDropBehavior />
+                        </b:Interaction.Behaviors>
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="1" 
+                                           HorizontalAlignment="Stretch"
+                                           VerticalAlignment="Top"/>
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.Template>
+                            <ControlTemplate TargetType="ListBox">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="4">
+                                    <ScrollViewer x:Name="ScrollViewer" 
+                                                Padding="4" 
+                                                Focusable="False"
+                                                VerticalScrollBarVisibility="Auto"
+                                                HorizontalScrollBarVisibility="Disabled"
+                                                Template="{DynamicResource ScrollViewerControlTemplate}">
+                                        <StackPanel>
+                                            <!-- 表头 -->
+                                            <Grid Margin="4,2,4,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="32"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="80"/>
+                                                    <ColumnDefinition Width="50"/>
+                                                </Grid.ColumnDefinitions>
+                                                
+                                                <!-- 删除列表头 -->
+                                                <TextBlock Grid.Column="0"
+                                                          Width="24"
+                                                          TextAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          FontSize="12"
+                                                          FontWeight="SemiBold"
+                                                          Foreground="#505050"
+                                                          Text=""/>
+                                                
+                                                <!-- 按键名称列表头 -->
+                                                <TextBlock Grid.Column="1"
+                                                          Margin="4,0,0,0"
+                                                          VerticalAlignment="Center"
+                                                          FontSize="12"
+                                                          FontWeight="SemiBold"
+                                                          Foreground="#505050"
+                                                          Text="按键名称"/>
+                                                
+                                                <!-- 间隔列表头 -->
+                                                <TextBlock Grid.Column="2"
+                                                          TextAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          FontSize="12"
+                                                          FontWeight="SemiBold"
+                                                          Foreground="#505050"
+                                                          Margin="0,0,4,0"
+                                                          Text="间隔(ms)"/>
+                                                
+                                                <!-- 状态列表头 -->
+                                                <TextBlock Grid.Column="3"
+                                                          TextAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          FontSize="12"
+                                                          FontWeight="SemiBold"
+                                                          Foreground="#505050"
+                                                          Text="状态"/>
+                                            </Grid>
+                                            
+                                            <!-- 分隔线 -->
+                                            <Border Height="1" 
+                                                    Margin="4,0,4,6" 
+                                                    Background="#BDBDBD"/>
+                                            
+                                            <ItemsPresenter />
+                                        </StackPanel>
+                                    </ScrollViewer>
                                 </Border>
-                            </Popup>
+                            </ControlTemplate>
+                        </ListBox.Template>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border x:Name="itemBorder" 
+                                        Background="Transparent" 
+                                        CornerRadius="4" 
+                                        Padding="4">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="32"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="50"/>
+                                        </Grid.ColumnDefinitions>
 
-                            <ComboBox x:Name="cboKeyMode"
-                                      Style="{StaticResource ModernComboBox}"
-                                      ItemContainerStyle="{StaticResource ModernComboBoxItem}"
-                                      Width="120"
-                                      Height="32"
-                                      VerticalContentAlignment="Center"
-                                      HorizontalContentAlignment="Center"
-                                      ItemsSource="{Binding KeyModes}"
-                                      SelectedIndex="{Binding SelectedKeyMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding}" 
-                                                  HorizontalAlignment="Center"/>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                        </DockPanel>
+                                        <!-- 删除按钮 -->
+                                        <Button Grid.Column="0"
+                                                Width="24"
+                                                Height="24"
+                                                VerticalAlignment="Center"
+                                                Style="{StaticResource CircleButtonStyle}"
+                                                Click="DeleteKeyButton_Click"
+                                                Tag="{Binding}">
+                                            <Path Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
+                                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                  Width="12" Height="12"
+                                                  Stretch="Uniform"/>
+                                            <Button.ToolTip>
+                                                <ToolTip>
+                                                    <TextBlock Text="删除此按键"/>
+                                                </ToolTip>
+                                            </Button.ToolTip>
+                                        </Button>
 
-                        <DockPanel Margin="0,0,0,0">
-                            <TextBlock Text="默认间隔" 
-                                       DockPanel.Dock="Left" 
-                                       VerticalAlignment="Center"
-                                       Width="50"
-                                       Margin="0,0,0,0"/>
-                            <Button x:Name="btnIntervalHelp"
-                                    DockPanel.Dock="Left"
-                                    Style="{StaticResource CircleHelpButtonStyle}"
-                                    Width="18" Height="18"
-                                    FontSize="11"
-                                    Margin="0,0,10,0"
-                                    Click="IntervalHelp_Click"
-                                    Content="?"
-                                    FontWeight="SemiBold">
-                                <Button.ToolTip>
-                                    <ToolTip>
-                                        <TextBlock Text="点击查看按键间隔说明"/>
-                                    </ToolTip>
-                                </Button.ToolTip>
-                            </Button>
-
-                            <!-- 帮助提示浮窗 -->
-                            <Popup x:Name="helpPopup" 
-                                   PlacementTarget="{Binding ElementName=btnIntervalHelp}"
-                                   Placement="Right" 
-                                   AllowsTransparency="True" 
-                                   PopupAnimation="Fade"
-                                   StaysOpen="False">
-                                <Border Style="{StaticResource HelpPopupStyle}"
-                                        Width="280">
-                                    <StackPanel>
-                                        <TextBlock Style="{StaticResource HelpTextStyle}"
-                                                   Text="按键间隔是指连续按键之间的时间间隔，单位为毫秒(ms)，1秒=1000毫秒。应用现在对每个按键使用独立的间隔设置。"/>
-                                        <TextBlock Style="{StaticResource HelpTextStyle}"
-                                                   Margin="0,8,0,0">
-                                            <Run Text="• 此处设置仅用于新添加按键的默认间隔值" FontWeight="SemiBold"/>
-                                            <LineBreak/>
-                                            <Run Text="• 每个按键都有自己的间隔设置，可在列表中单独修改"/>
-                                            <LineBreak/>
-                                            <Run Text="• 间隔越短，按键速度越快"/>
-                                            <LineBreak/>
-                                            <Run Text="• 间隔越长，按键速度越慢"/>
-                                            <LineBreak/>
-                                            <Run Text="• 建议值范围：5-10ms"/>
-                                            <LineBreak/>
-                                            <Run Text="• 最小值：1ms"/>
-                                        </TextBlock>
-                                        <TextBlock Style="{StaticResource HelpTextStyle}"
-                                                   Margin="0,8,0,0"
-                                                   Foreground="#F44336"
-                                                   Text="注意：设置过短的间隔可能导致按键不稳定或游戏无法正确识别"/>
-                                    </StackPanel>
+                                        <!-- 按键名称 -->
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding DisplayName}"
+                                                   VerticalAlignment="Center"
+                                                   FontWeight="Medium"
+                                                   Margin="4,0,0,0"
+                                                   />
+                                        
+                                        <!-- 按键间隔输入框 -->
+                                        <StackPanel Grid.Column="2" 
+                                                    Orientation="Horizontal" 
+                                                    VerticalAlignment="Center"
+                                                    HorizontalAlignment="Center">
+                                            <TextBox Style="{StaticResource ModernTextBox}"
+                                                     Height="28"
+                                                     Width="70"
+                                                     VerticalContentAlignment="Center"
+                                                     TextAlignment="Center"
+                                                     FontSize="12"
+                                                     Padding="2,4,2,4"
+                                                     ToolTip="按键间隔(ms)"
+                                                     PreviewTextInput="NumberValidationTextBox"
+                                                     GotFocus="NumberInput_GotFocus"
+                                                     LostFocus="NumberInput_LostFocus"
+                                                     Text="{Binding KeyInterval, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                            <TextBlock Margin="0,0,0,0" 
+                                                      VerticalAlignment="Center" 
+                                                      FontSize="12"
+                                                      Foreground="#707070"/>
+                                        </StackPanel>
+                                        
+                                        <!-- ModernSwitch 开关 -->
+                                        <CheckBox Grid.Column="3"
+                                                 Height="32"
+                                                 Width="50"
+                                                 HorizontalAlignment="Center"
+                                                 VerticalAlignment="Center"
+                                                 VerticalContentAlignment="Center">
+                                            <CheckBox.Style>
+                                                <Style TargetType="CheckBox" BasedOn="{StaticResource ModernSwitch}">
+                                                    <Setter Property="IsChecked" Value="{Binding IsSelected}"/>
+                                                </Style>
+                                            </CheckBox.Style>
+                                        </CheckBox>
+                                    </Grid>
                                 </Border>
-                            </Popup>
-                            
-                            <TextBox x:Name="txtKeyInterval"
-                                     Style="{StaticResource ModernTextBox}"
-                                     IsEnabled="{Binding IsNotExecuting}"
-                                     Width="120"
-                                     VerticalContentAlignment="Center"
-                                     TextAlignment="Center"
-                                     IsReadOnly="False"
-                                     ToolTip="新添加按键时使用的默认间隔值"
-                                     PreviewTextInput="NumberValidationTextBox"
-                                     GotFocus="NumberInput_GotFocus"
-                                     LostFocus="NumberInput_LostFocus"
-                                     Text="{Binding KeyInterval, Converter={StaticResource IntToStringConverter}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DockPanel.Dock="Left"/>
-                        </DockPanel>
-                    </StackPanel>
-                </Border>
-                
-                <!-- 功能开关组 -->
-                <Border Background="#FFFFFF" 
-                        BorderBrush="#E0E0E0" 
-                        BorderThickness="1" 
-                        CornerRadius="4" 
-                        Padding="10" 
-                        Margin="0,0,0,0">
-                    <StackPanel>
-                        <TextBlock Text="功能开关" 
-                                  FontSize="12" 
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Height" Value="42"/>
+                                <Setter Property="Margin" Value="4,1"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="Bd"
+                                                    Background="{TemplateBinding Background}"
+                                                    BorderThickness="0"
+                                                    CornerRadius="4"
+                                                    Padding="{TemplateBinding Padding}"
+                                                    SnapsToDevicePixels="true">
+                                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="true">
+                                                    <Setter Property="Background" Value="#F5F9FF"/>
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="true">
+                                                    <Setter Property="Background" Value="#E3F2FD"/>
+                                                </Trigger>
+                                                <Trigger Property="behaviors:DragDropProperties.IsDragTarget" Value="true">
+                                                    <Setter Property="Background" Value="#E3F2FD"/>
+                                                </Trigger>
+                                                <MultiTrigger>
+                                                    <MultiTrigger.Conditions>
+                                                        <Condition Property="IsSelected" Value="true"/>
+                                                        <Condition Property="Selector.IsSelectionActive" Value="false"/>
+                                                    </MultiTrigger.Conditions>
+                                                    <Setter Property="Background" Value="#E3F2FD"/>
+                                                </MultiTrigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+                </DockPanel>
+
+                <!-- 右侧设置区域 -->
+                <StackPanel Grid.Column="1" Width="220">
+                    <!-- 区域标题 -->
+                    <Border Background="#F5F5F5" 
+                            CornerRadius="4" 
+                            Padding="10,8" 
+                            Margin="0,0,0,10">
+                        <TextBlock Text="按键设置" 
+                                  FontSize="14" 
                                   FontWeight="SemiBold" 
-                                  Foreground="#505050" 
-                                  Margin="0,0,0,8"/>
-                                  
-                        <!-- 底部设置区域重新布局 -->
-                        <StackPanel Margin="0,0,0,0">
-                            <!-- 声音提示 -->
-                            <CheckBox Style="{StaticResource ModernSwitch}"
-                                      Content="声音提示" 
-                                      Height="32"
-                                      VerticalContentAlignment="Center"
-                                      HorizontalAlignment="Left"
-                                      Margin="0,0,0,0"
-                                      Padding="0,0,0,0"
-                                      IsChecked="{Binding IsSoundEnabled, Mode=TwoWay}"/>
+                                  Foreground="#333333"/>
+                    </Border>
+                    
+                    <!-- 窗口句柄组 -->
+                    <Border Background="#FFFFFF" 
+                            BorderBrush="#E0E0E0" 
+                            BorderThickness="1" 
+                            CornerRadius="4" 
+                            Padding="10" 
+                            Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="窗口句柄" 
+                                      FontSize="12" 
+                                      FontWeight="SemiBold" 
+                                      Foreground="#505050" 
+                                      Margin="0,0,0,8"/>
                                       
-                            <!-- 音量滑动条 -->
-                            <Grid Margin="0,8,0,8" 
-                                  IsEnabled="{Binding CanAdjustVolume}">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
+                            <!-- 获取窗口句柄按钮 -->
+                            <Button Style="{StaticResource RoundedShadowButtonSmall}"
+                                    Name="btnGetWindowHandle"
+                                    IsEnabled="{Binding IsNotExecuting}"
+                                    Height="32"
+                                    Margin="0,0,0,8"
+                                    Click="GetWindowHandle_Click">
+                                <DockPanel>
+                                    <Path Data="M13,9V3.5L18.5,9M6,2C4.89,2 4,2.89 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6Z"
+                                          Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                          Width="16" Height="16"
+                                          Stretch="Uniform"
+                                          Margin="0,0,8,0"/>
+                                    <TextBlock Text="获取窗口句柄"
+                                             VerticalAlignment="Center"/>
+                                </DockPanel>
+                            </Button>
 
-                                <!-- 低音量图标 -->
-                                <Path Grid.Column="0"
-                                      Data="M5,9V15H9L14,20V4L9,9H5M18.5,12C18.5,10.23 17.5,8.71 16,7.97V16C17.5,15.29 18.5,13.76 18.5,12Z"
-                                      Fill="#707070"
-                                      Width="16"
-                                      Height="16"
-                                      Stretch="Uniform"
-                                      Margin="0,0,5,0"
-                                      VerticalAlignment="Center"/>
+                            <!-- 窗口句柄显示 -->
+                            <DockPanel Margin="0,0,0,0">
+                                <TextBlock Text="句柄" 
+                                          DockPanel.Dock="Left" 
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,10,0"/>
+                                <Button Style="{StaticResource CircleButtonStyle}"
+                                        DockPanel.Dock="Right"
+                                        Width="24" Height="24"
+                                        Margin="8,0,0,0"
+                                        Click="ClearWindowHandle_Click"
+                                        ToolTip="清除选择">
+                                    <Path Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
+                                          Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                          Width="14" Height="14"
+                                          Stretch="Uniform"/>
+                                </Button>
+                                <TextBox x:Name="txtWindowHandle"
+                                        Style="{StaticResource ModernTextBox}"
+                                        IsReadOnly="True"
+                                        Text="{Binding SelectedWindowTitle, Mode=OneWay}"
+                                        Tag="未选择窗口"
+                                        ToolTip="{Binding SelectedWindowClassName}"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- 热键设置组 -->
+                    <Border Background="#FFFFFF" 
+                            BorderBrush="#E0E0E0" 
+                            BorderThickness="1" 
+                            CornerRadius="4" 
+                            Padding="10" 
+                            Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="热键设置" 
+                                      FontSize="12" 
+                                      FontWeight="SemiBold" 
+                                      Foreground="#505050" 
+                                      Margin="0,0,0,8"/>
+                            
+                            <!-- 按键设置区域 -->
+                            <DockPanel Margin="0,0,0,8">
+                                <TextBlock Text="启动键" 
+                                          DockPanel.Dock="Left" 
+                                          VerticalAlignment="Center" 
+                                          Width="50"
+                                          Margin="0,0,10,0"/>
+                                <TextBox x:Name="txtStartHotkey"
+                                         Style="{StaticResource ModernTextBox}"
+                                         IsEnabled="{Binding IsNotExecuting}"
+                                         Tag="空"
+                                         IsReadOnly="True"
+                                         Text="{Binding StartHotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                                         IsUndoEnabled="False"
+                                         CaretBrush="Transparent"
+                                         TextAlignment="Center"
+                                         PreviewKeyDown="StartHotkeyInput_PreviewKeyDown"
+                                         KeyDown="StartHotkeyInput_KeyDown"
+                                         PreviewMouseDown="StartHotkeyInput_PreviewMouseDown"
+                                         PreviewMouseUp="StartHotkeyInput_PreviewMouseUp"
+                                         PreviewMouseWheel="StartHotkeyInput_PreviewMouseWheel"
+                                         MouseDown="StartHotkeyInput_MouseDown"
+                                         GotFocus="HotkeyInputBox_GotFocus"
+                                         LostFocus="HotkeyInputBox_LostFocus"/>
+                            </DockPanel>
 
-                                <!-- 音量滑动条 -->
-                                <Slider Grid.Column="1"
-                                        x:Name="volumeSlider"
-                                        Style="{StaticResource VolumeSliderStyle}"
-                                        Minimum="0"
-                                        Maximum="1"
-                                        SmallChange="0.01"
-                                        LargeChange="0.05"
-                                        TickFrequency="0.1"
-                                        Margin="0,0,5,0"
-                                        Value="{Binding SoundVolume, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                        VerticalAlignment="Center"
-                                        ToolTip="{Binding SoundVolume, StringFormat={}{0:P0}音量}"/>
-
-                                <!-- 高音量图标 -->
-                                <Path Grid.Column="2"
-                                      Data="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"
-                                      Fill="#707070"
-                                      Width="16"
-                                      Height="16"
-                                      Stretch="Uniform"
-                                      Margin="0,0,5,0"
-                                      VerticalAlignment="Center"/>
-
-                                <!-- 当前音量百分比文本 -->
-                                <TextBlock Grid.Column="3"
-                                           Text="{Binding SoundVolume, StringFormat={}{0:P0}}"
-                                           Width="35"
-                                           Margin="0,0,5,0"
-                                           Foreground="#505050"
-                                           FontSize="12"
-                                           TextAlignment="Center"
-                                           VerticalAlignment="Center"/>
-
-                                <!-- 音量帮助按钮 -->
-                                <Button Grid.Column="4"
-                                        x:Name="btnVolumeHelp"
+                            <DockPanel Margin="0,0,0,0" 
+                                       Visibility="{Binding IsSequenceMode, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <TextBlock Text="停止键" 
+                                          DockPanel.Dock="Left" 
+                                          VerticalAlignment="Center" 
+                                          Width="50"
+                                          Margin="0,0,10,0"/>
+                                <TextBox x:Name="txtStopHotkey"
+                                         Style="{StaticResource ModernTextBox}"
+                                         IsEnabled="{Binding IsNotExecuting}"
+                                         Tag="空"
+                                         IsReadOnly="True"
+                                         Text="{Binding StopHotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                                         IsUndoEnabled="False"
+                                         CaretBrush="Transparent"
+                                         TextAlignment="Center"
+                                         PreviewKeyDown="StopHotkeyInput_PreviewKeyDown"
+                                         PreviewMouseDown="StopHotkeyInput_PreviewMouseDown"
+                                         PreviewMouseWheel="StopHotkeyInput_PreviewMouseWheel"
+                                         GotFocus="HotkeyInputBox_GotFocus"
+                                         LostFocus="HotkeyInputBox_LostFocus"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- 按键模式和间隔设置组 -->
+                    <Border Background="#FFFFFF" 
+                            BorderBrush="#E0E0E0" 
+                            BorderThickness="1" 
+                            CornerRadius="4" 
+                            Padding="10" 
+                            Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="模式与间隔" 
+                                      FontSize="12" 
+                                      FontWeight="SemiBold" 
+                                      Foreground="#505050" 
+                                      Margin="0,0,0,8"/>
+                                      
+                            <!-- 按键模式和间隔设置 -->
+                            <DockPanel Margin="0,0,0,8">
+                                <TextBlock Text="按键模式" 
+                                           DockPanel.Dock="Left" 
+                                           VerticalAlignment="Center" 
+                                           Width="50"
+                                           Margin="0,0,0,0"/>
+                                <Button x:Name="btnModeHelp"
+                                        DockPanel.Dock="Left"
                                         Style="{StaticResource CircleHelpButtonStyle}"
                                         Width="18" Height="18"
-                                        FontSize="12"
-                                        Margin="5,0,0,0"
-                                        Click="VolumeHelp_Click"
+                                        FontSize="11"
+                                        Margin="0,0,10,0"
+                                        Click="ModeHelp_Click"
                                         Content="?"
                                         FontWeight="SemiBold">
                                     <Button.ToolTip>
                                         <ToolTip>
-                                            <TextBlock Text="点击查看音量设置说明"/>
+                                            <TextBlock Text="点击查看按键模式说明"/>
                                         </ToolTip>
                                     </Button.ToolTip>
                                 </Button>
-                            </Grid>
-                                      
-                            <!-- 音量帮助提示浮窗 -->
-                            <Popup x:Name="volumeHelpPopup" 
-                                   PlacementTarget="{Binding ElementName=btnVolumeHelp}"
-                                   Placement="Right" 
-                                   AllowsTransparency="True" 
-                                   PopupAnimation="Fade"
-                                   StaysOpen="False">
-                                <Border Style="{StaticResource HelpPopupStyle}"
-                                        Width="280">
-                                    <StackPanel>
-                                        <TextBlock Style="{StaticResource HelpTextStyle}"
-                                                   Text="调整声音提示的音量大小："/>
-                                        <TextBlock Style="{StaticResource HelpTextStyle}"
-                                                   Margin="0,8,0,0">
-                                            <Run Text="• 向右拖动增加音量"/>
-                                            <LineBreak/>
-                                            <Run Text="• 向左拖动减小音量"/>
-                                            <LineBreak/>
-                                            <Run Text="• 音量范围：0% - 100%"/>
-                                        </TextBlock>
-                                        <TextBlock Style="{StaticResource HelpTextStyle}"
-                                                   Margin="0,8,0,0"
-                                                   Foreground="#F44336"
-                                                   Text="注意：如果音量滑动条被禁用，说明系统未检测到有效的音频设备，请检查音频设备连接或驱动是否正常"/>
-                                    </StackPanel>
-                                </Border>
-                            </Popup>
 
-                            <!-- 游戏模式 -->
-                            <CheckBox Style="{StaticResource ModernSwitch}"
-                                      Content="游戏模式" 
-                                      Height="32"
-                                      VerticalContentAlignment="Center"
-                                      HorizontalAlignment="Left"
-                                      Margin="0,0,0,0"
-                                      Padding="0,0,0,0"
-                                      IsChecked="{Binding IsGameMode, Mode=TwoWay}"/>
+                                <!-- 按键模式帮助提示浮窗 -->
+                                <Popup x:Name="modeHelpPopup" 
+                                       PlacementTarget="{Binding ElementName=btnModeHelp}"
+                                       Placement="Right" 
+                                       AllowsTransparency="True" 
+                                       PopupAnimation="Fade"
+                                       StaysOpen="False">
+                                    <Border Style="{StaticResource HelpPopupStyle}"
+                                            Width="280">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource HelpTextStyle}"
+                                                       Text="按键模式决定了按键的触发方式："/>
+                                            <TextBlock Style="{StaticResource HelpTextStyle}"
+                                                       Margin="0,8,0,0">
+                                                <Run Text="• 顺序模式" FontWeight="SemiBold"/>
+                                                <LineBreak/>
+                                                <Run Text="  按下启动键开始，按下停止键结束"/>
+                                                <LineBreak/>
+                                                <Run Text="  适合需要精确控制开始和结束的场景"/>
+                                                <LineBreak/>
+                                                <LineBreak/>
+                                                <Run Text="• 按压模式" FontWeight="SemiBold"/>
+                                                <LineBreak/>
+                                                <Run Text="  按住启动键时持续执行，松开后停止"/>
+                                                <LineBreak/>
+                                                <Run Text="  适合需要快速切换状态的场景"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                </Popup>
 
-                            <!-- 状态浮窗 -->
-                            <CheckBox Style="{StaticResource ModernSwitch}"
-                                      Content="状态浮窗" 
-                                      Height="32"
-                                      VerticalContentAlignment="Center"
-                                      HorizontalAlignment="Left"
-                                      Margin="0,0,0,0"
-                                      Padding="0,0,0,0"
-                                      IsChecked="{Binding IsFloatingWindowEnabled, Mode=TwoWay}"/>
-                                      
-                            <!-- 自动切换输入法 -->
-                            <CheckBox Style="{StaticResource ModernSwitch}"
-                                      Content="自动切换输入法" 
-                                      Height="32"
-                                      VerticalContentAlignment="Center"
-                                      HorizontalAlignment="Left"
-                                      Margin="0,0,0,0"
-                                      Padding="0,0,0,0"
-                                      IsChecked="{Binding AutoSwitchToEnglishIME, Mode=TwoWay}"
-                                      ToolTip="启用后，程序会在启动时自动切换到英文输入法，停止时恢复原输入法"/>
+                                <ComboBox x:Name="cboKeyMode"
+                                          Style="{StaticResource ModernComboBox}"
+                                          ItemContainerStyle="{StaticResource ModernComboBoxItem}"
+                                          Width="120"
+                                          Height="32"
+                                          VerticalContentAlignment="Center"
+                                          HorizontalContentAlignment="Center"
+                                          ItemsSource="{Binding KeyModes}"
+                                          SelectedIndex="{Binding SelectedKeyMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" 
+                                                      HorizontalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </DockPanel>
+
+                            <DockPanel Margin="0,0,0,0">
+                                <TextBlock Text="默认间隔" 
+                                           DockPanel.Dock="Left" 
+                                           VerticalAlignment="Center"
+                                           Width="50"
+                                           Margin="0,0,0,0"/>
+                                <Button x:Name="btnIntervalHelp"
+                                        DockPanel.Dock="Left"
+                                        Style="{StaticResource CircleHelpButtonStyle}"
+                                        Width="18" Height="18"
+                                        FontSize="11"
+                                        Margin="0,0,10,0"
+                                        Click="IntervalHelp_Click"
+                                        Content="?"
+                                        FontWeight="SemiBold">
+                                    <Button.ToolTip>
+                                        <ToolTip>
+                                            <TextBlock Text="点击查看按键间隔说明"/>
+                                        </ToolTip>
+                                    </Button.ToolTip>
+                                </Button>
+
+                                <!-- 帮助提示浮窗 -->
+                                <Popup x:Name="helpPopup" 
+                                       PlacementTarget="{Binding ElementName=btnIntervalHelp}"
+                                       Placement="Right" 
+                                       AllowsTransparency="True" 
+                                       PopupAnimation="Fade"
+                                       StaysOpen="False">
+                                    <Border Style="{StaticResource HelpPopupStyle}"
+                                            Width="280">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource HelpTextStyle}"
+                                                       Text="按键间隔是指连续按键之间的时间间隔，单位为毫秒(ms)，1秒=1000毫秒。应用现在对每个按键使用独立的间隔设置。"/>
+                                            <TextBlock Style="{StaticResource HelpTextStyle}"
+                                                       Margin="0,8,0,0">
+                                                <Run Text="• 此处设置仅用于新添加按键的默认间隔值" FontWeight="SemiBold"/>
+                                                <LineBreak/>
+                                                <Run Text="• 每个按键都有自己的间隔设置，可在列表中单独修改"/>
+                                                <LineBreak/>
+                                                <Run Text="• 间隔越短，按键速度越快"/>
+                                                <LineBreak/>
+                                                <Run Text="• 间隔越长，按键速度越慢"/>
+                                                <LineBreak/>
+                                                <Run Text="• 建议值范围：5-10ms"/>
+                                                <LineBreak/>
+                                                <Run Text="• 最小值：1ms"/>
+                                            </TextBlock>
+                                            <TextBlock Style="{StaticResource HelpTextStyle}"
+                                                       Margin="0,8,0,0"
+                                                       Foreground="#F44336"
+                                                       Text="注意：设置过短的间隔可能导致按键不稳定或游戏无法正确识别"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Popup>
+                                
+                                <TextBox x:Name="txtKeyInterval"
+                                         Style="{StaticResource ModernTextBox}"
+                                         IsEnabled="{Binding IsNotExecuting}"
+                                         Width="120"
+                                         VerticalContentAlignment="Center"
+                                         TextAlignment="Center"
+                                         IsReadOnly="False"
+                                         ToolTip="新添加按键时使用的默认间隔值"
+                                         PreviewTextInput="NumberValidationTextBox"
+                                         GotFocus="NumberInput_GotFocus"
+                                         LostFocus="NumberInput_LostFocus"
+                                         Text="{Binding KeyInterval, Converter={StaticResource IntToStringConverter}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DockPanel.Dock="Left"/>
+                            </DockPanel>
                         </StackPanel>
-                    </StackPanel>
-                </Border>
-            </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
         </Grid>
-
     </Grid>
 </Page> 

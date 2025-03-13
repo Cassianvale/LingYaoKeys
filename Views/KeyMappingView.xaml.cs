@@ -48,6 +48,20 @@ namespace WpfApp.Views
             
             // 添加页面失去焦点事件，用于清除所有删除确认状态
             this.LostFocus += KeyMappingView_LostFocus;
+
+            // 添加音量设置弹出窗口的事件处理
+            if (soundSettingsPopup != null)
+            {
+                soundSettingsPopup.Opened += (s, e) =>
+                {
+                    _logger.Debug("音量设置弹出窗口已打开");
+                };
+
+                soundSettingsPopup.Closed += (s, e) =>
+                {
+                    _logger.Debug("音量设置弹出窗口已关闭");
+                };
+            }
         }
 
         private KeyMappingViewModel ViewModel => DataContext as KeyMappingViewModel;
@@ -1229,6 +1243,35 @@ namespace WpfApp.Views
             catch (Exception ex)
             {
                 _logger.Error("清除所有删除确认状态时发生异常", ex);
+            }
+        }
+
+        /// <summary>
+        /// 音量设置按钮点击事件处理
+        /// </summary>
+        private void SoundSettings_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (soundSettingsPopup == null)
+                {
+                    _logger.Warning("音量设置弹出窗口未初始化");
+                    return;
+                }
+
+                // 切换弹出窗口的显示状态
+                soundSettingsPopup.IsOpen = !soundSettingsPopup.IsOpen;
+                _logger.Debug($"音量设置弹出窗口状态: {soundSettingsPopup.IsOpen}");
+
+                // 如果弹出窗口打开，设置焦点到音量滑块
+                if (soundSettingsPopup.IsOpen && volumeSlider != null)
+                {
+                    volumeSlider.Focus();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("处理音量设置按钮点击事件时发生异常", ex);
             }
         }
 
