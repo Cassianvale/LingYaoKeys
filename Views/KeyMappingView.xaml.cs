@@ -81,6 +81,9 @@ namespace WpfApp.Views
                 ViewModel?.SetCurrentKey(lyKeysCode);
                 _logger.Debug($"按键已转换: {key} -> {lyKeysCode}");
 
+                // 显示成功提示
+                ShowMessage($"已选择按键: {ViewModel?.CurrentKeyText}");
+
                 // 强制清除焦点
                 var focusScope = FocusManager.GetFocusScope(textBox);
                 FocusManager.SetFocusedElement(focusScope, null);
@@ -239,9 +242,15 @@ namespace WpfApp.Views
         // 显示错误信息到状态栏
         private void ShowError(string message)
         {
+            ShowMessage(message, true);
+        }
+
+        // 显示提示信息到状态栏（通用方法）
+        private void ShowMessage(string message, bool isError = false)
+        {
             if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
             {
-                mainViewModel.UpdateStatusMessage(message, true);
+                mainViewModel.UpdateStatusMessage(message, isError);
             }
         }
 
@@ -288,6 +297,12 @@ namespace WpfApp.Views
                 {
                     ViewModel.SetCurrentKey(keyCode);
                     e.Handled = true;
+
+                    // 显示成功提示
+                    if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+                    {
+                        mainViewModel.UpdateStatusMessage($"已选择按键: {ViewModel?.CurrentKeyText}", false);
+                    }
                 }
             }
         }
@@ -314,10 +329,16 @@ namespace WpfApp.Views
             if (isStartHotkey)
             {
                 ViewModel?.SetStartHotkey(keyCode, modifiers);
+                
+                // 显示成功提示
+                ShowMessage("已设置开始热键");
             }
             else
             {
                 ViewModel?.SetStopHotkey(keyCode, modifiers);
+                
+                // 显示成功提示
+                ShowMessage("已设置停止热键");
             }
         }
 
@@ -404,6 +425,9 @@ namespace WpfApp.Views
                 {
                     HandleHotkeyInput(textBox, lyKeysCode, Keyboard.Modifiers, true);
                     _logger.Debug($"开始热键已转换: {key} -> {lyKeysCode}");
+                    
+                    // 显示成功提示
+                    ShowMessage("已设置开始热键");
                 }
                 else
                 {
@@ -452,6 +476,9 @@ namespace WpfApp.Views
                     }
                     HandleHotkeyInput(textBox, lyKeysCode, modifiers, false);
                     _logger.Debug($"停止热键已转换: {key} -> {lyKeysCode}");
+                    
+                    // 显示成功提示
+                    ShowMessage("已设置停止热键");
                 }
                 else
                 {
@@ -483,6 +510,12 @@ namespace WpfApp.Views
                     _logger.Debug($"检测到 Mouse 按键点击: {keyCode.Value}");
                     HandleHotkeyInput(textBox, keyCode.Value, Keyboard.Modifiers, true);
                     e.Handled = true; // 阻止事件继续传播
+
+                    // 显示成功提示
+                    if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+                    {
+                        mainViewModel.UpdateStatusMessage($"已选择按键: {ViewModel?.CurrentKeyText}", false);
+                    }
                 }
             }
         }
@@ -860,6 +893,9 @@ namespace WpfApp.Views
                 ViewModel?.SetCurrentKey(keyCode.Value);
                 _logger.Debug($"鼠标按键已转换: {e.ChangedButton} -> {keyCode.Value}");
                 
+                // 显示成功提示
+                ShowMessage($"已选择按键: {ViewModel?.CurrentKeyText}");
+                
                 // 强制清除焦点
                 var focusScope = FocusManager.GetFocusScope(textBox);
                 FocusManager.SetFocusedElement(focusScope, null);
@@ -938,7 +974,8 @@ namespace WpfApp.Views
                     {
                         // 删除按键
                         ViewModel.DeleteKey(keyItem);
-                        _logger.Debug($"已删除按键: {keyItem.KeyCode}");
+                        _logger.Debug($"已删除按键: {keyItem.DisplayName}");
+                        
                     }
                     catch (Exception ex)
                     {

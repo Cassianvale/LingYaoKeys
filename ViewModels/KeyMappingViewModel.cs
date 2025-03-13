@@ -234,9 +234,6 @@ namespace WpfApp.ViewModels
         // 添加按键命令
         public ICommand AddKeyCommand { get; private set; } = null!;
 
-        // 删除选中的按键命令
-        public ICommand DeleteSelectedKeysCommand { get; private set; } = null!;
-
         // 按键模式选项
         public List<string> KeyModes { get; } = new List<string>
         {
@@ -757,46 +754,6 @@ namespace WpfApp.ViewModels
         private void InitializeCommands()
         {
             AddKeyCommand = new RelayCommand(AddKey, CanAddKey);
-            DeleteSelectedKeysCommand = new RelayCommand(() =>
-            {
-                try
-                {
-                    var keysToDelete = new List<KeyItem>();
-
-                    // 如果有右键选中的项，优先删除该项
-                    if (SelectedKeyItem != null)
-                    {
-                        keysToDelete.Add(SelectedKeyItem);
-                        SelectedKeyItem = null;
-                    }
-                    else
-                    {
-                        // 否则删除所有勾选的项
-                        keysToDelete.AddRange(KeyList.Where(k => k.IsSelected));
-                    }
-
-                    // 执行删除
-                    foreach (var key in keysToDelete)
-                    {
-                        KeyList.Remove(key);
-                        _logger.Debug($"删除按键: {key.KeyCode}");
-                    }
-
-                    // 更新HotkeyService的按键列表
-                    UpdateHotkeyServiceKeyList();
-
-                    // 实时保存按键列表
-                    if (!_isInitializing)
-                    {
-                        SaveConfig();
-                        _logger.Debug("配置已保存");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error("删除按键时发生异常", ex);
-                }
-            });
         }
 
         private void InitializeHotkeyStatus()
@@ -958,25 +915,29 @@ namespace WpfApp.ViewModels
                 if (!_currentKey.HasValue)
                 {
                     _logger.Warning("没有有效的按键可添加");
+                    _mainViewModel.UpdateStatusMessage("没有有效的按键可添加", true);
                     return;
                 }
 
                 var keyCode = _currentKey.Value;
                 if (!_lyKeysService.IsValidLyKeysCode(keyCode))
                 {
-                    _logger.Warning($"无效的按键码: {keyCode}");
+                    _logger.Warning($"无效的按键码: {_lyKeysService.GetKeyDescription(keyCode)}");
+                    _mainViewModel.UpdateStatusMessage($"无效的按键码: {_lyKeysService.GetKeyDescription(keyCode)}", true);
                     return;
                 }
 
                 if (IsKeyInList(keyCode))
                 {
-                    _logger.Warning($"按键已存在: {keyCode}");
+                    _logger.Warning($"按键已存在: {_lyKeysService.GetKeyDescription(keyCode)}");
+                    _mainViewModel.UpdateStatusMessage($"按键 {_lyKeysService.GetKeyDescription(keyCode)} 已存在于列表中", true);
                     return;
                 }
 
                 if (IsHotkeyConflict(keyCode))
                 {
-                    _logger.Warning($"按键与热键冲突: {keyCode}");
+                    _logger.Warning($"按键与热键冲突: {_lyKeysService.GetKeyDescription(keyCode)}");
+                    _mainViewModel.UpdateStatusMessage($"按键 {_lyKeysService.GetKeyDescription(keyCode)} 与热键冲突，请选择其他按键", true);
                     return;
                 }
 
@@ -1010,9 +971,9 @@ namespace WpfApp.ViewModels
                     }).ToList();
                     
                     // 添加日志记录每个按键的间隔
-                    foreach (var key in keyConfigs)
+                    foreach (var keyConfig in keyConfigs)
                     {
-                        _logger.Debug($"保存按键配置 - 按键: {key.Code}, 间隔: {key.KeyInterval}ms");
+                        _logger.Debug($"保存按键配置 - 按键: {_lyKeysService.GetKeyDescription(keyCode)}, 间隔: {keyConfig.KeyInterval}ms");
                     }
                     
                     AppConfigService.UpdateConfig(config =>
@@ -1021,7 +982,7 @@ namespace WpfApp.ViewModels
                     });
                 }
 
-                _mainViewModel.UpdateStatusMessage($" {keyCode} 按键添加成功");
+                _mainViewModel.UpdateStatusMessage($" {_lyKeysService.GetKeyDescription(keyCode)} 按键添加成功");
             }
             catch (Exception ex)
             {
