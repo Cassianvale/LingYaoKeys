@@ -37,22 +37,30 @@
   "keys": [
     {
       "Code": 70,
-      "IsSelected": true
+      "IsSelected": true,
+      "KeyInterval": 10
     },
     {
       "Code": 49,
-      "IsSelected": false
+      "IsSelected": false,
+      "KeyInterval": 10
     },
     {
       "Code": 50,
-      "IsSelected": false
+      "IsSelected": false,
+      "KeyInterval": 10
     }
   ],
   "keyMode": 0,
   "interval": 10,
   "soundEnabled": true,
   "IsGameMode": true,
+  "SoundVolume": 0.8,
   "KeyPressInterval": 5,
+  "FloatingWindowLeft": 1849.6,
+  "FloatingWindowTop": 1024.8,
+  "AutoSwitchToEnglishIME": false,
+  "isHotkeyControlEnabled": false,
   "TargetWindowClassName": null,
   "TargetWindowProcessName": null,
   "TargetWindowTitle": null

@@ -14,6 +14,7 @@ using System.Runtime.InteropServices;
 using System.Timers;
 using System;
 using WpfApp.Services.Core;
+using System.Threading.Tasks;
 
 // 定义KeyItemSettings结构用于传递按键设置
 public class KeyItemSettings
@@ -48,6 +49,7 @@ namespace WpfApp.ViewModels
         private MainWindow? _mainWindow;
         private bool _isSoundEnabled = true;
         private readonly AudioService _audioService;
+        private double _soundVolume = 0.8; // 默认音量80%
         private bool _isGameMode = true; // 默认开启
         private bool _isInitializing = true; // 添加一个标志来标识是否在初始化
         private bool _isExecuting = false; // 添加执行状态标志
@@ -376,6 +378,45 @@ namespace WpfApp.ViewModels
                 }
             }
         }
+
+        // 音量设置，范围0.0-1.0
+        public double SoundVolume
+        {
+            get => _soundVolume;
+            set
+            {
+                // 确保值在有效范围内并保留两位小数
+                double newValue = Math.Round(Math.Max(0, Math.Min(1, value)), 2);
+                
+                // 只在音量实际变化时更新
+                if (Math.Abs(_soundVolume - newValue) >= 0.001 && SetProperty(ref _soundVolume, newValue))
+                {
+                    // 立即设置音频服务的音量
+                    _audioService.Volume = _soundVolume;
+                    
+                    // 实时保存配置
+                    if (!_isInitializing)
+                    {
+                        // 使用延迟保存避免频繁写入
+                        Task.Delay(300).ContinueWith(_ => 
+                        {
+                            if (Math.Abs(_soundVolume - newValue) < 0.001)
+                            {
+                                SaveConfig();
+                            }
+                        });
+                    }
+                    
+                    // 通知UI更新百分比显示
+                    OnPropertyChanged(nameof(SoundVolume));
+                    
+                    _logger.Debug($"音量已调整为: {_soundVolume:P0} ({_soundVolume:F2})");
+                }
+            }
+        }
+        
+        // 是否可以调整音量（基于音频设备是否可用）
+        public bool CanAdjustVolume => _audioService.AudioDeviceAvailable;
 
         // 判断是否为游戏模式，为true时按下抬起间隔为5ms，为false时间隔为0ms
         public bool IsGameMode
@@ -793,6 +834,14 @@ namespace WpfApp.ViewModels
                 IsGameMode = appConfig.IsGameMode ?? true;
                 IsFloatingWindowEnabled = appConfig.UI.FloatingWindow.IsEnabled;
                 AutoSwitchToEnglishIME = appConfig.AutoSwitchToEnglishIME ?? true;
+
+                // 加载音量设置
+                if (appConfig.SoundVolume.HasValue)
+                {
+                    _soundVolume = appConfig.SoundVolume.Value;
+                    _audioService.Volume = _soundVolume;
+                    _logger.Debug($"已加载音量设置: {_soundVolume:P0}");
+                }
 
                 _logger.Debug($"配置加载完成 - 模式: {(IsSequenceMode ? "顺序模式" : "按压模式")}, 游戏模式: {IsGameMode}");
             }
@@ -1262,6 +1311,9 @@ namespace WpfApp.ViewModels
                     AppConfigService.SaveConfig();
                     _logger.Debug("配置已保存");
                 }
+
+                // 保存音量设置
+                config.SoundVolume = SoundVolume;
             }
             catch (Exception ex)
             {

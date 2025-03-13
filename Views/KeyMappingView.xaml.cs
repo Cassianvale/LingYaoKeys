@@ -870,6 +870,15 @@ namespace WpfApp.Views
             }
         }
 
+        private void VolumeHelp_Click(object sender, RoutedEventArgs e)
+        {
+            // 切换音量帮助浮窗的显示状态
+            if (volumeHelpPopup != null)
+            {
+                volumeHelpPopup.IsOpen = !volumeHelpPopup.IsOpen;
+            }
+        }
+
         private void KeyInputBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is not System.Windows.Controls.TextBox textBox) return;

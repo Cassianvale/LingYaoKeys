@@ -90,6 +90,8 @@ namespace WpfApp.Services.Config
         public int interval { get; set; } = 10;
         public bool? soundEnabled { get; set; }
         public bool? IsGameMode { get; set; }
+        // 音量设置，范围0.0-1.0，默认0.8(80%)
+        public double? SoundVolume { get; set; } = 0.8;
         public int? KeyPressInterval { get; set; }
         public double FloatingWindowLeft { get; set; }
         public double FloatingWindowTop { get; set; }

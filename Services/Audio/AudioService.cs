@@ -18,9 +18,43 @@ namespace WpfApp.Services
         private bool _isDisposed;
         private readonly object _disposeLock = new object();
         private bool _audioDeviceAvailable = true;
+        private double _volume = 0.8;
         
         public bool IsDisposed => _isDisposed;
         public bool AudioDeviceAvailable => _audioDeviceAvailable;
+        
+        public double Volume
+        {
+            get => _volume;
+            set
+            {
+                // 将值限制在0.0-1.0范围内，并保留两位小数
+                double newValue = Math.Round(Math.Max(0.0, Math.Min(1.0, value)), 2);
+                
+                // 仅当音量变化超过阈值时才更新
+                if (Math.Abs(_volume - newValue) >= 0.001)
+                {
+                    _volume = newValue;
+                    
+                    // 当有活动音频设备时，立即应用音量设置
+                    lock (_lockObject)
+                    {
+                        if (_outputDevice != null && _audioDeviceAvailable)
+                        {
+                            try
+                            {
+                                _outputDevice.Volume = (float)_volume;
+                                _logger.Debug($"已设置音频音量: {_volume:P0} ({_volume:F2})");
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.Error($"设置音频音量失败: {ex.Message}");
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         public AudioService()
         {
@@ -175,6 +209,9 @@ namespace WpfApp.Services
                 // 创建新的播放实例
                 var mediaReader = new MediaFoundationReader(path);
                 var outputDevice = new WaveOutEvent();
+                
+                // 设置音量
+                outputDevice.Volume = (float)_volume;
                 
                 lock (_lockObject)
                 {
