@@ -9,6 +9,9 @@ using WpfApp.Services.Core;
 using WpfApp.Services.Utils;
 using WpfApp.Services.Models;
 using System;
+using System.Collections.Generic;
+using System.Windows.Shapes;
+using System.Windows.Controls.Primitives;
 
 // 提供按键映射视图
 namespace WpfApp.Views
@@ -16,7 +19,7 @@ namespace WpfApp.Views
     /// <summary>
     /// KeyMappingView.xaml 的交互逻辑
     /// </summary>
-    public partial class KeyMappingView
+    public partial class KeyMappingView : Page
     {   
         private readonly SerilogManager _logger = SerilogManager.Instance;
         private const string KEY_ERROR = "无法识别按键，请检查输入法是否关闭";
@@ -24,16 +27,30 @@ namespace WpfApp.Views
         private HotkeyService? _hotkeyService;
         private readonly KeyMappingViewModel _viewModel;
 
-        private KeyMappingViewModel ViewModel => (KeyMappingViewModel)DataContext;
+        // 字典用于存储待确认删除的按钮和定时器
+        private readonly Dictionary<System.Windows.Controls.Button, System.Windows.Threading.DispatcherTimer> _pendingDeleteButtons = new Dictionary<System.Windows.Controls.Button, System.Windows.Threading.DispatcherTimer>();
+
+        // 定义删除按钮状态标记，用于识别按钮当前状态
+        private static readonly DependencyProperty DeleteConfirmStateProperty = 
+            DependencyProperty.RegisterAttached(
+                "DeleteConfirmState", 
+                typeof(bool), 
+                typeof(KeyMappingView), 
+                new PropertyMetadata(false));
 
         public KeyMappingView()
         {
             InitializeComponent();
-            _viewModel = (KeyMappingViewModel)DataContext;
+            _viewModel = DataContext as KeyMappingViewModel;
             
             // 监听 DataContext 变化
-            this.DataContextChanged += KeyMappingView_DataContextChanged;
+            DataContextChanged += KeyMappingView_DataContextChanged;
+            
+            // 添加页面失去焦点事件，用于清除所有删除确认状态
+            this.LostFocus += KeyMappingView_LostFocus;
         }
+
+        private KeyMappingViewModel ViewModel => DataContext as KeyMappingViewModel;
 
         // 添加 DataContext 变化事件处理
         private void KeyMappingView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -43,6 +60,12 @@ namespace WpfApp.Views
                 _hotkeyService = viewModel.GetHotkeyService();
                 _logger.Debug("已获取HotkeyService实例");
             }
+        }
+
+        // 添加页面焦点变化处理，用于清除所有确认状态
+        private void KeyMappingView_LostFocus(object sender, RoutedEventArgs e)
+        {
+            ClearAllDeleteConfirmStates();
         }
 
         private void KeyInputBox_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -854,6 +877,9 @@ namespace WpfApp.Views
 
         private void IntervalHelp_Click(object sender, RoutedEventArgs e)
         {
+            // 使用FindName获取Popup控件引用
+            var helpPopup = this.FindName("helpPopup") as System.Windows.Controls.Primitives.Popup;
+            
             // 切换帮助浮窗的显示状态
             if (helpPopup != null)
             {
@@ -863,6 +889,9 @@ namespace WpfApp.Views
 
         private void ModeHelp_Click(object sender, RoutedEventArgs e)
         {
+            // 使用FindName获取Popup控件引用
+            var modeHelpPopup = this.FindName("modeHelpPopup") as System.Windows.Controls.Primitives.Popup;
+            
             // 切换帮助浮窗的显示状态
             if (modeHelpPopup != null)
             {
@@ -872,6 +901,9 @@ namespace WpfApp.Views
 
         private void VolumeHelp_Click(object sender, RoutedEventArgs e)
         {
+            // 使用FindName获取Popup控件引用
+            var volumeHelpPopup = this.FindName("volumeHelpPopup") as System.Windows.Controls.Primitives.Popup;
+            
             // 切换音量帮助浮窗的显示状态
             if (volumeHelpPopup != null)
             {
@@ -982,36 +1014,223 @@ namespace WpfApp.Views
         /// </summary>
         private void DeleteKeyButton_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is System.Windows.Controls.Button button && button.Tag is KeyItem keyItem)
-            {
-                // 显示确认对话框
-                var result = System.Windows.MessageBox.Show(
-                    $"确定要删除按键 {keyItem.DisplayName} 吗？",
-                    "删除确认",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
+            if (sender is not System.Windows.Controls.Button button)
+                return;
 
-                if (result == MessageBoxResult.Yes)
+            try
+            {
+                // 获取按钮是否已处于确认状态
+                bool isConfirmState = (bool)button.GetValue(DeleteConfirmStateProperty);
+                KeyItem keyItem = button.Tag as KeyItem;
+
+                // 检查KeyItem是否有效
+                if (keyItem == null)
                 {
+                    _logger.Error("按钮Tag不是KeyItem类型或为空");
+                    return;
+                }
+
+                if (isConfirmState)
+                {
+                    // 已经是确认状态，执行删除操作
                     try
                     {
+                        // 停止并移除定时器
+                        if (_pendingDeleteButtons.TryGetValue(button, out var timer))
+                        {
+                            timer.Stop();
+                            _pendingDeleteButtons.Remove(button);
+                        }
+
+                        // 重置按钮状态
+                        button.SetValue(DeleteConfirmStateProperty, false);
+
                         // 删除按键
                         ViewModel.DeleteKey(keyItem);
                         _logger.Debug($"已删除按键: {keyItem.DisplayName}");
-                        
                     }
                     catch (Exception ex)
                     {
                         _logger.Error("删除按键时发生异常", ex);
                         System.Windows.MessageBox.Show($"删除按键失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        
+                        // 恢复按钮原始状态
+                        ResetDeleteButton(button);
+                    }
+                }
+                else
+                {
+                    // 清除其他所有按钮的确认状态
+                    ClearAllDeleteConfirmStates();
+                    
+                    // 将按钮设置为确认状态
+                    button.SetValue(DeleteConfirmStateProperty, true);
+                    ConvertToConfirmButton(button);
+                    
+                    // 创建3秒定时器
+                    var timer = new System.Windows.Threading.DispatcherTimer
+                    {
+                        Interval = TimeSpan.FromSeconds(3)
+                    };
+                    
+                    timer.Tick += (s, args) =>
+                    {
+                        // 3秒后恢复按钮原始状态
+                        timer.Stop();
+                        if (_pendingDeleteButtons.ContainsKey(button))
+                        {
+                            _pendingDeleteButtons.Remove(button);
+                        }
+                        button.SetValue(DeleteConfirmStateProperty, false);
+                        ResetDeleteButton(button);
+                    };
+                    
+                    // 添加到字典并启动定时器
+                    if (_pendingDeleteButtons.ContainsKey(button))
+                    {
+                        _pendingDeleteButtons[button].Stop();
+                    }
+                    _pendingDeleteButtons[button] = timer;
+                    timer.Start();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("处理删除按钮点击事件时发生异常", ex);
+                // 确保按钮恢复原状
+                ResetDeleteButton(button);
+            }
+        }
+        
+        /// <summary>
+        /// 将按钮转换为确认删除状态（红色X）
+        /// </summary>
+        private void ConvertToConfirmButton(System.Windows.Controls.Button button)
+        {
+            if (button == null) return;
+            
+            try
+            {
+                // 查找按钮内的Path元素
+                if (button.Content is System.Windows.Shapes.Path path)
+                {
+                    // 保存原始图标数据
+                    button.SetValue(DeleteConfirmStateProperty, true);
+                    
+                    // 记录原始Path数据，用于恢复
+                    path.Tag = path.Data;
+                    
+                    // 设置为X图标
+                    path.Data = Geometry.Parse("M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z");
+                    
+                    // 设置为红色
+                    path.Fill = new SolidColorBrush(System.Windows.Media.Colors.Red);
+                    
+                    // 修改按钮背景为淡红色，提供更明显的视觉提示
+                    button.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(20, 255, 0, 0));
+                    button.BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(40, 255, 0, 0));
+                    
+                    // 添加动画效果增强用户体验
+                    var animation = new System.Windows.Media.Animation.ColorAnimation
+                    {
+                        To = System.Windows.Media.Color.FromArgb(40, 255, 0, 0),
+                        Duration = TimeSpan.FromMilliseconds(200),
+                        AutoReverse = true,
+                        RepeatBehavior = new System.Windows.Media.Animation.RepeatBehavior(3)
+                    };
+                    
+                    var brush = button.Background as SolidColorBrush;
+                    if (brush != null)
+                    {
+                        brush.BeginAnimation(SolidColorBrush.ColorProperty, animation);
+                    }
+                    
+                    // 更改按钮提示为确认删除
+                    if (button.ToolTip is System.Windows.Controls.ToolTip toolTip && toolTip.Content is TextBlock textBlock)
+                    {
+                        textBlock.Text = "点击确认删除";
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                _logger.Error("转换删除按钮到确认状态时发生异常", ex);
+            }
         }
-
-        private void KeysList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        
+        /// <summary>
+        /// 重置按钮到原始状态
+        /// </summary>
+        private void ResetDeleteButton(System.Windows.Controls.Button button)
         {
-
+            if (button == null) return;
+            
+            try
+            {
+                // 清除确认状态标记
+                button.SetValue(DeleteConfirmStateProperty, false);
+                
+                // 查找按钮内的Path元素
+                if (button.Content is System.Windows.Shapes.Path path)
+                {
+                    // 如果有保存的原始数据，则恢复
+                    if (path.Tag is Geometry originalGeometry)
+                    {
+                        // 恢复原始图标数据
+                        path.Data = originalGeometry;
+                        path.Tag = null;
+                    }
+                    
+                    // 恢复原始颜色
+                    path.Fill = new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#666666"));
+                    
+                    // 恢复原始背景
+                    button.Background = new SolidColorBrush(System.Windows.Media.Colors.Transparent);
+                    button.BorderBrush = new SolidColorBrush(System.Windows.Media.Colors.Transparent);
+                    
+                    // 恢复原始提示文本
+                    if (button.ToolTip is System.Windows.Controls.ToolTip toolTip && toolTip.Content is TextBlock textBlock)
+                    {
+                        textBlock.Text = "删除此按键";
+                    }
+                }
+                
+                // 确保移除定时器
+                if (_pendingDeleteButtons.TryGetValue(button, out var timer))
+                {
+                    timer.Stop();
+                    _pendingDeleteButtons.Remove(button);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("重置删除按钮到原始状态时发生异常", ex);
+            }
         }
+        
+        /// <summary>
+        /// 清除所有按钮的确认删除状态
+        /// </summary>
+        private void ClearAllDeleteConfirmStates()
+        {
+            try
+            {
+                // 创建一个临时列表存储所有按钮，避免在遍历过程中修改集合
+                var buttonsToReset = new List<System.Windows.Controls.Button>(_pendingDeleteButtons.Keys);
+                
+                foreach (var button in buttonsToReset)
+                {
+                    ResetDeleteButton(button);
+                }
+                
+                // 清空字典
+                _pendingDeleteButtons.Clear();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("清除所有删除确认状态时发生异常", ex);
+            }
+        }
+
     }
 } 

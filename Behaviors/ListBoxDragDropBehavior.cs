@@ -9,6 +9,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows;
+using System.Windows.Threading;
 
 // 列表框拖放行为
 namespace WpfApp.Behaviors
@@ -127,57 +128,74 @@ namespace WpfApp.Behaviors
         {
             if (listBox == null) return;
 
-            _isDragging = true;
-
-            // 创建拖拽预览
-            var draggedVisual = new Border
-            {
-                Width = draggedItem.ActualWidth,
-                Height = draggedItem.ActualHeight,
-                Background = new SolidColorBrush(System.Windows.Media.Colors.White),
-                BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(33, 150, 243)),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(4),
-                Effect = new DropShadowEffect
-                {
-                    ShadowDepth = 2,
-                    BlurRadius = 5,
-                    Opacity = 0.3
-                },
-                Child = new ContentPresenter
-                {
-                    Content = draggedItem.Content,
-                    ContentTemplate = listBox.ItemTemplate,
-                    Margin = draggedItem.Padding
-                }
-            };
-
-            // 计算鼠标相对于拖拽项的偏移
-            System.Windows.Point mousePos = e.GetPosition(draggedItem);
-            _adornerLayer = AdornerLayer.GetAdornerLayer(listBox);
-            
-            if (_adornerLayer != null)
-            {
-                _dragAdorner = new DragAdorner(listBox, draggedVisual, mousePos);
-                _adornerLayer.Add(_dragAdorner);
-            }
-
-            // 设置原始项的视觉效果
-            draggedItem.Opacity = 0.3;
-
-            // 创建拖拽数据
-            var dataObject = new System.Windows.DataObject();
-            dataObject.SetData("KeyItem", draggedItem.DataContext);
-            dataObject.SetData("DragSource", draggedItem);
-
             try
             {
-                // 开始拖拽操作
-                DragDrop.DoDragDrop(draggedItem, dataObject, System.Windows.DragDropEffects.Move);
+                _isDragging = true;
+
+                // 创建拖拽预览
+                var draggedVisual = new Border
+                {
+                    Width = draggedItem.ActualWidth,
+                    Height = draggedItem.ActualHeight,
+                    Background = new SolidColorBrush(System.Windows.Media.Colors.White),
+                    BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(33, 150, 243)),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(4),
+                    Effect = new DropShadowEffect
+                    {
+                        ShadowDepth = 2,
+                        BlurRadius = 5,
+                        Opacity = 0.5
+                    },
+                    Child = new ContentPresenter
+                    {
+                        Content = draggedItem.Content,
+                        ContentTemplate = listBox.ItemTemplate,
+                        Margin = draggedItem.Padding
+                    }
+                };
+
+                // 计算鼠标相对于拖拽项的偏移
+                System.Windows.Point mousePos = e.GetPosition(draggedItem);
+                _adornerLayer = AdornerLayer.GetAdornerLayer(listBox);
+                
+                if (_adornerLayer != null)
+                {
+                    _dragAdorner = new DragAdorner(listBox, draggedVisual, mousePos);
+                    _adornerLayer.Add(_dragAdorner);
+                }
+
+                // 设置原始项的视觉效果
+                draggedItem.Opacity = 0.3;
+
+                // 创建拖拽数据
+                var dataObject = new System.Windows.DataObject();
+                dataObject.SetData("KeyItem", draggedItem.DataContext);
+                dataObject.SetData("DragSource", draggedItem);
+                dataObject.SetData("SourceIndex", _sourceIndex);
+
+                try
+                {
+                    // 开始拖拽操作
+                    DragDrop.DoDragDrop(draggedItem, dataObject, System.Windows.DragDropEffects.Move);
+                }
+                finally
+                {
+                    // 清理
+                    if (_adornerLayer != null && _dragAdorner != null)
+                    {
+                        _adornerLayer.Remove(_dragAdorner);
+                    }
+                    _dragAdorner = null;
+                    draggedItem.Opacity = 1.0;
+                }
             }
-            finally
+            catch (Exception ex)
             {
-                // 清理
+                // 记录异常
+                System.Diagnostics.Debug.WriteLine($"拖拽过程中发生异常: {ex.Message}");
+                
+                // 确保清理资源
                 if (_adornerLayer != null && _dragAdorner != null)
                 {
                     _adornerLayer.Remove(_dragAdorner);
@@ -191,57 +209,147 @@ namespace WpfApp.Behaviors
         {
             if (sender is System.Windows.Controls.ListBox listBox && _draggedItem != null && e.Data.GetDataPresent("KeyItem"))
             {
-                var targetItem = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
-                if (targetItem != null)
+                try
                 {
-                    var sourceData = e.Data.GetData("KeyItem") as KeyItem;
-                    var targetData = targetItem.DataContext as KeyItem;
-
-                    if (sourceData != null && targetData != null)
+                    var targetItem = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
+                    if (targetItem != null)
                     {
-                        var items = listBox.ItemsSource as ObservableCollection<KeyItem>;
-                        if (items != null)
+                        var sourceData = e.Data.GetData("KeyItem") as KeyItem;
+                        var targetData = targetItem.DataContext as KeyItem;
+
+                        if (sourceData != null && targetData != null)
                         {
-                            int targetIndex = items.IndexOf(targetData);
-                            
-                            // 添加动画效果
-                            var animation = new DoubleAnimation
+                            var items = listBox.ItemsSource as ObservableCollection<KeyItem>;
+                            if (items != null)
                             {
-                                From = 0.5,
-                                To = 1.0,
-                                Duration = TimeSpan.FromMilliseconds(200)
-                            };
-                            _draggedItem.BeginAnimation(UIElement.OpacityProperty, animation);
-
-                            // 交换位置而不是移动
-                            if (_sourceIndex != targetIndex)
-                            {
-                                // 临时保存目标位置的项
-                                var temp = items[targetIndex];
-                                // 将源位置的项移动到目标位置
-                                items[targetIndex] = items[_sourceIndex];
-                                // 将目标位置的项移动到源位置
-                                items[_sourceIndex] = temp;
-                            }
-
-                            // 清除所有拖拽标记
-                            foreach (var item in listBox.Items)
-                            {
-                                if (listBox.ItemContainerGenerator.ContainerFromItem(item) is ListBoxItem listBoxItem)
+                                int targetIndex = items.IndexOf(targetData);
+                                
+                                // 添加动画效果
+                                var animation = new DoubleAnimation
                                 {
-                                    DragDropProperties.SetIsDragTarget(listBoxItem, false);
-                                }
-                            }
+                                    From = 0.5,
+                                    To = 1.0,
+                                    Duration = TimeSpan.FromMilliseconds(200)
+                                };
+                                _draggedItem.BeginAnimation(UIElement.OpacityProperty, animation);
 
-                            // 触发保存
-                            if (listBox.DataContext is KeyMappingViewModel viewModel)
-                            {
-                                viewModel.SaveConfig();
+                                // 交换位置而不是移动
+                                if (_sourceIndex != targetIndex)
+                                {
+                                    // 使用Move方法而不是临时变量
+                                    MoveItem(items, _sourceIndex, targetIndex);
+                                    
+                                    // 执行成功动画效果
+                                    ApplySuccessAnimation(targetItem);
+                                }
+
+                                // 清除所有拖拽标记
+                                ClearAllDragTargets(listBox);
+
+                                // 触发保存
+                                if (listBox.DataContext is KeyMappingViewModel viewModel)
+                                {
+                                    viewModel.SaveConfig();
+                                }
                             }
                         }
                     }
                 }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"处理拖放时发生异常: {ex.Message}");
+                    ClearAllDragTargets(sender as System.Windows.Controls.ListBox);
+                }
             }
+        }
+
+        // 优化：提取清除拖拽标记的方法
+        private void ClearAllDragTargets(System.Windows.Controls.ListBox? listBox)
+        {
+            if (listBox == null) return;
+            
+            foreach (var item in listBox.Items)
+            {
+                if (listBox.ItemContainerGenerator.ContainerFromItem(item) is ListBoxItem listBoxItem)
+                {
+                    DragDropProperties.SetIsDragTarget(listBoxItem, false);
+                }
+            }
+        }
+
+        // 优化：使用Move方法替代临时变量交换
+        private void MoveItem(ObservableCollection<KeyItem> items, int sourceIndex, int targetIndex)
+        {
+            // 直接交换两个位置的元素，而不是先删除再插入
+            var temp = items[targetIndex];
+            items[targetIndex] = items[sourceIndex];
+            items[sourceIndex] = temp;
+        }
+
+        // 添加成功动画效果 - 闪烁提示不改变最终背景
+        private void ApplySuccessAnimation(ListBoxItem targetItem)
+        {
+            var border = FindVisualChild<Border>(targetItem);
+            if (border == null) return;
+
+            // 创建闪烁动画效果，从选中色到绿色再返回选中色
+            var flashAnimation = new ColorAnimation
+            {
+                From = Colors.LightGreen,         // 闪烁颜色
+                Duration = TimeSpan.FromMilliseconds(200), // 短暂的闪烁
+                AutoReverse = true,                // 自动反向动画
+                RepeatBehavior = new RepeatBehavior(2),    // 重复两次
+                FillBehavior = FillBehavior.Stop           // 结束后停止
+            };
+
+            // 在UI线程上执行动画
+            targetItem.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    // 创建一个分离的画刷用于动画，避免影响原背景
+                    var overlayBorder = new Border
+                    {
+                        Width = border.ActualWidth,
+                        Height = border.ActualHeight,
+                        Background = new SolidColorBrush(Colors.LightGreen),
+                        Opacity = 0.5
+                    };
+
+                    // 将闪烁边框添加为临时视觉元素
+                    var parentPanel = FindAncestor<System.Windows.Controls.Panel>(border);
+                    if (parentPanel != null)
+                    {
+                        int index = parentPanel.Children.IndexOf(border);
+                        if (index >= 0)
+                        {
+                            parentPanel.Children.Insert(index + 1, overlayBorder);
+                            
+                            // 创建淡出动画
+                            var fadeOutAnimation = new DoubleAnimation
+                            {
+                                From = 0.5,
+                                To = 0.0,
+                                Duration = TimeSpan.FromMilliseconds(400),
+                                FillBehavior = FillBehavior.Stop
+                            };
+                            
+                            // 动画完成后移除临时边框
+                            fadeOutAnimation.Completed += (s, e) => 
+                            {
+                                parentPanel.Children.Remove(overlayBorder);
+                            };
+                            
+                            // 执行淡出动画
+                            overlayBorder.BeginAnimation(UIElement.OpacityProperty, fadeOutAnimation);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"应用闪烁动画时出错: {ex.Message}");
+                }
+            }));
         }
 
         private void ListBox_DragEnter(object sender, System.Windows.DragEventArgs e)
@@ -316,6 +424,28 @@ namespace WpfApp.Behaviors
                 current = VisualTreeHelper.GetParent(current);
             }
             while (current != null);
+            return null;
+        }
+
+        // 查找视觉树中的子元素
+        private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+                
+                if (child is T typedChild)
+                {
+                    return typedChild;
+                }
+                
+                T? childOfChild = FindVisualChild<T>(child);
+                if (childOfChild != null)
+                {
+                    return childOfChild;
+                }
+            }
+            
             return null;
         }
 

@@ -660,7 +660,7 @@
                                       Width="16"
                                       Height="16"
                                       Stretch="Uniform"
-                                      Margin="6,0,8,0"
+                                      Margin="0,0,5,0"
                                       VerticalAlignment="Center"/>
 
                                 <!-- 音量滑动条 -->
@@ -672,7 +672,7 @@
                                         SmallChange="0.01"
                                         LargeChange="0.05"
                                         TickFrequency="0.1"
-                                        Margin="0,0,8,0"
+                                        Margin="0,0,5,0"
                                         Value="{Binding SoundVolume, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                         VerticalAlignment="Center"
                                         ToolTip="{Binding SoundVolume, StringFormat={}{0:P0}音量}"/>
@@ -684,14 +684,14 @@
                                       Width="16"
                                       Height="16"
                                       Stretch="Uniform"
-                                      Margin="0,0,8,0"
+                                      Margin="0,0,5,0"
                                       VerticalAlignment="Center"/>
 
                                 <!-- 当前音量百分比文本 -->
                                 <TextBlock Grid.Column="3"
                                            Text="{Binding SoundVolume, StringFormat={}{0:P0}}"
-                                           Width="30"
-                                           Margin="0,0,10,0"
+                                           Width="35"
+                                           Margin="0,0,5,0"
                                            Foreground="#505050"
                                            FontSize="12"
                                            TextAlignment="Center"
@@ -703,7 +703,7 @@
                                         Style="{StaticResource CircleHelpButtonStyle}"
                                         Width="18" Height="18"
                                         FontSize="12"
-                                        Margin="0,0,0,0"
+                                        Margin="5,0,0,0"
                                         Click="VolumeHelp_Click"
                                         Content="?"
                                         FontWeight="SemiBold">

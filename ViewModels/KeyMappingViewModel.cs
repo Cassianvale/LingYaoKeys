@@ -1101,48 +1101,6 @@ namespace WpfApp.ViewModels
             }
         }
 
-        // 删除选中的按键
-        private void DeleteSelectedKeys()
-        {
-            try
-            {
-                var keysToDelete = new List<KeyItem>();
-
-                // 如果有右键选中的项，优先删除该项
-                if (SelectedKeyItem != null)
-                {
-                    keysToDelete.Add(SelectedKeyItem);
-                    SelectedKeyItem = null;
-                }
-                else
-                {
-                    // 否则删除所有勾选的项
-                    keysToDelete.AddRange(KeyList.Where(k => k.IsSelected));
-                }
-
-                // 执行删除
-                foreach (var key in keysToDelete)
-                {
-                    KeyList.Remove(key);
-                    _logger.Debug($"删除按键: {key.KeyCode}");
-                }
-
-                // 更新HotkeyService的按键列表
-                UpdateHotkeyServiceKeyList();
-
-                // 实时保存按键列表
-                if (!_isInitializing)
-                {
-                    SaveConfig();
-                    _logger.Debug("配置已保存");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("删除按键时发生异常", ex);
-            }
-        }
-
         /// <summary>
         /// 删除指定的按键
         /// </summary>
