@@ -97,6 +97,9 @@ namespace WpfApp.Services.Config
         // 是否自动切换到英文输入法
         public bool? AutoSwitchToEnglishIME { get; set; } = true;
 
+        // 热键总开关状态
+        public bool? isHotkeyControlEnabled { get; set; } = true;
+
         // 窗口句柄相关信息
         public string? TargetWindowClassName { get; set; }
         public string? TargetWindowProcessName { get; set; }

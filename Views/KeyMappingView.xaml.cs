@@ -687,6 +687,13 @@ namespace WpfApp.Views
                     return;
                 }
 
+                // 检查热键总开关是否开启
+                if (!ViewModel.IsHotkeyControlEnabled)
+                {
+                    _logger.Debug("热键总开关已关闭，忽略热键触发");
+                    return;
+                }
+
                 if (ViewModel.SelectedKeyMode == 0) // 顺序模式
                 {
                     _logger.Debug($"顺序模式 - 按键{(isKeyDown ? "按下" : "释放")}");
@@ -729,6 +736,13 @@ namespace WpfApp.Views
                 if (_hotkeyService != null && _hotkeyService.IsInputFocused)
                 {
                     _logger.Debug("输入框有焦点，忽略热键触发");
+                    return;
+                }
+                
+                // 检查热键总开关是否开启
+                if (!ViewModel.IsHotkeyControlEnabled)
+                {
+                    _logger.Debug("热键总开关已关闭，忽略热键触发");
                     return;
                 }
                 

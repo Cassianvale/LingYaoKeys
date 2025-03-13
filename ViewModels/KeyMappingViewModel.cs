@@ -53,6 +53,7 @@ namespace WpfApp.ViewModels
         private bool _isExecuting = false; // 添加执行状态标志
         private bool _isFloatingWindowEnabled;
         private bool _autoSwitchToEnglishIME = true; // 默认开启自动切换输入法
+        private bool _isHotkeyControlEnabled = true; // 热键总开关，默认开启
         private FloatingStatusWindow _floatingWindow;
         private FloatingStatusViewModel _floatingViewModel;
         private KeyItem? _selectedKeyItem;
@@ -268,7 +269,7 @@ namespace WpfApp.ViewModels
             }
         }
 
-        // 按键是否启用
+        // 热键是否启用
         public bool IsHotkeyEnabled
         {
             get => _isHotkeyEnabled;
@@ -276,6 +277,41 @@ namespace WpfApp.ViewModels
             {
                 SetProperty(ref _isHotkeyEnabled, value);
                 HotkeyStatus = value ? "按键已启动" : "按键已停止";
+            }
+        }
+
+        // 热键总开关
+        public bool IsHotkeyControlEnabled
+        {
+            get => _isHotkeyControlEnabled;
+            set
+            {
+                if (SetProperty(ref _isHotkeyControlEnabled, value))
+                {
+                    _logger.Debug($"热键总开关已{(value ? "启用" : "禁用")}");
+                    
+                    // 同步状态到HotkeyService
+                    if (_hotkeyService != null)
+                    {
+                        _hotkeyService.IsHotkeyControlEnabled = value;
+                    }
+                    
+                    // 如果禁用总开关，同时停止当前的按键映射
+                    if (!value && IsExecuting)
+                    {
+                        StopKeyMapping();
+                    }
+                    
+                    // 实时保存到配置
+                    if (!_isInitializing)
+                    {
+                        AppConfigService.UpdateConfig(config =>
+                        {
+                            config.isHotkeyControlEnabled = value;
+                        });
+                        _logger.Debug($"已将热键总开关状态({value})保存到配置");
+                    }
+                }
             }
         }
 
@@ -720,6 +756,16 @@ namespace WpfApp.ViewModels
                     SetStopHotkey(appConfig.stopKey.Value, appConfig.stopMods);
                 }
 
+                // 加载热键控制开关
+                IsHotkeyControlEnabled = appConfig.isHotkeyControlEnabled ?? true;
+                
+                // 确保同步热键总开关状态到HotkeyService
+                if (_hotkeyService != null)
+                {
+                    _hotkeyService.IsHotkeyControlEnabled = IsHotkeyControlEnabled;
+                    _logger.Debug($"已将热键总开关状态({IsHotkeyControlEnabled})同步到HotkeyService");
+                }
+
                 // 加载其他设置
                 // 配置流程说明：
                 // 1. 从AppConfig获取配置值，设置到ViewModel的属性中
@@ -748,6 +794,7 @@ namespace WpfApp.ViewModels
             IsSequenceMode = true;
             IsSoundEnabled = true;
             IsFloatingWindowEnabled = true;  // 默认开启浮窗
+            IsHotkeyControlEnabled = true;   // 默认启用热键总开关
             _lyKeysService.KeyPressInterval = IsGameMode ? LyKeysService.DEFAULT_KEY_PRESS_INTERVAL : 0;
         }
 
@@ -1188,6 +1235,13 @@ namespace WpfApp.ViewModels
                     configChanged = true;
                 }
 
+                // 检查并更新热键控制开关
+                if (config.isHotkeyControlEnabled != IsHotkeyControlEnabled)
+                {
+                    config.isHotkeyControlEnabled = IsHotkeyControlEnabled;
+                    configChanged = true;
+                }
+
                 // 只有在配置发生变化时才保存
                 if (configChanged)
                 {
@@ -1335,6 +1389,13 @@ namespace WpfApp.ViewModels
             {
                 _logger.Debug("🍎 ==》 启动热键按下 《== 🍎");
 
+                // 检查热键总开关是否开启
+                if (!IsHotkeyControlEnabled)
+                {
+                    _logger.Debug("热键总开关已关闭，忽略热键");
+                    return;
+                }
+
                 // 获取选中的按键
                 var selectedKeys = KeyList.Where(k => k.IsSelected).ToList();
                 if (selectedKeys.Count == 0)
@@ -1389,7 +1450,15 @@ namespace WpfApp.ViewModels
         {
             try
             {
-                _logger.Debug("🍋 ==》 停止热键按下 《== 🍋");
+                _logger.Debug("🔴 ==》 停止热键按下 《== 🔴");
+
+                // 检查热键总开关是否开启
+                if (!IsHotkeyControlEnabled)
+                {
+                    _logger.Debug("热键总开关已关闭，忽略热键");
+                    return;
+                }
+
                 _lyKeysService.IsEnabled = false;
                 _lyKeysService.IsHoldMode = false;
                 IsHotkeyEnabled = false;

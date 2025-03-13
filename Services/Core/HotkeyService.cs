@@ -77,6 +77,7 @@ namespace WpfApp.Services.Core
         private bool _isKeyHeld;    // 防止全局热键的重复触发
         private bool _isSequenceRunning;  // 序列模式是否正在运行
         private bool _isInputFocused;  // 输入焦点是否在当前窗口
+        private bool _isHotkeyControlEnabled = true;  // 热键总开关状态
 
         // 保持回调函数的引用
         private readonly HookProc _mouseProcDelegate;  // 鼠标钩子回调函数
@@ -641,6 +642,28 @@ namespace WpfApp.Services.Core
             set => _isInputFocused = value;
         }
 
+        // 热键总开关属性
+        public bool IsHotkeyControlEnabled
+        {
+            get => _isHotkeyControlEnabled;
+            set 
+            {
+                if (_isHotkeyControlEnabled != value)
+                {
+                    _isHotkeyControlEnabled = value;
+                    _logger.Debug($"热键服务总开关已{(value ? "启用" : "禁用")}");
+                    
+                    // 如果禁用热键总开关，同时停止当前执行的序列
+                    if (!value && _isSequenceRunning)
+                    {
+                        _lyKeysService.EmergencyStop();
+                        StopSequence();
+                        _logger.Debug("因热键总开关关闭，已停止当前按键序列");
+                    }
+                }
+            }
+        }
+
         // 结构体定义
         [StructLayout(LayoutKind.Sequential)]
         private struct KBDLLHOOKSTRUCT
@@ -812,6 +835,14 @@ namespace WpfApp.Services.Core
         // 判断是否可以触发热键
         private bool CanTriggerHotkey()
         {
+            // 首先检查热键总开关是否启用
+            if (!_isHotkeyControlEnabled)
+            {
+                _logger.Debug("热键总开关已关闭，忽略热键触发");
+                return false;
+            }
+            
+            // 继续检查窗口状态
             var state = GetWindowState();
             
             // 记录状态变化

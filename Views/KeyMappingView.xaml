@@ -397,10 +397,10 @@
                             <CheckBox Style="{StaticResource ModernSwitch}"
                                      Height="32"
                                      Width="50"
-                                     IsChecked="{Binding IsHotkeyEnabled, Mode=TwoWay}"
+                                     IsChecked="{Binding IsHotkeyControlEnabled, Mode=TwoWay}"
                                      HorizontalAlignment="Left"
                                      VerticalAlignment="Center"
-                                     ToolTip="启用/禁用所有热键">
+                                     ToolTip="启用/禁用所有热键响应功能">
                             </CheckBox>
                         </DockPanel>
                                   

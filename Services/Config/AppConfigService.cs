@@ -181,6 +181,7 @@ namespace WpfApp.Services.Config
                 soundEnabled = true,
                 IsGameMode = true,
                 KeyPressInterval = 5,
+                isHotkeyControlEnabled = true,  // 热键总开关默认启用
                 TargetWindowClassName = null,
                 TargetWindowProcessName = null,
                 TargetWindowTitle = null
