@@ -31,7 +31,6 @@ namespace WpfApp.Services.Core
         private bool _isDisposed;
         private CancellationTokenSource? _holdModeCts;
         private readonly Dictionary<int, LyKeysCode> _virtualKeyMap;
-        private bool _isRapidFireEnabled; // 连发开关状态
         private volatile bool _emergencyStop;
         private const int EMERGENCY_STOP_THRESHOLD = 100; // 100ms内未能停止则强制停止
         private readonly object _emergencyStopLock = new object();
@@ -191,27 +190,6 @@ namespace WpfApp.Services.Core
                     if (wasEnabled)
                     {
                         IsEnabled = true;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// 获取或设置连发功能是否启用
-        /// </summary>
-        public bool IsRapidFireEnabled
-        {
-            get => _isRapidFireEnabled;
-            set
-            {
-                if (_isRapidFireEnabled != value)
-                {
-                    _isRapidFireEnabled = value;
-                    // 当连发状态改变时，重新应用按键列表过滤
-                    if (_keyList.Any())
-                    {
-                        var currentKeys = new List<LyKeysCode>(_keyList);
-                        SetKeyList(currentKeys);
                     }
                 }
             }
@@ -438,20 +416,6 @@ namespace WpfApp.Services.Core
                 }
                 _logger.Debug(intervalLog.ToString());
 
-                // 根据连发状态过滤按键
-                var filteredKeys = keyList;
-                if (_isRapidFireEnabled)
-                {
-                    // 过滤掉连发按键，如果 KeyItem 为 null，则保留该按键
-                    filteredKeys = keyItems
-                        .Where(k => k.Item == null || !k.Item.IsKeyBurst)
-                        .Select(k => k.Code)
-                        .ToList();
-
-                    _logger.Debug($"连发模式已启用，过滤后的按键数量: {filteredKeys.Count}, " +
-                                $"过滤掉的连发按键数量: {keyList.Count - filteredKeys.Count}");
-                }
-
                 // 清除并重新收集每个按键的间隔信息
                 _keyIntervals.Clear();
                 foreach (var item in keyItems)
@@ -464,7 +428,7 @@ namespace WpfApp.Services.Core
                     _keyIntervals[item.Code] = interval;
                 }
 
-                _keyList = new List<LyKeysCode>(filteredKeys);
+                _keyList = new List<LyKeysCode>(keyList);
                 _logger.Debug($"按键列表已更新 - 按键数量: {_keyList.Count}, 间隔信息已存储: {_keyIntervals.Count}个");
             }
             catch (Exception ex)

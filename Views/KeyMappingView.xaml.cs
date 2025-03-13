@@ -817,18 +817,6 @@ namespace WpfApp.Views
             }
         }
 
-        private void ShowKeyboardLayout_Click(object sender, RoutedEventArgs e)
-        {
-            MainContent.Visibility = Visibility.Collapsed;
-            KeyboardLayoutPage.Visibility = Visibility.Visible;
-        }
-
-        private void CloseKeyboardLayout_Click(object sender, RoutedEventArgs e)
-        {
-            KeyboardLayoutPage.Visibility = Visibility.Collapsed;
-            MainContent.Visibility = Visibility.Visible;
-        }
-
         private void GetWindowHandle_Click(object sender, RoutedEventArgs e)
         {
             try

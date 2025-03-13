@@ -85,9 +85,6 @@ namespace WpfApp.Services.Core
         private IntPtr _keyboardHookHandle;  // 键盘钩子句柄
         private readonly object _hookLock = new object();  // 钩子锁
 
-        private bool _isRapidFireEnabled;
-        private List<KeyBurstConfig> _rapidFireKeys = new();
-
         private IntPtr _targetWindowHandle;
         private bool _isTargetWindowActive;
 
@@ -745,43 +742,6 @@ namespace WpfApp.Services.Core
                 throw;
             }
         }
-
-        // 设置连发功能启用状态
-        public void SetRapidFireEnabled(bool enabled)
-        {
-            _isRapidFireEnabled = enabled;
-            // 同步状态到LyKeysService
-            _lyKeysService.IsRapidFireEnabled = enabled;
-            if (!enabled)
-            {
-                // 当禁用连发时，清空连发按键列表
-                _rapidFireKeys.Clear();
-            }
-        }
-
-        // 更新连发按键列表
-        public void UpdateRapidFireKeys(IEnumerable<KeyBurstConfig> keys)
-        {
-            _rapidFireKeys = keys.ToList();
-            if (_isRapidFireEnabled)
-            {
-                // 当连发功能启用时，应用连发设置
-                foreach (var key in _rapidFireKeys)
-                {
-                    // TODO: 实现具体的连发逻辑
-                    _logger.Debug($"更新连发按键: {key.Code}, 延迟: {key.RapidFireDelay}ms, 按压时间: {key.PressTime}ms");
-                }
-            }
-        }
-
-        // 获取按键的连发状态
-        public bool IsKeyInRapidFire(LyKeysCode keyCode)
-        {
-            return _rapidFireKeys.Any(k => k.Code == keyCode);
-        }
-
-        // 获取连发功能启用状态
-        public bool IsRapidFireEnabled => _isRapidFireEnabled;
 
         // 目标窗口句柄
         public IntPtr TargetWindowHandle

@@ -172,21 +172,15 @@ namespace WpfApp.Services.Config
                 stopMods = 0,
                 keys = new List<KeyConfig> 
                 { 
-                    new KeyConfig(LyKeysCode.VK_F, true, true),
-                    new KeyConfig(LyKeysCode.VK_1, false, false),
-                    new KeyConfig(LyKeysCode.VK_2, false, false)
-                },
-                KeyBurst = new List<KeyBurstConfig>
-                {
-                    new KeyBurstConfig(LyKeysCode.VK_F, 10, 5)
+                    new KeyConfig(LyKeysCode.VK_F, true),
+                    new KeyConfig(LyKeysCode.VK_1, false),
+                    new KeyConfig(LyKeysCode.VK_2, false)
                 },
                 keyMode = 0,
                 interval = 5,
                 soundEnabled = true,
                 IsGameMode = true,
                 KeyPressInterval = 5,
-                IsRapidFire = false,
-                IsRapidFireEnabled = false,
                 TargetWindowClassName = null,
                 TargetWindowProcessName = null,
                 TargetWindowTitle = null

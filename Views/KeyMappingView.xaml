@@ -65,21 +65,6 @@
                         </DockPanel>
                     </Button>
                     
-                    <Button x:Name="btnShowKeyboardLayout"
-                            Style="{StaticResource RoundedShadowButtonSmall}"
-                            Width="32" Height="32"
-                            Margin="0,0,10,0"
-                            Click="ShowKeyboardLayout_Click"
-                            DockPanel.Dock="Left"
-                            ToolTip="显示键鼠布局">
-                        <TextBlock Text="连发"
-                                  FontSize="13"
-                                  FontWeight="Medium"
-                                  Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"/>
-                    </Button>
-                    
                     <TextBox x:Name="KeyInputBox"
                              Style="{StaticResource ModernTextBox}"
                              IsEnabled="{Binding IsNotExecuting}"
@@ -149,19 +134,8 @@
                                                       Foreground="#505050"
                                                       Text=""/>
                                             
-                                            <!-- 连发列表头 -->
-                                            <TextBlock Grid.Column="1"
-                                                      Width="24"
-                                                      Margin="0,0,4,0"
-                                                      TextAlignment="Center"
-                                                      VerticalAlignment="Center"
-                                                      FontSize="12"
-                                                      FontWeight="SemiBold"
-                                                      Foreground="#505050"
-                                                      Text="连发"/>
-                                            
                                             <!-- 按键名称列表头 -->
-                                            <TextBlock Grid.Column="2"
+                                            <TextBlock Grid.Column="1"
                                                       Margin="4,0"
                                                       VerticalAlignment="Center"
                                                       FontSize="12"
@@ -170,7 +144,7 @@
                                                       Text="按键名称"/>
                                             
                                             <!-- 间隔列表头 -->
-                                            <TextBlock Grid.Column="3"
+                                            <TextBlock Grid.Column="2"
                                                       Width="60"
                                                       Margin="4,0,0,0"
                                                       TextAlignment="Center"
@@ -201,7 +175,6 @@
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
@@ -226,71 +199,8 @@
                                         </Button.ToolTip>
                                     </Button>
 
-                                    <!-- 连发标记 -->
-                                    <Border Grid.Column="1"
-                                            Width="24"
-                                            Height="24"
-                                            CornerRadius="12"
-                                            Margin="0,0,4,0"
-                                            VerticalAlignment="Center">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Setter Property="Background" Value="Transparent"/>
-                                                <Style.Triggers>
-                                                    <MultiDataTrigger>
-                                                        <MultiDataTrigger.Conditions>
-                                                            <Condition Binding="{Binding IsKeyBurst}" Value="True"/>
-                                                            <Condition Binding="{Binding DataContext.KeyboardLayoutViewModel.IsRapidFireEnabled, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="True"/>
-                                                        </MultiDataTrigger.Conditions>
-                                                        <Setter Property="Background" Value="#E8F5E9"/>
-                                                        <Setter Property="BorderBrush" Value="#4CAF50"/>
-                                                        <Setter Property="BorderThickness" Value="1"/>
-                                                    </MultiDataTrigger>
-                                                    <MultiDataTrigger>
-                                                        <MultiDataTrigger.Conditions>
-                                                            <Condition Binding="{Binding IsKeyBurst}" Value="True"/>
-                                                            <Condition Binding="{Binding DataContext.KeyboardLayoutViewModel.IsRapidFireEnabled, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="False"/>
-                                                        </MultiDataTrigger.Conditions>
-                                                        <Setter Property="Background" Value="#FFEBEE"/>
-                                                        <Setter Property="BorderBrush" Value="#F44336"/>
-                                                        <Setter Property="BorderThickness" Value="1"/>
-                                                    </MultiDataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <TextBlock TextAlignment="Center"
-                                                 VerticalAlignment="Center">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Text" Value=""/>
-                                                    <Setter Property="Foreground" Value="#757575"/>
-                                                    <Style.Triggers>
-                                                        <MultiDataTrigger>
-                                                            <MultiDataTrigger.Conditions>
-                                                                <Condition Binding="{Binding IsKeyBurst}" Value="True"/>
-                                                                <Condition Binding="{Binding DataContext.KeyboardLayoutViewModel.IsRapidFireEnabled, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="True"/>
-                                                            </MultiDataTrigger.Conditions>
-                                                            <Setter Property="Text" Value="连"/>
-                                                            <Setter Property="Foreground" Value="#4CAF50"/>
-                                                            <Setter Property="FontWeight" Value="Bold"/>
-                                                        </MultiDataTrigger>
-                                                        <MultiDataTrigger>
-                                                            <MultiDataTrigger.Conditions>
-                                                                <Condition Binding="{Binding IsKeyBurst}" Value="True"/>
-                                                                <Condition Binding="{Binding DataContext.KeyboardLayoutViewModel.IsRapidFireEnabled, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="False"/>
-                                                            </MultiDataTrigger.Conditions>
-                                                            <Setter Property="Text" Value="连"/>
-                                                            <Setter Property="Foreground" Value="#F44336"/>
-                                                            <Setter Property="FontWeight" Value="Bold"/>
-                                                        </MultiDataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </Border>
-                                    
                                     <!-- ModernSwitch -->
-                                    <CheckBox Grid.Column="2"
+                                    <CheckBox Grid.Column="1"
                                              Height="32"
                                              Margin="4,0"
                                              HorizontalAlignment="Stretch"
@@ -300,22 +210,12 @@
                                             <Style TargetType="CheckBox" BasedOn="{StaticResource ModernSwitch}">
                                                 <Setter Property="Content" Value="{Binding DisplayName}"/>
                                                 <Setter Property="IsChecked" Value="{Binding IsSelected}"/>
-                                                <Style.Triggers>
-                                                    <MultiDataTrigger>
-                                                        <MultiDataTrigger.Conditions>
-                                                            <Condition Binding="{Binding IsKeyBurst}" Value="True"/>
-                                                            <Condition Binding="{Binding DataContext.KeyboardLayoutViewModel.IsRapidFireEnabled, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="True"/>
-                                                        </MultiDataTrigger.Conditions>
-                                                        <Setter Property="IsEnabled" Value="False"/>
-                                                        <Setter Property="Opacity" Value="0.7"/>
-                                                    </MultiDataTrigger>
-                                                </Style.Triggers>
                                             </Style>
                                         </CheckBox.Style>
                                     </CheckBox>
                                     
                                     <!-- 按键间隔输入框 -->
-                                    <DockPanel Grid.Column="3" 
+                                    <DockPanel Grid.Column="2" 
                                                Width="60" 
                                                Margin="4,0,0,0" 
                                                VerticalAlignment="Center">
@@ -726,15 +626,6 @@
                                       Margin="0,0,0,0"
                                       Padding="0,0,0,0"
                                       IsChecked="{Binding IsFloatingWindowEnabled, Mode=TwoWay}"/>
-                            <!-- 连发开关 -->
-                            <CheckBox Style="{StaticResource ModernSwitch}"
-                                      Content="连发开关" 
-                                      Height="32"
-                                      VerticalContentAlignment="Center"
-                                      HorizontalAlignment="Left"
-                                      Margin="0,0,0,0"
-                                      Padding="0,0,0,0"
-                                      IsChecked="{Binding KeyboardLayoutViewModel.IsRapidFireEnabled, Mode=TwoWay}"/>
                                       
                             <!-- 自动切换输入法 -->
                             <CheckBox Style="{StaticResource ModernSwitch}"
@@ -752,40 +643,5 @@
             </StackPanel>
         </Grid>
 
-        <!-- 键鼠布局页面 -->
-        <Grid x:Name="KeyboardLayoutPage" 
-              Background="White" 
-              Visibility="Collapsed">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-
-            <!-- 标题栏 -->
-            <DockPanel Grid.Row="0" 
-                       Background="#F5F5F5" 
-                       Height="48">
-                <Button x:Name="btnBackToMain"
-                        Style="{StaticResource CircleButtonStyle}"
-                        Width="32" Height="32"
-                        Margin="8,0,0,0"
-                        Click="CloseKeyboardLayout_Click">
-                    <Path Data="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"
-                          Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                          Width="16" Height="16"
-                          Stretch="Uniform"/>
-                </Button>
-                <TextBlock Text="键鼠布局"
-                           FontSize="16"
-                           FontWeight="Medium"
-                           VerticalAlignment="Center"
-                           Margin="16,0,0,0"/>
-            </DockPanel>
-
-            <!-- 键盘布局控件 -->
-            <controls:KeyboardLayoutView Grid.Row="1" 
-                                       x:Name="KeyboardLayout"
-                                       DataContext="{Binding KeyboardLayoutViewModel}"/>
-        </Grid>
     </Grid>
 </Page> 

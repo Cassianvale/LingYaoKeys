@@ -62,29 +62,13 @@ namespace WpfApp.Services.Config
     {
         public LyKeysCode Code { get; set; }
         public bool IsSelected { get; set; }
-        public bool IsKeyBurst { get; set; }
-        public int KeyInterval { get; set; } = 5;
+        public int KeyInterval { get; set; }
 
-        public KeyConfig(LyKeysCode code, bool isSelected = true, bool isKeyBurst = false, int keyInterval = 5)
+        public KeyConfig(LyKeysCode code, bool isSelected = true, int keyInterval = 5)
         {
             Code = code;
             IsSelected = isSelected;
-            IsKeyBurst = isKeyBurst;
             KeyInterval = keyInterval;
-        }
-    }
-
-    public class KeyBurstConfig
-    {
-        public LyKeysCode Code { get; set; }
-        public int RapidFireDelay { get; set; }
-        public int PressTime { get; set; }
-
-        public KeyBurstConfig(LyKeysCode code, int rapidFireDelay = 10, int pressTime = 5)
-        {
-            Code = code;
-            RapidFireDelay = rapidFireDelay;
-            PressTime = pressTime;
         }
     }
 
@@ -101,8 +85,6 @@ namespace WpfApp.Services.Config
         public LyKeysCode? stopKey { get; set; }
         public ModifierKeys stopMods { get; set; }
         public List<KeyConfig> keys { get; set; } = new List<KeyConfig>();
-        public List<KeyBurstConfig> KeyBurst { get; set; } = new List<KeyBurstConfig>();
-        public bool IsRapidFire { get; set; }
         public int keyMode { get; set; }
         // 默认按键间隔，仅用于新添加按键时的默认值
         public int interval { get; set; } = 10;
@@ -111,9 +93,6 @@ namespace WpfApp.Services.Config
         public int? KeyPressInterval { get; set; }
         public double FloatingWindowLeft { get; set; }
         public double FloatingWindowTop { get; set; }
-
-        // 连发功能是否启用
-        public bool? IsRapidFireEnabled { get; set; }
 
         // 是否自动切换到英文输入法
         public bool? AutoSwitchToEnglishIME { get; set; } = true;
@@ -131,7 +110,6 @@ namespace WpfApp.Services.Config
             Debug = new DebugConfig();
             UI = new UIConfig();
             keys = new List<KeyConfig>();
-            KeyBurst = new List<KeyBurstConfig>();
         }
     }
 

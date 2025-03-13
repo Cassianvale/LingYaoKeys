@@ -9,8 +9,7 @@ namespace WpfApp.Services.Models
         private readonly LyKeysService _lyKeysService;
         private bool _isSelected = true;
         private LyKeysCode _keyCode;
-        private bool _isKeyBurst;
-        private int _individualKeyInterval = 5; // 默认5毫秒按键独立间隔
+        private int _keyInterval = 5;
 
         public event PropertyChangedEventHandler? PropertyChanged;
         public event EventHandler<bool>? SelectionChanged;
@@ -49,28 +48,14 @@ namespace WpfApp.Services.Models
             }
         }
 
-        public bool IsKeyBurst
-        {
-            get => _isKeyBurst;
-            set
-            {
-                if (_isKeyBurst != value)
-                {
-                    _isKeyBurst = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        // 添加按键独立间隔属性
         public int KeyInterval
         {
-            get => _individualKeyInterval;
+            get => _keyInterval;
             set
             {
-                if (_individualKeyInterval != value)
+                if (_keyInterval != value)
                 {
-                    _individualKeyInterval = value;
+                    _keyInterval = value;
                     OnPropertyChanged();
                     KeyIntervalChanged?.Invoke(this, value);
                 }

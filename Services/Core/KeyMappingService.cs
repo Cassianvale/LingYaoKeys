@@ -230,7 +230,6 @@ namespace WpfApp.Services.Core
                 var keyItem = new KeyItem(keyConfig.Code, _lyKeysService)
                 {
                     IsSelected = keyConfig.IsSelected,
-                    IsKeyBurst = keyConfig.IsKeyBurst
                 };
                 keyItem.SelectionChanged += (s, isSelected) => KeyListChanged?.Invoke();
                 _keyList.Add(keyItem);
@@ -251,11 +250,6 @@ namespace WpfApp.Services.Core
 
         public void SaveConfiguration(AppConfig config)
         {
-            config.keys = _keyList.Select(k => new KeyConfig(k.KeyCode, k.IsSelected)
-            {
-                IsKeyBurst = k.IsKeyBurst
-            }).ToList();
-
             config.startKey = _startHotkey;
             config.startMods = _startModifiers;
             config.stopKey = _stopHotkey;

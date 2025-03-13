@@ -33,7 +33,7 @@
                             ShadowDepth="2"
                             Opacity="0.2"
                             Color="#000000"/>
-
+            
             <!-- 全局样式设置 -->
             <Style TargetType="{x:Type FrameworkElement}">
                 <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>

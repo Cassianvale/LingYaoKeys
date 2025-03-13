@@ -56,7 +56,6 @@ namespace WpfApp.ViewModels
         private FloatingStatusWindow _floatingWindow;
         private FloatingStatusViewModel _floatingViewModel;
         private KeyItem? _selectedKeyItem;
-        private KeyboardLayoutViewModel _keyboardLayoutViewModel;
         private string _selectedWindowTitle = "未选择窗口";
         private IntPtr _selectedWindowHandle = IntPtr.Zero;
         private string _selectedWindowClassName = string.Empty;
@@ -435,43 +434,6 @@ namespace WpfApp.ViewModels
             set => SetProperty(ref _selectedKeyItem, value);
         }
 
-        public KeyboardLayoutViewModel KeyboardLayoutViewModel
-        {
-            get => _keyboardLayoutViewModel;
-            private set
-            {
-                if (_keyboardLayoutViewModel != value)
-                {
-                    if (_keyboardLayoutViewModel != null)
-                    {
-                        // 取消订阅旧的事件
-                        _keyboardLayoutViewModel.KeyBurstStateChanged -= OnKeyBurstStateChanged;
-                    }
-                    
-                    _keyboardLayoutViewModel = value;
-                    
-                    if (_keyboardLayoutViewModel != null)
-                    {
-                        // 订阅新的事件
-                        _keyboardLayoutViewModel.KeyBurstStateChanged += OnKeyBurstStateChanged;
-                    }
-                    
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        // 处理连发状态变化
-        private void OnKeyBurstStateChanged(LyKeysCode keyCode, bool isBurst)
-        {
-            var keyItem = KeyList.FirstOrDefault(k => k.KeyCode == keyCode);
-            if (keyItem != null)
-            {
-                keyItem.IsKeyBurst = isBurst;
-                _logger.Debug($"更新按键 {keyCode} 的连发状态为: {isBurst}");
-            }
-        }
-
         private void UpdateFloatingWindow()
         {
             if (AppConfigService.Config.UI.FloatingWindow.IsEnabled)
@@ -611,9 +573,6 @@ namespace WpfApp.ViewModels
             InitializeCommands();
             InitializeHotkeyStatus();
 
-            // 2. 初始化键盘布局视图模型
-            KeyboardLayoutViewModel = new KeyboardLayoutViewModel(lyKeysService, hotkeyService, _logger, _mainViewModel);
-
             // 3. 订阅事件
             SubscribeToEvents();
 
@@ -718,7 +677,6 @@ namespace WpfApp.ViewModels
                     {
                         var keyItem = new KeyItem(keyConfig.Code, _lyKeysService);
                         keyItem.IsSelected = keyConfig.IsSelected;
-                        keyItem.IsKeyBurst = keyConfig.IsKeyBurst; // 同步连发状态
                         keyItem.KeyInterval = keyConfig.KeyInterval; // 同步每个按键的间隔
                         keyItem.SelectionChanged += (s, isSelected) => SaveConfig();
                         // 订阅KeyIntervalChanged事件，实时保存配置
@@ -733,7 +691,7 @@ namespace WpfApp.ViewModels
                         KeyList.Add(keyItem);
                         
                         // 添加日志记录每个加载的按键的间隔
-                        _logger.Debug($"加载按键配置 - 按键: {keyItem.KeyCode}, 间隔: {keyItem.KeyInterval}ms, 连发: {keyItem.IsKeyBurst}");
+                        _logger.Debug($"加载按键配置 - 按键: {keyItem.KeyCode}, 间隔: {keyItem.KeyInterval}ms");
                     }
 
                     // 立即同步选中的按键到服务
@@ -1048,14 +1006,13 @@ namespace WpfApp.ViewModels
                 {
                     var keyConfigs = KeyList.Select(k => new KeyConfig(k.KeyCode, k.IsSelected)
                     {
-                        IsKeyBurst = k.IsKeyBurst,
                         KeyInterval = k.KeyInterval
                     }).ToList();
                     
                     // 添加日志记录每个按键的间隔
                     foreach (var key in keyConfigs)
                     {
-                        _logger.Debug($"保存按键配置 - 按键: {key.Code}, 间隔: {key.KeyInterval}ms, 连发: {key.IsKeyBurst}");
+                        _logger.Debug($"保存按键配置 - 按键: {key.Code}, 间隔: {key.KeyInterval}ms");
                     }
                     
                     AppConfigService.UpdateConfig(config =>
@@ -1189,8 +1146,7 @@ namespace WpfApp.ViewModels
                 // 获取所有按键和它们的状态
                 var keyConfigs = KeyList.Select(k => new KeyConfig(k.KeyCode, k.IsSelected)
                 {
-                    IsKeyBurst = k.IsKeyBurst, // 保存连发状态
-                    KeyInterval = k.KeyInterval // 保存每个按键的间隔
+                    KeyInterval = k.KeyInterval
                 }).ToList();
 
                 // 检查热键冲突
@@ -1297,7 +1253,6 @@ namespace WpfApp.ViewModels
             {
                 if (list1[i].Code != list2[i].Code || 
                     list1[i].IsSelected != list2[i].IsSelected ||
-                    list1[i].IsKeyBurst != list2[i].IsKeyBurst ||
                     list1[i].KeyInterval != list2[i].KeyInterval)
                     return false;
             }
