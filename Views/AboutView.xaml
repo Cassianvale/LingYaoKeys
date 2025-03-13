@@ -52,6 +52,24 @@
                                         VerticalScrollBarVisibility="Auto"
                                         HorizontalScrollBarVisibility="Disabled"
                                         Visibility="Collapsed">
+                    <!-- 使用自定义滚动条样式 -->
+                    <FlowDocumentScrollViewer.Template>
+                        <ControlTemplate TargetType="FlowDocumentScrollViewer">
+                            <Border BorderThickness="{TemplateBinding BorderThickness}" 
+                                    BorderBrush="{TemplateBinding BorderBrush}" 
+                                    Background="{TemplateBinding Background}" 
+                                    Padding="{TemplateBinding Padding}">
+                                <ScrollViewer x:Name="PART_ContentHost" 
+                                            CanContentScroll="True"
+                                            VerticalScrollBarVisibility="{TemplateBinding VerticalScrollBarVisibility}"
+                                            HorizontalScrollBarVisibility="{TemplateBinding HorizontalScrollBarVisibility}" 
+                                            Template="{DynamicResource ScrollViewerControlTemplate}">
+                                    <FlowDocumentPageViewer Document="{TemplateBinding Document}"/>
+                                </ScrollViewer>
+                            </Border>
+                        </ControlTemplate>
+                    </FlowDocumentScrollViewer.Template>
+                    
                     <FlowDocument x:Name="MainDocument" 
                                 PagePadding="20"
                                 FontFamily="Microsoft YaHei"

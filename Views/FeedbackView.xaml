@@ -41,7 +41,8 @@
                 BorderThickness="1" 
                 BorderBrush="#BDBDBD"
                 CornerRadius="4"
-                Margin="0,0,0,15">
+                Margin="0,0,0,15"
+                VerticalAlignment="Stretch">
             <TextBox Style="{StaticResource ModernTextBox}"
                      AcceptsReturn="True"
                      TextWrapping="Wrap"
@@ -50,10 +51,11 @@
                      Text="{Binding FeedbackContent, UpdateSourceTrigger=PropertyChanged}"
                      FontFamily="Microsoft YaHei UI"
                      FontSize="14"
-                     Padding="15"
+                     Padding="15,15,15,15"
+                     VerticalContentAlignment="Top"
+                     VerticalAlignment="Stretch"
                      Height="Auto"
                      MinHeight="200"
-                     MaxHeight="400"
                      PreviewKeyDown="FeedbackTextBox_PreviewKeyDown">
                 <TextBox.Resources>
                     <Style TargetType="TextBox" BasedOn="{StaticResource ModernTextBox}">
@@ -62,15 +64,18 @@
                         <Setter Property="CaretBrush" Value="#2C2C2C"/>
                     </Style>
                 </TextBox.Resources>
-                <!-- 使用TextBlock来控制行高 -->
+
                 <TextBox.Template>
                     <ControlTemplate TargetType="TextBox">
                         <ScrollViewer x:Name="PART_ContentHost" 
                                     Background="{TemplateBinding Background}"
-                                    Padding="{TemplateBinding Padding}">
+                                    Padding="{TemplateBinding Padding}"
+                                    VerticalAlignment="Stretch"
+                                    Template="{DynamicResource ScrollViewerControlTemplate}">
                             <ScrollViewer.Resources>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="LineHeight" Value="20"/>
+                                    <Setter Property="VerticalAlignment" Value="Top"/>
                                 </Style>
                             </ScrollViewer.Resources>
                         </ScrollViewer>
