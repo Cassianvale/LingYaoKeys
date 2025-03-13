@@ -220,11 +220,12 @@
                                                 VerticalAlignment="Center"
                                                 HorizontalAlignment="Center">
                                         <TextBox Style="{StaticResource ModernTextBox}"
-                                                 Height="26"
+                                                 Height="28"
                                                  Width="70"
                                                  VerticalContentAlignment="Center"
                                                  TextAlignment="Center"
                                                  FontSize="12"
+                                                 Padding="2,4,2,4"
                                                  ToolTip="按键间隔(ms)"
                                                  PreviewTextInput="NumberValidationTextBox"
                                                  GotFocus="NumberInput_GotFocus"
@@ -385,6 +386,23 @@
                                   FontWeight="SemiBold" 
                                   Foreground="#505050" 
                                   Margin="0,0,0,8"/>
+                                  
+                        <!-- 热键总开关 -->
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="总开关" 
+                                      DockPanel.Dock="Left" 
+                                      VerticalAlignment="Center" 
+                                      Width="50"
+                                      Margin="0,0,10,0"/>
+                            <CheckBox Style="{StaticResource ModernSwitch}"
+                                     Height="32"
+                                     Width="50"
+                                     IsChecked="{Binding IsHotkeyEnabled, Mode=TwoWay}"
+                                     HorizontalAlignment="Left"
+                                     VerticalAlignment="Center"
+                                     ToolTip="启用/禁用所有热键">
+                            </CheckBox>
+                        </DockPanel>
                                   
                         <!-- 按键设置区域 -->
                         <DockPanel Margin="0,0,0,8">

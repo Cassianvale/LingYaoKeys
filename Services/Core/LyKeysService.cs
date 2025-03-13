@@ -428,7 +428,7 @@ namespace WpfApp.Services.Core
                     _keyIntervals[item.Code] = interval;
                 }
 
-                _keyList = new List<LyKeysCode>(keyList);
+                _keyList = keyList.ToList();    // 创建副本
                 _logger.Debug($"按键列表已更新 - 按键数量: {_keyList.Count}, 间隔信息已存储: {_keyIntervals.Count}个");
             }
             catch (Exception ex)
