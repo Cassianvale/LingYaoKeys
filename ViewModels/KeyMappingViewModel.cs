@@ -296,6 +296,9 @@ namespace WpfApp.ViewModels
                         _hotkeyService.IsHotkeyControlEnabled = value;
                     }
                     
+                    // 更新浮窗状态
+                    UpdateFloatingStatus();
+                    
                     // 如果禁用总开关，同时停止当前的按键映射
                     if (!value && IsExecuting)
                     {
@@ -489,9 +492,9 @@ namespace WpfApp.ViewModels
         {
             if (_floatingWindow?.DataContext is FloatingStatusViewModel viewModel)
             {
-                string statusText = IsExecuting ? "运行中" : "已停止";
-                viewModel.StatusText = statusText;
-                _logger.Debug($"更新浮窗状态: {statusText}");
+                viewModel.IsHotkeyControlEnabled = _isHotkeyControlEnabled; // 同步热键总开关状态
+                viewModel.IsExecuting = IsExecuting; // 同步执行状态
+                _logger.Debug($"更新浮窗状态: 热键总开关={_isHotkeyControlEnabled}, 执行状态={IsExecuting}");
             }
         }
 
@@ -509,6 +512,10 @@ namespace WpfApp.ViewModels
                 {
                     // 先创建 ViewModel
                     _floatingViewModel = new FloatingStatusViewModel();
+                    
+                    // 初始化ViewModel属性
+                    _floatingViewModel.IsHotkeyControlEnabled = _isHotkeyControlEnabled;
+                    _floatingViewModel.IsExecuting = _isExecuting;
                     
                     // 创建浮窗并设置 DataContext
                     _floatingWindow = new FloatingStatusWindow(_mainWindow)
@@ -764,6 +771,13 @@ namespace WpfApp.ViewModels
                 {
                     _hotkeyService.IsHotkeyControlEnabled = IsHotkeyControlEnabled;
                     _logger.Debug($"已将热键总开关状态({IsHotkeyControlEnabled})同步到HotkeyService");
+                }
+                
+                // 同步热键总开关状态到浮窗
+                if (_floatingViewModel != null)
+                {
+                    _floatingViewModel.IsHotkeyControlEnabled = IsHotkeyControlEnabled;
+                    _logger.Debug($"已将热键总开关状态({IsHotkeyControlEnabled})同步到浮窗");
                 }
 
                 // 加载其他设置
