@@ -142,8 +142,7 @@ namespace WpfApp
                 _trayContextMenu = new ContextMenu
                 {
                     Style = System.Windows.Application.Current.FindResource("TrayContextMenuStyle") as Style,
-                    Placement = PlacementMode.Custom,
-                    CustomPopupPlacementCallback = new CustomPopupPlacementCallback(MenuCustomPlacementCallback),
+                    Placement = PlacementMode.MousePoint,
                     StaysOpen = false  // 默认不保持打开
                 };
 
@@ -240,11 +239,24 @@ namespace WpfApp
                         {
                             // 确保菜单在显示前是关闭状态
                             _trayContextMenu.IsOpen = false;
-
+                            
+                            // 获取鼠标位置
+                            GetCursorPos(out POINT pt);
+                            System.Windows.Point mousePosition = new System.Windows.Point(pt.X, pt.Y);
+                            
+                            // 确保菜单在显示时不会自动关闭
+                            _trayContextMenu.StaysOpen = true;
+                            
                             // 延迟一帧后显示菜单
                             System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                             {
                                 _trayContextMenu.IsOpen = true;
+                                
+                                // 订阅菜单关闭事件，以便在关闭时重置 StaysOpen
+                                _trayContextMenu.Closed += (s, args) =>
+                                {
+                                    _trayContextMenu.StaysOpen = false;
+                                };
                             }), System.Windows.Threading.DispatcherPriority.Loaded);
                         }), System.Windows.Threading.DispatcherPriority.Normal);
                     }
@@ -257,37 +269,6 @@ namespace WpfApp
             {
                 _logger.Error("初始化托盘图标失败", ex);
             }
-        }
-
-        private CustomPopupPlacement[] MenuCustomPlacementCallback(
-            System.Windows.Size popupSize, System.Windows.Size targetSize, System.Windows.Point offset)
-        {
-            // 获取鼠标位置（托盘图标位置）
-            GetCursorPos(out POINT pt);
-
-            // 获取工作区
-            var workArea = SystemParameters.WorkArea;
-
-            // 计算菜单位置
-            double x = pt.X;
-            double y = pt.Y;
-
-            // 确保菜单不会超出屏幕
-            if (x + popupSize.Width > workArea.Right)
-            {
-                x = workArea.Right - popupSize.Width;
-            }
-
-            // 默认显示在托盘图标上方
-            y -= popupSize.Height;
-
-            // 如果上方空间不够，则显示在下方
-            if (y < workArea.Top)
-            {
-                y = pt.Y;
-            }
-
-            return [new CustomPopupPlacement(new System.Windows.Point(x, y), PopupPrimaryAxis.Horizontal)];
         }
 
         private IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
