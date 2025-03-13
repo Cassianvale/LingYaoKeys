@@ -59,6 +59,28 @@ namespace WpfApp.Behaviors
         {
             if (sender is System.Windows.Controls.ListBox listBox)
             {
+                // 检查点击是否在滚动条或相关组件上
+                if (IsScrollBarOrThumb(e.OriginalSource as DependencyObject))
+                {
+                    // 如果点击在滚动条相关组件上，不开始拖拽操作
+                    return;
+                }
+
+                // 检查是否点击在滚动条轨道或滚动条区域上
+                var scrollViewer = FindAncestor<ScrollViewer>((DependencyObject)e.OriginalSource);
+                if (scrollViewer != null)
+                {
+                    // 获取点击位置
+                    var clickPoint = e.GetPosition(scrollViewer);
+                    // 判断点击是否在滚动条区域（右侧或底部边缘）
+                    if (clickPoint.X > scrollViewer.ActualWidth - SystemParameters.VerticalScrollBarWidth ||
+                        clickPoint.Y > scrollViewer.ActualHeight - SystemParameters.HorizontalScrollBarHeight)
+                    {
+                        // 点击在滚动条区域，不开始拖拽
+                        return;
+                    }
+                }
+
                 _startPoint = e.GetPosition(null);
                 _isDragging = false;
 
@@ -73,10 +95,20 @@ namespace WpfApp.Behaviors
 
         private void ListBox_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
+            // 如果鼠标左键按下、还未开始拖拽且有拖拽项
             if (e.LeftButton == MouseButtonState.Pressed && !_isDragging && _draggedItem != null)
             {
+                // 再次检查是否在滚动条或相关组件上
+                if (IsScrollBarOrThumb(e.OriginalSource as DependencyObject))
+                {
+                    // 如果在滚动条相关组件上移动，取消拖拽操作
+                    _draggedItem = null;
+                    return;
+                }
+
                 System.Windows.Point position = e.GetPosition(null);
                 
+                // 判断移动距离是否足够启动拖拽
                 if (Math.Abs(position.X - _startPoint.X) > SystemParameters.MinimumHorizontalDragDistance ||
                     Math.Abs(position.Y - _startPoint.Y) > SystemParameters.MinimumVerticalDragDistance)
                 {
@@ -285,6 +317,31 @@ namespace WpfApp.Behaviors
             }
             while (current != null);
             return null;
+        }
+
+        // 判断元素是否为滚动条相关组件
+        private bool IsScrollBarOrThumb(DependencyObject element)
+        {
+            // 检查元素本身
+            if (element is System.Windows.Controls.Primitives.ScrollBar || 
+                element is System.Windows.Controls.Primitives.Thumb ||
+                element is System.Windows.Controls.Primitives.RepeatButton)
+            {
+                return true;
+            }
+
+            // 检查元素的父级元素
+            var parent = FindAncestor<System.Windows.Controls.Primitives.ScrollBar>(element);
+            if (parent != null)
+            {
+                return true;
+            }
+
+            // 检查是否是滚动条的轨道或按钮
+            var thumb = FindAncestor<System.Windows.Controls.Primitives.Thumb>(element);
+            var repeatButton = FindAncestor<System.Windows.Controls.Primitives.RepeatButton>(element);
+            
+            return thumb != null || repeatButton != null;
         }
     }
 } 

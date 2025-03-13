@@ -4,6 +4,7 @@ using WpfApp.Services.Models;
 using WpfApp.Services.Config;
 using WpfApp.Services.Utils;
 
+// 按键映射服务
 namespace WpfApp.Services.Core
 {
     public class KeyMappingService

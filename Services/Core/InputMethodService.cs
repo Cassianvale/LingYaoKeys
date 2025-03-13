@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using WpfApp.Services.Utils;
 
+// 输入法服务
 namespace WpfApp.Services.Core
 {
     public class InputMethodService
