@@ -36,9 +36,9 @@
     <Border x:Name="WindowBorder"
             Background="Transparent"
             BorderThickness="0"
-            Margin="10">
+            Margin="0">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="15"
+            <DropShadowEffect BlurRadius="10"
                               Direction="0"
                               ShadowDepth="0"
                               Opacity="0.2"
