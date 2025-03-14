@@ -25,7 +25,6 @@ public partial class MainWindow
     private bool _hasShownMinimizeNotification;
     private NotifyIcon _trayIcon;
     internal ContextMenu _trayContextMenu;
-    private bool _isNavExpanded = false;
     private readonly SemaphoreSlim _cleanupSemaphore = new(1, 1);
     private CancellationTokenSource _cleanupCts;
 
@@ -108,6 +107,9 @@ public partial class MainWindow
         {
             // 先初始化ViewModel
             _viewModel = new MainViewModel(App.LyKeysDriver, this);
+            
+            // 确保导航栏默认为收起状态
+            _viewModel.IsNavExpanded = false;
 
             // 初始化组件
             InitializeComponent();
@@ -898,6 +900,6 @@ public partial class MainWindow
     private void NavButton_Click(object sender, RoutedEventArgs e)
     {
         // 如果导航栏是展开状态，点击后自动收起
-        if (_isNavExpanded) NavToggleButton_Click(FindName("NavToggleButton"), e);
+        if (_viewModel.IsNavExpanded) NavToggleButton_Click(FindName("NavToggleButton"), e);
     }
 }

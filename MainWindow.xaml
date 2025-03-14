@@ -167,6 +167,7 @@
                                             <svgc:SvgViewbox Source="/Resource/svg/setting.svg"
                                                              Width="20"
                                                              Height="20"
+                                                             Margin="3,0,0,0"
                                                              Stretch="Uniform">
                                                 <svgc:SvgViewbox.Resources>
                                                     <Style TargetType="Path">
@@ -176,6 +177,8 @@
                                                 </svgc:SvgViewbox.Resources>
                                             </svgc:SvgViewbox>
                                             <TextBlock Text="设置"
+                                                       FontSize="14"
+                                                       FontWeight="SemiBold"
                                                        Margin="15,0,0,0"
                                                        VerticalAlignment="Center"
                                                        Visibility="{Binding NavTextVisibility}" />
@@ -183,7 +186,7 @@
                                     </RadioButton>
 
                                     <!-- 导航菜单 -->
-                                    <StackPanel Margin="0,10,0,0">
+                                    <StackPanel Margin="0,0,0,0">
                                         <RadioButton Style="{StaticResource NavButtonStyle}"
                                                      GroupName="NavGroup"
                                                      IsChecked="True"
@@ -194,6 +197,7 @@
                                                 <svgc:SvgViewbox Source="/Resource/svg/game.svg"
                                                                  Width="20"
                                                                  Height="20"
+                                                                 Margin="3,0,0,0"
                                                                  Stretch="Uniform">
                                                     <svgc:SvgViewbox.Resources>
                                                         <Style TargetType="Path">
@@ -203,6 +207,8 @@
                                                     </svgc:SvgViewbox.Resources>
                                                 </svgc:SvgViewbox>
                                                 <TextBlock Text="前台按键"
+                                                           FontSize="14"
+                                                           FontWeight="SemiBold"
                                                            Margin="15,0,0,0"
                                                            VerticalAlignment="Center"
                                                            Visibility="{Binding NavTextVisibility}" />
@@ -218,6 +224,7 @@
                                                 <svgc:SvgViewbox Source="/Resource/svg/feedback.svg"
                                                                  Width="20"
                                                                  Height="20"
+                                                                 Margin="3,0,0,0"
                                                                  Stretch="Uniform">
                                                     <svgc:SvgViewbox.Resources>
                                                         <Style TargetType="Path">
@@ -227,6 +234,8 @@
                                                     </svgc:SvgViewbox.Resources>
                                                 </svgc:SvgViewbox>
                                                 <TextBlock Text="问题反馈"
+                                                           FontSize="14"
+                                                           FontWeight="SemiBold"
                                                            Margin="15,0,0,0"
                                                            VerticalAlignment="Center"
                                                            Visibility="{Binding NavTextVisibility}" />
@@ -242,6 +251,7 @@
                                                 <svgc:SvgViewbox Source="/Resource/svg/about.svg"
                                                                  Width="20"
                                                                  Height="20"
+                                                                 Margin="3,0,0,0"
                                                                  Stretch="Uniform">
                                                     <svgc:SvgViewbox.Resources>
                                                         <Style TargetType="Path">
@@ -251,6 +261,8 @@
                                                     </svgc:SvgViewbox.Resources>
                                                 </svgc:SvgViewbox>
                                                 <TextBlock Text="关于"
+                                                           FontSize="14"
+                                                           FontWeight="SemiBold"
                                                            Margin="15,0,0,0"
                                                            VerticalAlignment="Center"
                                                            Visibility="{Binding NavTextVisibility}" />

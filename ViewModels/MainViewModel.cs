@@ -83,7 +83,7 @@ public class MainViewModel : ViewModelBase
     }
 
     // 导航栏列宽度
-    public GridLength NavColumnWidth => IsNavExpanded ? new GridLength(200) : new GridLength(50);
+    public GridLength NavColumnWidth => IsNavExpanded ? new GridLength(160) : new GridLength(60);
 
     // 导航文本可见性
     public Visibility NavTextVisibility => IsNavExpanded ? Visibility.Visible : Visibility.Collapsed;
