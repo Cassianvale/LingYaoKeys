@@ -1,58 +1,54 @@
 using System.Windows.Input;
 
-namespace WpfApp.Views
+namespace WpfApp.Views;
+
+public partial class FeedbackView
 {
-    public partial class FeedbackView
+    private bool _disposedValue;
+    private readonly ViewModels.FeedbackViewModel _viewModel;
+
+    public FeedbackView()
     {
-        private bool _disposedValue;
-        private readonly ViewModels.FeedbackViewModel _viewModel;
+        InitializeComponent();
+        _viewModel = (ViewModels.FeedbackViewModel)DataContext;
+    }
 
-        public FeedbackView()
+    private void FeedbackTextBox_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         {
-            InitializeComponent();
-            _viewModel = (ViewModels.FeedbackViewModel)DataContext;
+            // 允许Ctrl+Enter插入换行
+            return;
         }
-
-        private void FeedbackTextBox_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        else if (e.Key == Key.Enter)
         {
-            if (e.Key == Key.Enter && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
-            {
-                // 允许Ctrl+Enter插入换行
-                return;
-            }
-            else if (e.Key == Key.Enter)
-            {
-                e.Handled = true;
-                
-                if (sender is System.Windows.Controls.TextBox textBox)
-                {
-                    int caretIndex = textBox.CaretIndex;
-                    textBox.Text = textBox.Text.Insert(caretIndex, Environment.NewLine);
-                    textBox.CaretIndex = caretIndex + Environment.NewLine.Length;
-                }
-            }
-        }
+            e.Handled = true;
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposedValue)
+            if (sender is System.Windows.Controls.TextBox textBox)
             {
-                if (disposing)
-                {
-                    // 释放托管资源
-                    if (_viewModel is IDisposable disposableViewModel)
-                    {
-                        disposableViewModel.Dispose();
-                    }
-                }
-                _disposedValue = true;
+                var caretIndex = textBox.CaretIndex;
+                textBox.Text = textBox.Text.Insert(caretIndex, Environment.NewLine);
+                textBox.CaretIndex = caretIndex + Environment.NewLine.Length;
             }
-        }
-
-        public void Dispose()
-        {
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
         }
     }
-} 
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposedValue)
+        {
+            if (disposing)
+                // 释放托管资源
+                if (_viewModel is IDisposable disposableViewModel)
+                    disposableViewModel.Dispose();
+
+            _disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+}

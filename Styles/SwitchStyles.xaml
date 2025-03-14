@@ -3,17 +3,17 @@
 
     <!-- 现代开关样式 -->
     <Style x:Key="ModernSwitch" TargetType="CheckBox">
-        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
                     <DockPanel LastChildFill="False">
                         <ContentPresenter x:Name="contentPresenter"
-                                        Content="{TemplateBinding Content}"
-                                        ContentTemplate="{TemplateBinding ContentTemplate}"
-                                        Margin="0,0,8,0"
-                                        VerticalAlignment="Center"
-                                        DockPanel.Dock="Left"/>
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Margin="0,0,8,0"
+                                          VerticalAlignment="Center"
+                                          DockPanel.Dock="Left" />
                         <Border x:Name="BackgroundBorder"
                                 Width="40"
                                 Height="20"
@@ -29,33 +29,33 @@
                                     Margin="2,0,0,0">
                                 <Border.Effect>
                                     <DropShadowEffect BlurRadius="4"
-                                                    ShadowDepth="1"
-                                                    Direction="270"
-                                                    Color="#66000000"
-                                                    Opacity="0.3"/>
+                                                      ShadowDepth="1"
+                                                      Direction="270"
+                                                      Color="#66000000"
+                                                      Opacity="0.3" />
                                 </Border.Effect>
                             </Border>
                         </Border>
                     </DockPanel>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="BackgroundBorder" Property="Background" Value="#2196F3"/>
-                            <Setter TargetName="ThumbBorder" Property="Margin" Value="22,0,0,0"/>
+                            <Setter TargetName="BackgroundBorder" Property="Background" Value="#2196F3" />
+                            <Setter TargetName="ThumbBorder" Property="Margin" Value="22,0,0,0" />
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="BackgroundBorder" Property="Background" Value="#BDBDBD"/>
+                            <Setter TargetName="BackgroundBorder" Property="Background" Value="#BDBDBD" />
                         </Trigger>
                         <MultiTrigger>
                             <MultiTrigger.Conditions>
-                                <Condition Property="IsMouseOver" Value="True"/>
-                                <Condition Property="IsChecked" Value="True"/>
+                                <Condition Property="IsMouseOver" Value="True" />
+                                <Condition Property="IsChecked" Value="True" />
                             </MultiTrigger.Conditions>
-                            <Setter TargetName="BackgroundBorder" Property="Background" Value="#1976D2"/>
+                            <Setter TargetName="BackgroundBorder" Property="Background" Value="#1976D2" />
                         </MultiTrigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="BackgroundBorder" Property="Opacity" Value="0.5"/>
-                            <Setter TargetName="ThumbBorder" Property="Opacity" Value="0.5"/>
-                            <Setter TargetName="contentPresenter" Property="Opacity" Value="0.5"/>
+                            <Setter TargetName="BackgroundBorder" Property="Opacity" Value="0.5" />
+                            <Setter TargetName="ThumbBorder" Property="Opacity" Value="0.5" />
+                            <Setter TargetName="contentPresenter" Property="Opacity" Value="0.5" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -63,4 +63,4 @@
         </Setter>
     </Style>
 
-</ResourceDictionary> 
+</ResourceDictionary>

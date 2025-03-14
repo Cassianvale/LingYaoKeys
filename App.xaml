@@ -5,41 +5,46 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Styles/TrayContextMenuStyle.xaml"/>
-                <ResourceDictionary Source="Styles/NavigationStyles.xaml"/>
-                <ResourceDictionary Source="Styles/ButtonStyles.xaml"/>
-                <ResourceDictionary Source="Styles/ControlStyles.xaml"/>
-                <ResourceDictionary Source="Styles/SwitchStyles.xaml"/>
-                <ResourceDictionary Source="Styles/AnimationStyles.xaml"/>
+                <ResourceDictionary Source="Styles/TrayContextMenuStyle.xaml" />
+                <ResourceDictionary Source="Styles/NavigationStyles.xaml" />
+                <ResourceDictionary Source="Styles/ButtonStyles.xaml" />
+                <ResourceDictionary Source="Styles/ControlStyles.xaml" />
+                <ResourceDictionary Source="Styles/SwitchStyles.xaml" />
+                <ResourceDictionary Source="Styles/AnimationStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!-- 转换器 -->
-            <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
-            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
-            <converters:IntToStringConverter x:Key="IntToStringConverter"/>
-            <converters:ViewModelToHotkeyStatusConverter x:Key="ViewModelToHotkeyStatusConverter"/>
-            <converters:StatusToColorConverter x:Key="StatusToColorConverter"/>
-            <converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
-            <converters:RatioConverter x:Key="RatioConverter"/>
-            
+            <converters:BoolToColorConverter x:Key="BoolToColorConverter" />
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+            <converters:IntToStringConverter x:Key="IntToStringConverter" />
+            <converters:ViewModelToHotkeyStatusConverter x:Key="ViewModelToHotkeyStatusConverter" />
+            <converters:StatusToColorConverter x:Key="StatusToColorConverter" />
+            <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
+            <converters:RatioConverter x:Key="RatioConverter" />
+
             <!-- 颜色资源 -->
-            <SolidColorBrush x:Key="PrimaryBrush" Color="#2196F3"/>
-            <SolidColorBrush x:Key="ErrorBrush" Color="#F44336"/>
-            <SolidColorBrush x:Key="TextForegroundBrush" Color="#333333"/>
+            <SolidColorBrush x:Key="PrimaryBrush" Color="#2196F3" />
+            <SolidColorBrush x:Key="ErrorBrush" Color="#F44336" />
+            <SolidColorBrush x:Key="TextForegroundBrush" Color="#333333" />
             
+            <!-- 动画缓动函数 -->
+            <CubicEase x:Key="EaseOutFunction" EasingMode="EaseOut" />
+            <CubicEase x:Key="EaseInOutFunction" EasingMode="EaseInOut" />
+            <CubicEase x:Key="EaseInFunction" EasingMode="EaseIn" />
+
             <!-- 阴影效果 -->
             <DropShadowEffect x:Key="DefaultShadowEffect"
-                            BlurRadius="10"
-                            Direction="270"
-                            ShadowDepth="2"
-                            Opacity="0.2"
-                            Color="#000000"/>
-            
+                              BlurRadius="10"
+                              Direction="270"
+                              ShadowDepth="2"
+                              Opacity="0.2"
+                              Color="#000000" />
+
             <!-- 全局样式设置 -->
             <Style TargetType="{x:Type FrameworkElement}">
-                <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
-                <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
-                <Setter Property="UseLayoutRounding" Value="True"/>
+                <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+                <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
+                <Setter Property="UseLayoutRounding" Value="True" />
             </Style>
 
             <!-- 全局阴影效果 -->
@@ -48,7 +53,7 @@
                               ShadowDepth="0"
                               BlurRadius="10"
                               Opacity="0.3"
-                              Color="Black"/>
+                              Color="Black" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

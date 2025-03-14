@@ -64,7 +64,7 @@ namespace WpfApp.ViewModels
         private string _selectedWindowClassName = string.Empty;
         private string _selectedWindowProcessName = string.Empty;
         private System.Timers.Timer? _windowCheckTimer;
-        private readonly object _windowCheckLock = new object();
+        private readonly object _windowCheckLock = new();
         private bool _isTargetWindowActive;
         private readonly System.Timers.Timer _activeWindowCheckTimer;
         private const int ACTIVE_WINDOW_CHECK_INTERVAL = 50; // 50ms检查一次活动窗口
@@ -95,13 +95,13 @@ namespace WpfApp.ViewModels
                 {
                     _selectedWindowHandle = value;
                     OnPropertyChanged();
-                    
+
                     // 触发窗口句柄变化事件
                     WindowHandleChanged?.Invoke(value);
-                    
+
                     // 同步到热键服务
                     _hotkeyService.TargetWindowHandle = value;
-                    
+
                     _logger.Debug($"窗口句柄已更新: {value}, 已同步到热键服务");
                 }
             }
@@ -159,14 +159,11 @@ namespace WpfApp.ViewModels
                 _selectedWindowProcessName = string.Empty;
 
                 // 更新热键服务的目标窗口
-                if (_hotkeyService != null)
-                {
-                    _hotkeyService.TargetWindowHandle = IntPtr.Zero;
-                }
+                if (_hotkeyService != null) _hotkeyService.TargetWindowHandle = IntPtr.Zero;
 
                 // 通知UI更新
                 OnPropertyChanged(nameof(SelectedWindowTitle));
-                
+
                 _logger.Debug("已清除窗口信息");
 
                 // 保存配置
@@ -214,20 +211,17 @@ namespace WpfApp.ViewModels
         public int KeyInterval
         {
             get => _keyInterval;
-            set 
+            set
             {
                 if (SetProperty(ref _keyInterval, value))
                 {
                     // 更新到驱动服务，让它保持与UI一致
                     _lyKeysService.KeyInterval = value;
-                    
+
                     // 实时保存到配置，作为配置管理的唯一入口
                     if (!_isInitializing)
                     {
-                        AppConfigService.UpdateConfig(config =>
-                        {
-                            config.interval = value;
-                        });
+                        AppConfigService.UpdateConfig(config => { config.interval = value; });
                         _logger.Debug($"已将默认按键间隔{value}ms保存到配置");
                     }
                 }
@@ -238,7 +232,7 @@ namespace WpfApp.ViewModels
         public ICommand AddKeyCommand { get; private set; } = null!;
 
         // 按键模式选项
-        public List<string> KeyModes { get; } = new List<string>
+        public List<string> KeyModes { get; } = new()
         {
             "顺序模式",
             "按压模式"
@@ -253,18 +247,12 @@ namespace WpfApp.ViewModels
                 if (SetProperty(ref _selectedKeyMode, value))
                 {
                     // 如果正在执行，先停止当前循环
-                    if (IsExecuting)
-                    {
-                        StopKeyMapping();
-                    }
+                    if (IsExecuting) StopKeyMapping();
 
                     IsSequenceMode = value == 0; // 0 表示顺序模式
 
                     // 恢复输入法
-                    if (_lyKeysService != null)
-                    {
-                        _lyKeysService.RestoreIME();
-                    }
+                    if (_lyKeysService != null) _lyKeysService.RestoreIME();
 
                     _logger.Debug($"按键模式已切换为: {(value == 0 ? "顺序模式" : "按压模式")}");
                 }
@@ -291,29 +279,20 @@ namespace WpfApp.ViewModels
                 if (SetProperty(ref _isHotkeyControlEnabled, value))
                 {
                     _logger.Debug($"热键总开关已{(value ? "启用" : "禁用")}");
-                    
+
                     // 同步状态到HotkeyService
-                    if (_hotkeyService != null)
-                    {
-                        _hotkeyService.IsHotkeyControlEnabled = value;
-                    }
-                    
+                    if (_hotkeyService != null) _hotkeyService.IsHotkeyControlEnabled = value;
+
                     // 更新浮窗状态
                     UpdateFloatingStatus();
-                    
+
                     // 如果禁用总开关，同时停止当前的按键映射
-                    if (!value && IsExecuting)
-                    {
-                        StopKeyMapping();
-                    }
-                    
+                    if (!value && IsExecuting) StopKeyMapping();
+
                     // 实时保存到配置
                     if (!_isInitializing)
                     {
-                        AppConfigService.UpdateConfig(config =>
-                        {
-                            config.isHotkeyControlEnabled = value;
-                        });
+                        AppConfigService.UpdateConfig(config => { config.isHotkeyControlEnabled = value; });
                         _logger.Debug($"已将热键总开关状态({value})保存到配置");
                     }
                 }
@@ -341,24 +320,19 @@ namespace WpfApp.ViewModels
                     // 更新HotkeyService的按键列表
                     var selectedKeys = KeyList.Where(k => k.IsSelected).ToList();
                     _hotkeyService.SetKeySequence(
-                        selectedKeys.Select(k => new KeyItemSettings 
-                        { 
-                            KeyCode = k.KeyCode, 
-                            Interval = k.KeyInterval 
+                        selectedKeys.Select(k => new KeyItemSettings
+                        {
+                            KeyCode = k.KeyCode,
+                            Interval = k.KeyInterval
                         }).ToList());
 
                     // 实时保存模式设置
                     if (!_isInitializing)
-                    {
-                        AppConfigService.UpdateConfig(config =>
-                        {
-                            config.keyMode = value ? 0 : 1;
-                        });
-                    }
+                        AppConfigService.UpdateConfig(config => { config.keyMode = value ? 0 : 1; });
 
                     _logger.Debug($"模式切换 - 当前模式: {(value ? "顺序模式" : "按压模式")}, " +
-                                    $"选中按键数: {selectedKeys.Count}, " +
-                                    $"按键间隔: {KeyInterval}ms");
+                                  $"选中按键数: {selectedKeys.Count}, " +
+                                  $"按键间隔: {KeyInterval}ms");
                 }
             }
         }
@@ -370,12 +344,8 @@ namespace WpfApp.ViewModels
             set
             {
                 if (SetProperty(ref _isSoundEnabled, value))
-                {
                     if (!_isInitializing) // 只在非初始化时保存
-                    {
                         SaveConfig();
-                    }
-                }
             }
         }
 
@@ -386,35 +356,30 @@ namespace WpfApp.ViewModels
             set
             {
                 // 确保值在有效范围内并保留两位小数
-                double newValue = Math.Round(Math.Max(0, Math.Min(1, value)), 2);
-                
+                var newValue = Math.Round(Math.Max(0, Math.Min(1, value)), 2);
+
                 // 只在音量实际变化时更新
                 if (Math.Abs(_soundVolume - newValue) >= 0.001 && SetProperty(ref _soundVolume, newValue))
                 {
                     // 立即设置音频服务的音量
                     _audioService.Volume = _soundVolume;
-                    
+
                     // 实时保存配置
                     if (!_isInitializing)
-                    {
                         // 使用延迟保存避免频繁写入
-                        Task.Delay(300).ContinueWith(_ => 
+                        Task.Delay(300).ContinueWith(_ =>
                         {
-                            if (Math.Abs(_soundVolume - newValue) < 0.001)
-                            {
-                                SaveConfig();
-                            }
+                            if (Math.Abs(_soundVolume - newValue) < 0.001) SaveConfig();
                         });
-                    }
-                    
+
                     // 通知UI更新百分比显示
                     OnPropertyChanged(nameof(SoundVolume));
-                    
+
                     _logger.Debug($"音量已调整为: {_soundVolume:P0} ({_soundVolume:F2})");
                 }
             }
         }
-        
+
         // 是否可以调整音量（基于音频设备是否可用）
         public bool CanAdjustVolume => _audioService.AudioDeviceAvailable;
 
@@ -427,15 +392,12 @@ namespace WpfApp.ViewModels
                 if (SetProperty(ref _isGameMode, value))
                 {
                     // 根据游戏模式设置按键间隔
-                    int newInterval = value ? LyKeysService.DEFAULT_KEY_PRESS_INTERVAL : 0;
+                    var newInterval = value ? LyKeysService.DEFAULT_KEY_PRESS_INTERVAL : 0;
                     _lyKeysService.KeyPressInterval = newInterval;
 
-                    if (!_isInitializing)
-                    {
-                        SaveConfig();
-                    }
+                    if (!_isInitializing) SaveConfig();
                     _logger.Debug($"游戏模式已更改为: {value}, 期望按键间隔: {newInterval}ms, " +
-                        $"实际按键间隔: {_lyKeysService.KeyPressInterval}ms, 默认按键间隔值: {LyKeysService.DEFAULT_KEY_PRESS_INTERVAL}ms");
+                                  $"实际按键间隔: {_lyKeysService.KeyPressInterval}ms, 默认按键间隔值: {LyKeysService.DEFAULT_KEY_PRESS_INTERVAL}ms");
                 }
             }
         }
@@ -466,19 +428,12 @@ namespace WpfApp.ViewModels
             {
                 if (SetProperty(ref _isFloatingWindowEnabled, value))
                 {
-                    if (!_isInitializing)
-                    {
-                        SaveConfig();
-                    }
-                    
+                    if (!_isInitializing) SaveConfig();
+
                     if (value)
-                    {
                         ShowFloatingWindow();
-                    }
                     else
-                    {
                         HideFloatingWindow();
-                    }
                 }
             }
         }
@@ -492,15 +447,13 @@ namespace WpfApp.ViewModels
             set
             {
                 if (SetProperty(ref _autoSwitchToEnglishIME, value))
-                {
                     if (!_isInitializing)
                     {
                         SaveConfig();
-                        
+
                         // 通知LyKeysService更新输入法切换设置
                         _lyKeysService.SetAutoSwitchIME(value);
                     }
-                }
             }
         }
 
@@ -520,6 +473,7 @@ namespace WpfApp.ViewModels
                     _floatingWindow = new FloatingStatusWindow(_mainWindow);
                     _floatingViewModel = _floatingWindow.DataContext as FloatingStatusViewModel;
                 }
+
                 _floatingWindow.Show();
                 UpdateFloatingStatus(); // 确保显示后立即更新状态
             }
@@ -553,20 +507,20 @@ namespace WpfApp.ViewModels
                 {
                     // 先创建 ViewModel
                     _floatingViewModel = new FloatingStatusViewModel();
-                    
+
                     // 初始化ViewModel属性
                     _floatingViewModel.IsHotkeyControlEnabled = _isHotkeyControlEnabled;
                     _floatingViewModel.IsExecuting = _isExecuting;
-                    
+
                     // 创建浮窗并设置 DataContext
                     _floatingWindow = new FloatingStatusWindow(_mainWindow)
                     {
                         DataContext = _floatingViewModel
                     };
-                    
+
                     _logger.Debug("浮窗已创建并设置 DataContext");
                 }
-                
+
                 _floatingWindow.Show();
                 UpdateFloatingStatus(); // 确保显示后立即更新状态
                 _logger.Debug("浮窗已显示并更新状态");
@@ -582,10 +536,7 @@ namespace WpfApp.ViewModels
             if (_floatingWindow != null)
             {
                 _floatingWindow.Hide();
-                if (_floatingWindow.DataContext is FloatingStatusViewModel viewModel)
-                {
-                    viewModel.StatusText = "已停止";
-                }
+                if (_floatingWindow.DataContext is FloatingStatusViewModel viewModel) viewModel.StatusText = "已停止";
             }
         }
 
@@ -598,7 +549,7 @@ namespace WpfApp.ViewModels
                 {
                     _isTargetWindowActive = value;
                     OnPropertyChanged();
-                    
+
                     // 只在窗口变为非活动状态时停止按键映射
                     if (!value && IsExecuting)
                     {
@@ -630,12 +581,9 @@ namespace WpfApp.ViewModels
 
             _mainWindow = mainWindow;
             _logger.Debug("已设置 MainWindow 引用");
-            
+
             // 如果浮窗已启用，则创建浮窗
-            if (IsFloatingWindowEnabled && _floatingWindow == null)
-            {
-                ShowFloatingWindow();
-            }
+            if (IsFloatingWindowEnabled && _floatingWindow == null) ShowFloatingWindow();
         }
 
         public KeyMappingViewModel(LyKeysService lyKeysService, ConfigService configService,
@@ -663,10 +611,7 @@ namespace WpfApp.ViewModels
                 // 添加对Application.Current的空检查
                 if (System.Windows.Application.Current != null)
                 {
-                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        IsHotkeyEnabled = enabled;
-                    });
+                    System.Windows.Application.Current.Dispatcher.Invoke(() => { IsHotkeyEnabled = enabled; });
                 }
                 else
                 {
@@ -714,15 +659,15 @@ namespace WpfApp.ViewModels
                 {
                     // 设置按键列表到驱动服务
                     _lyKeysService.SetKeyList(selectedKeys.Select(k => k.KeyCode).ToList());
-                    
+
                     // 将选中的按键及其间隔传递给HotkeyService
                     _hotkeyService.SetKeySequence(
-                        selectedKeys.Select(k => new KeyItemSettings 
-                        { 
-                            KeyCode = k.KeyCode, 
-                            Interval = k.KeyInterval 
+                        selectedKeys.Select(k => new KeyItemSettings
+                        {
+                            KeyCode = k.KeyCode,
+                            Interval = k.KeyInterval
                         }).ToList());
-                    
+
                     _logger.Debug($"同步配置到服务 - 按键数量: {selectedKeys.Count}, 每个按键使用独立间隔");
                 }
             }
@@ -739,15 +684,15 @@ namespace WpfApp.ViewModels
                 var appConfig = AppConfigService.Config;
 
                 // 加载窗口配置
-                if (!string.IsNullOrEmpty(appConfig.TargetWindowProcessName) && 
+                if (!string.IsNullOrEmpty(appConfig.TargetWindowProcessName) &&
                     !string.IsNullOrEmpty(appConfig.TargetWindowTitle))
                 {
                     _selectedWindowProcessName = appConfig.TargetWindowProcessName;
                     _selectedWindowClassName = appConfig.TargetWindowClassName ?? string.Empty;
                     _selectedWindowTitle = appConfig.TargetWindowTitle;
-                    
+
                     _logger.Debug($"从配置加载窗口信息 - 进程名: {_selectedWindowProcessName}, " +
-                                $"标题: {_selectedWindowTitle}, 类名: {_selectedWindowClassName}");
+                                  $"标题: {_selectedWindowTitle}, 类名: {_selectedWindowClassName}");
                 }
 
                 // 加载按键列表和选中状态
@@ -761,7 +706,7 @@ namespace WpfApp.ViewModels
                         keyItem.KeyInterval = keyConfig.KeyInterval; // 同步每个按键的间隔
                         keyItem.SelectionChanged += (s, isSelected) => SaveConfig();
                         // 订阅KeyIntervalChanged事件，实时保存配置
-                        keyItem.KeyIntervalChanged += (s, newInterval) => 
+                        keyItem.KeyIntervalChanged += (s, newInterval) =>
                         {
                             if (!_isInitializing)
                             {
@@ -770,7 +715,7 @@ namespace WpfApp.ViewModels
                             }
                         };
                         KeyList.Add(keyItem);
-                        
+
                         // 添加日志记录每个加载的按键的间隔
                         _logger.Debug($"加载按键配置 - 按键: {keyItem.KeyCode}, 间隔: {keyItem.KeyInterval}ms");
                     }
@@ -781,39 +726,33 @@ namespace WpfApp.ViewModels
                     {
                         // 设置按键列表到驱动服务
                         _lyKeysService.SetKeyList(selectedKeys.Select(k => k.KeyCode).ToList());
-                        
+
                         // 将选中的按键及其间隔传递给HotkeyService
                         _hotkeyService.SetKeySequence(
-                            selectedKeys.Select(k => new KeyItemSettings 
-                            { 
-                                KeyCode = k.KeyCode, 
-                                Interval = k.KeyInterval 
+                            selectedKeys.Select(k => new KeyItemSettings
+                            {
+                                KeyCode = k.KeyCode,
+                                Interval = k.KeyInterval
                             }).ToList());
-                        
+
                         _logger.Debug($"已加载按键列表 - 按键数量: {selectedKeys.Count}, 使用独立按键间隔");
                     }
                 }
 
                 // 加载热键配置
-                if (appConfig.startKey.HasValue)
-                {
-                    SetStartHotkey(appConfig.startKey.Value, appConfig.startMods);
-                }
-                if (appConfig.stopKey.HasValue)
-                {
-                    SetStopHotkey(appConfig.stopKey.Value, appConfig.stopMods);
-                }
+                if (appConfig.startKey.HasValue) SetStartHotkey(appConfig.startKey.Value, appConfig.startMods);
+                if (appConfig.stopKey.HasValue) SetStopHotkey(appConfig.stopKey.Value, appConfig.stopMods);
 
                 // 加载热键控制开关
                 IsHotkeyControlEnabled = appConfig.isHotkeyControlEnabled ?? true;
-                
+
                 // 确保同步热键总开关状态到HotkeyService
                 if (_hotkeyService != null)
                 {
                     _hotkeyService.IsHotkeyControlEnabled = IsHotkeyControlEnabled;
                     _logger.Debug($"已将热键总开关状态({IsHotkeyControlEnabled})同步到HotkeyService");
                 }
-                
+
                 // 同步热键总开关状态到浮窗
                 if (_floatingViewModel != null)
                 {
@@ -856,8 +795,8 @@ namespace WpfApp.ViewModels
         {
             IsSequenceMode = true;
             IsSoundEnabled = true;
-            IsFloatingWindowEnabled = true;  // 默认开启浮窗
-            IsHotkeyControlEnabled = true;   // 默认启用热键总开关
+            IsFloatingWindowEnabled = true; // 默认开启浮窗
+            IsHotkeyControlEnabled = true; // 默认启用热键总开关
             _lyKeysService.KeyPressInterval = IsGameMode ? LyKeysService.DEFAULT_KEY_PRESS_INTERVAL : 0;
         }
 
@@ -903,7 +842,7 @@ namespace WpfApp.ViewModels
             _currentKey = keyCode;
             CurrentKeyText = _lyKeysService.GetKeyDescription(keyCode);
             // 通知命令状态更新
-            System.Windows.Input.CommandManager.InvalidateRequerySuggested();
+            CommandManager.InvalidateRequerySuggested();
             _logger.Debug("SetCurrentKey", $"设置当前按键: {keyCode} | {CurrentKeyText}");
         }
 
@@ -921,12 +860,9 @@ namespace WpfApp.ViewModels
             try
             {
                 // 先停止当前运行的序列
-                if (IsExecuting)
-                {
-                    StopKeyMapping();
-                }
+                if (IsExecuting) StopKeyMapping();
 
-                bool result = _hotkeyService.RegisterStartHotkey(keyCode, modifiers);
+                var result = _hotkeyService.RegisterStartHotkey(keyCode, modifiers);
                 if (!result && !_hotkeyService.IsMouseButton(keyCode))
                 {
                     _logger.Error($"注册开始热键失败: {keyCode}");
@@ -952,7 +888,7 @@ namespace WpfApp.ViewModels
         // 更新热键显示文本
         private void UpdateHotkeyText(LyKeysCode keyCode, ModifierKeys modifiers, bool isStart)
         {
-            StringBuilder keyText = new StringBuilder();
+            var keyText = new StringBuilder();
 
             if ((modifiers & ModifierKeys.Control) == ModifierKeys.Control)
                 keyText.Append("Ctrl + ");
@@ -983,12 +919,9 @@ namespace WpfApp.ViewModels
             try
             {
                 // 先停止当前运行的序列
-                if (IsExecuting)
-                {
-                    StopKeyMapping();
-                }
+                if (IsExecuting) StopKeyMapping();
 
-                bool result = _hotkeyService.RegisterStopHotkey(keyCode, modifiers);
+                var result = _hotkeyService.RegisterStopHotkey(keyCode, modifiers);
                 if (!result)
                 {
                     _logger.Error($"注册停止热键失败: {keyCode}, 修饰键: {modifiers}");
@@ -1047,7 +980,8 @@ namespace WpfApp.ViewModels
                 if (IsHotkeyConflict(keyCode))
                 {
                     _logger.Warning($"按键与热键冲突: {_lyKeysService.GetKeyDescription(keyCode)}");
-                    _mainViewModel.UpdateStatusMessage($"按键 {_lyKeysService.GetKeyDescription(keyCode)} 与热键冲突，请选择其他按键", true);
+                    _mainViewModel.UpdateStatusMessage($"按键 {_lyKeysService.GetKeyDescription(keyCode)} 与热键冲突，请选择其他按键",
+                        true);
                     return;
                 }
 
@@ -1055,7 +989,7 @@ namespace WpfApp.ViewModels
                 newKey.KeyInterval = _keyInterval; // 使用当前默认间隔值
                 newKey.SelectionChanged += (s, isSelected) => SaveConfig();
                 // 订阅KeyIntervalChanged事件，实时保存配置
-                newKey.KeyIntervalChanged += (s, newInterval) => 
+                newKey.KeyIntervalChanged += (s, newInterval) =>
                 {
                     if (!_isInitializing)
                     {
@@ -1079,17 +1013,13 @@ namespace WpfApp.ViewModels
                     {
                         KeyInterval = k.KeyInterval
                     }).ToList();
-                    
+
                     // 添加日志记录每个按键的间隔
                     foreach (var keyConfig in keyConfigs)
-                    {
-                        _logger.Debug($"保存按键配置 - 按键: {_lyKeysService.GetKeyDescription(keyCode)}, 间隔: {keyConfig.KeyInterval}ms");
-                    }
-                    
-                    AppConfigService.UpdateConfig(config =>
-                    {
-                        config.keys = keyConfigs;
-                    });
+                        _logger.Debug(
+                            $"保存按键配置 - 按键: {_lyKeysService.GetKeyDescription(keyCode)}, 间隔: {keyConfig.KeyInterval}ms");
+
+                    AppConfigService.UpdateConfig(config => { config.keys = keyConfigs; });
                 }
 
                 _mainViewModel.UpdateStatusMessage($" {_lyKeysService.GetKeyDescription(keyCode)} 按键添加成功");
@@ -1117,10 +1047,7 @@ namespace WpfApp.ViewModels
                 _logger.Debug($"删除按键: {keyItem.KeyCode}");
 
                 // 如果是当前选中的项，清除选中状态
-                if (SelectedKeyItem == keyItem)
-                {
-                    SelectedKeyItem = null;
-                }
+                if (SelectedKeyItem == keyItem) SelectedKeyItem = null;
 
                 // 更新HotkeyService的按键列表
                 UpdateHotkeyServiceKeyList();
@@ -1149,15 +1076,15 @@ namespace WpfApp.ViewModels
                 {
                     // 设置按键列表到驱动服务
                     _lyKeysService.SetKeyList(selectedKeys.Select(k => k.KeyCode).ToList());
-                    
+
                     // 将选中的按键及其间隔传递给HotkeyService
                     _hotkeyService.SetKeySequence(
-                        selectedKeys.Select(k => new KeyItemSettings 
-                        { 
-                            KeyCode = k.KeyCode, 
-                            Interval = k.KeyInterval 
+                        selectedKeys.Select(k => new KeyItemSettings
+                        {
+                            KeyCode = k.KeyCode,
+                            Interval = k.KeyInterval
                         }).ToList());
-                    
+
                     _logger.Debug($"同步配置到服务 - 按键数量: {selectedKeys.Count}, 每个按键使用独立间隔");
                 }
             }
@@ -1195,7 +1122,7 @@ namespace WpfApp.ViewModels
                 var config = AppConfigService.Config;
 
                 // 只更新需要保存的字段
-                bool configChanged = false;
+                var configChanged = false;
 
                 // 检查并更新热键配置
                 if (!config.startKey.Equals(_startHotkey) || config.startMods != _startModifiers)
@@ -1276,7 +1203,8 @@ namespace WpfApp.ViewModels
             catch (Exception ex)
             {
                 _logger.Error("保存配置失败", ex);
-                System.Windows.MessageBox.Show($"保存配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show($"保存配置失败: {ex.Message}", "错误", MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
 
@@ -1288,13 +1216,11 @@ namespace WpfApp.ViewModels
             if (list1.Count != list2.Count)
                 return false;
 
-            for (int i = 0; i < list1.Count; i++)
-            {
-                if (list1[i].Code != list2[i].Code || 
+            for (var i = 0; i < list1.Count; i++)
+                if (list1[i].Code != list2[i].Code ||
                     list1[i].IsSelected != list2[i].IsSelected ||
                     list1[i].KeyInterval != list2[i].KeyInterval)
                     return false;
-            }
 
             return true;
         }
@@ -1303,11 +1229,10 @@ namespace WpfApp.ViewModels
         public void StartKeyMapping()
         {
             if (!IsExecuting)
-            {
                 try
                 {
                     _logger.Debug("开始启动按键映射");
-                    
+
                     // 检查是否选择了目标窗口
                     if (SelectedWindowHandle == IntPtr.Zero)
                     {
@@ -1333,13 +1258,13 @@ namespace WpfApp.ViewModels
 
                     // 设置按键列表到驱动服务
                     _lyKeysService.SetKeyList(selectedKeys.Select(k => k.KeyCode).ToList());
-                    
+
                     // 将选中的按键及其间隔传递给HotkeyService
                     _hotkeyService.SetKeySequence(
-                        selectedKeys.Select(k => new KeyItemSettings 
-                        { 
-                            KeyCode = k.KeyCode, 
-                            Interval = k.KeyInterval 
+                        selectedKeys.Select(k => new KeyItemSettings
+                        {
+                            KeyCode = k.KeyCode,
+                            Interval = k.KeyInterval
                         }).ToList());
 
                     // 设置按键模式并启动
@@ -1351,7 +1276,7 @@ namespace WpfApp.ViewModels
                     UpdateFloatingStatus();
 
                     _logger.Debug($"按键映射已启动 - 模式: {(SelectedKeyMode == 1 ? "按压模式" : "顺序模式")}, " +
-                                $"按键数量: {selectedKeys.Count}, 目标窗口: {SelectedWindowTitle}");
+                                  $"按键数量: {selectedKeys.Count}, 目标窗口: {SelectedWindowTitle}");
                 }
                 catch (Exception ex)
                 {
@@ -1359,7 +1284,6 @@ namespace WpfApp.ViewModels
                     StopKeyMapping();
                     _mainViewModel.UpdateStatusMessage("启动按键映射失败", true);
                 }
-            }
         }
 
         // 停止按键映射
@@ -1433,15 +1357,15 @@ namespace WpfApp.ViewModels
 
                 // 设置按键列表
                 _lyKeysService.SetKeyList(selectedKeys.Select(k => k.KeyCode).ToList());
-                
+
                 // 将选中的按键及其间隔传递给HotkeyService
                 _hotkeyService.SetKeySequence(
-                    selectedKeys.Select(k => new KeyItemSettings 
-                    { 
-                        KeyCode = k.KeyCode, 
-                        Interval = k.KeyInterval 
+                    selectedKeys.Select(k => new KeyItemSettings
+                    {
+                        KeyCode = k.KeyCode,
+                        Interval = k.KeyInterval
                     }).ToList());
-                
+
                 // 设置执行状态
                 IsExecuting = true;
 
@@ -1449,16 +1373,17 @@ namespace WpfApp.ViewModels
                 {
                     _logger.Debug("启动顺序模式");
                     _lyKeysService.IsHoldMode = false;
-                    _lyKeysService.IsEnabled = true;    // 启用服务
+                    _lyKeysService.IsEnabled = true; // 启用服务
                 }
                 else
                 {
                     _logger.Debug("启动按压模式");
-                    _lyKeysService.IsHoldMode = true;   // 设置为按压模式
-                    _lyKeysService.IsEnabled = true;    // 启用服务
+                    _lyKeysService.IsHoldMode = true; // 设置为按压模式
+                    _lyKeysService.IsEnabled = true; // 启用服务
                 }
-                IsHotkeyEnabled = true;  // 按键是否启用
-                UpdateFloatingStatus();   // 更新浮窗状态
+
+                IsHotkeyEnabled = true; // 按键是否启用
+                UpdateFloatingStatus(); // 更新浮窗状态
             }
             catch (Exception ex)
             {
@@ -1508,8 +1433,8 @@ namespace WpfApp.ViewModels
         {
             try
             {
-                bool isStartConflict = _startHotkey.HasValue && keyCode.Equals(_startHotkey.Value);
-                bool isStopConflict = _stopHotkey.HasValue && keyCode.Equals(_stopHotkey.Value);
+                var isStartConflict = _startHotkey.HasValue && keyCode.Equals(_startHotkey.Value);
+                var isStopConflict = _stopHotkey.HasValue && keyCode.Equals(_stopHotkey.Value);
 
                 if (isStartConflict || isStopConflict)
                 {
@@ -1531,20 +1456,18 @@ namespace WpfApp.ViewModels
         private void SubscribeToKeyItemEvents()
         {
             foreach (var keyItem in KeyList)
-            {
                 keyItem.SelectionChanged += (s, isSelected) =>
                 {
                     SaveConfig();
                     UpdateHotkeyServiceKeyList();
                 };
-            }
         }
 
         // 在加载配置时也需要添加事件订阅
         private void LoadKeyList(List<LyKeysCode> keyList, List<bool> keySelections)
         {
             KeyList.Clear();
-            for (int i = 0; i < keyList.Count; i++)
+            for (var i = 0; i < keyList.Count; i++)
             {
                 var keyItem = new KeyItem(keyList[i], _lyKeysService);
                 keyItem.IsSelected = i < keySelections.Count ? keySelections[i] : true;
@@ -1582,10 +1505,10 @@ namespace WpfApp.ViewModels
                 else
                 {
                     _logger.Warning($"未找到进程 {_selectedWindowProcessName} 的窗口");
-                    
+
                     // 保持原有的窗口信息，但更新显示状态
                     SelectedWindowTitle = $"{_selectedWindowTitle} (进程未运行)";
-                    
+
                     // 启动定时检查
                     StartWindowCheck();
                     _logger.Debug($"已启动定时检查 - 进程名: {_selectedWindowProcessName}, 标题: {_selectedWindowTitle} (进程未运行)");
@@ -1601,10 +1524,7 @@ namespace WpfApp.ViewModels
         private List<WindowInfo> FindWindowsByProcessName(string processName, string targetTitle = null)
         {
             var result = new List<WindowInfo>();
-            if (string.IsNullOrEmpty(processName) && string.IsNullOrEmpty(targetTitle))
-            {
-                return result;
-            }
+            if (string.IsNullOrEmpty(processName) && string.IsNullOrEmpty(targetTitle)) return result;
 
             _logger.Debug($"正在查找窗口 - 进程名: {processName}, 目标标题: {targetTitle}");
 
@@ -1618,7 +1538,6 @@ namespace WpfApp.ViewModels
                 }
 
                 foreach (var process in processes)
-                {
                     try
                     {
                         if (process.MainWindowHandle != IntPtr.Zero)
@@ -1631,13 +1550,15 @@ namespace WpfApp.ViewModels
                             {
                                 if (title.Contains(targetTitle, StringComparison.OrdinalIgnoreCase))
                                 {
-                                    result.Add(new WindowInfo(process.MainWindowHandle, title, className, process.ProcessName));
+                                    result.Add(new WindowInfo(process.MainWindowHandle, title, className,
+                                        process.ProcessName));
                                     _logger.Debug($"找到匹配窗口 - 句柄: {process.MainWindowHandle}, 标题: {title}");
                                 }
                             }
                             else
                             {
-                                result.Add(new WindowInfo(process.MainWindowHandle, title, className, process.ProcessName));
+                                result.Add(new WindowInfo(process.MainWindowHandle, title, className,
+                                    process.ProcessName));
                                 _logger.Debug($"找到窗口 - 句柄: {process.MainWindowHandle}, 标题: {title}");
                             }
                         }
@@ -1650,24 +1571,20 @@ namespace WpfApp.ViewModels
                     {
                         process.Dispose();
                     }
-                }
             }
             catch (Exception ex)
             {
                 _logger.Error($"查找窗口时发生异常: {ex.Message}");
             }
 
-            if (result.Count == 0)
-            {
-                _logger.Debug($"未找到目标窗口 - 进程: {processName}, 目标标题: {targetTitle}");
-            }
+            if (result.Count == 0) _logger.Debug($"未找到目标窗口 - 进程: {processName}, 目标标题: {targetTitle}");
 
             return result;
         }
 
         private string GetWindowTitle(IntPtr hWnd)
         {
-            StringBuilder title = new StringBuilder(256);
+            var title = new StringBuilder(256);
             GetWindowText(hWnd, title, title.Capacity);
             return title.ToString().Trim();
         }
@@ -1691,36 +1608,33 @@ namespace WpfApp.ViewModels
 
         private string GetWindowClassName(IntPtr hWnd)
         {
-            StringBuilder className = new StringBuilder(256);
+            var className = new StringBuilder(256);
             GetClassName(hWnd, className, className.Capacity);
             return className.ToString().Trim();
         }
 
-        private void WindowCheckTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        private void WindowCheckTimer_Elapsed(object? sender, ElapsedEventArgs e)
         {
-            if (string.IsNullOrEmpty(SelectedWindowProcessName) || string.IsNullOrEmpty(SelectedWindowTitle))
-            {
-                return;
-            }
+            if (string.IsNullOrEmpty(SelectedWindowProcessName) || string.IsNullOrEmpty(SelectedWindowTitle)) return;
 
             try
             {
                 lock (_windowCheckLock)
                 {
                     // 获取原始标题（移除状态信息）
-                    string originalTitle = SelectedWindowTitle.Split(new[] { " (句柄:", " (进程未运行)", " (未找到匹配窗口)" }, StringSplitOptions.None)[0];
-                    
+                    var originalTitle = SelectedWindowTitle.Split(new[] { " (句柄:", " (进程未运行)", " (未找到匹配窗口)" },
+                        StringSplitOptions.None)[0];
+
                     var windows = FindWindowsByProcessName(SelectedWindowProcessName, originalTitle);
-                    
+
                     // 添加对Application.Current的空检查
                     if (System.Windows.Application.Current != null)
-                    {
                         System.Windows.Application.Current.Dispatcher.Invoke(() =>
                         {
                             if (windows.Any())
                             {
                                 var targetWindow = windows.First();
-                                bool needsUpdate = false;
+                                var needsUpdate = false;
 
                                 // 检查句柄是否变化
                                 if (targetWindow.Handle != SelectedWindowHandle)
@@ -1741,7 +1655,7 @@ namespace WpfApp.ViewModels
                                 if (needsUpdate)
                                 {
                                     SelectedWindowTitle = $"{targetWindow.Title} (句柄: {targetWindow.Handle.ToInt64()})";
-                                    
+
                                     // 更新配置
                                     AppConfigService.UpdateConfig(config =>
                                     {
@@ -1750,7 +1664,8 @@ namespace WpfApp.ViewModels
                                         config.TargetWindowTitle = targetWindow.Title;
                                     });
 
-                                    _logger.Info($"已更新窗口信息 - 句柄: {targetWindow.Handle.ToInt64()}, 类名: {targetWindow.ClassName}, 进程名: {targetWindow.ProcessName}, 标题: {targetWindow.Title}");
+                                    _logger.Info(
+                                        $"已更新窗口信息 - 句柄: {targetWindow.Handle.ToInt64()}, 类名: {targetWindow.ClassName}, 进程名: {targetWindow.ProcessName}, 标题: {targetWindow.Title}");
                                 }
                             }
                             else if (SelectedWindowHandle != IntPtr.Zero)
@@ -1761,12 +1676,9 @@ namespace WpfApp.ViewModels
                                 _logger.Warning($"进程 {SelectedWindowProcessName} 已关闭");
                             }
                         });
-                    }
                     else
-                    {
                         // 直接在当前线程处理窗口更新
                         _logger.Debug("Application.Current为空，跳过窗口状态更新");
-                    }
                 }
             }
             catch (Exception ex)
@@ -1782,6 +1694,7 @@ namespace WpfApp.ViewModels
                 _windowCheckTimer = new System.Timers.Timer(5000); // 5秒
                 _windowCheckTimer.Elapsed += WindowCheckTimer_Elapsed;
             }
+
             _windowCheckTimer.Start();
             _logger.Debug("开始定时检查窗口状态");
         }
@@ -1800,7 +1713,7 @@ namespace WpfApp.ViewModels
         }
 
         // 添加活动窗口检查方法
-        private void ActiveWindowCheckTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        private void ActiveWindowCheckTimer_Elapsed(object? sender, ElapsedEventArgs e)
         {
             try
             {
@@ -1823,13 +1736,14 @@ namespace WpfApp.ViewModels
                         _hotkeyService.IsTargetWindowActive = true;
                         _logger.Debug("Application.Current为空，直接在当前线程更新状态");
                     }
+
                     return;
                 }
 
                 // 如果选择了窗口，则检查是否是当前活动窗口
                 var activeWindow = GetForegroundWindow();
-                bool isActive = activeWindow == SelectedWindowHandle;
-                
+                var isActive = activeWindow == SelectedWindowHandle;
+
                 // 添加对Application.Current的空检查
                 if (System.Windows.Application.Current != null)
                 {

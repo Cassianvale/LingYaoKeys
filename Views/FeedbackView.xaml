@@ -3,42 +3,40 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-      xmlns:local="clr-namespace:WpfApp.Views"
       mc:Ignorable="d"
       d:DesignHeight="450" d:DesignWidth="800"
       Title="FeedbackView">
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- 反馈类型选择 -->
         <DockPanel Grid.Row="0" Margin="0,0,0,15">
-            <TextBlock Text="反馈类型" 
-                     VerticalAlignment="Center"
-                     Margin="0,0,10,0"/>
+            <TextBlock Text="反馈类型"
+                       VerticalAlignment="Center"
+                       Margin="0,0,10,0" />
             <ComboBox Style="{StaticResource ModernComboBox}"
                       ItemContainerStyle="{StaticResource ModernComboBoxItem}"
                       Width="150"
-                      Height="32"
                       HorizontalAlignment="Left"
                       ItemsSource="{Binding FeedbackTypes}"
                       SelectedIndex="{Binding SelectedFeedbackType}">
                 <ComboBox.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock Text="{Binding}" 
-                                 HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding}"
+                                   HorizontalAlignment="Center" />
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>
         </DockPanel>
 
         <!-- 反馈内容输入 -->
-        <Border Grid.Row="1" 
-                BorderThickness="1" 
+        <Border Grid.Row="1"
+                BorderThickness="1"
                 BorderBrush="#BDBDBD"
                 CornerRadius="4"
                 Margin="0,0,0,15"
@@ -50,7 +48,6 @@
                      HorizontalScrollBarVisibility="Disabled"
                      Text="{Binding FeedbackContent, UpdateSourceTrigger=PropertyChanged}"
                      FontFamily="Microsoft YaHei UI"
-                     FontSize="14"
                      Padding="15,15,15,15"
                      VerticalContentAlignment="Top"
                      VerticalAlignment="Stretch"
@@ -59,23 +56,23 @@
                      PreviewKeyDown="FeedbackTextBox_PreviewKeyDown">
                 <TextBox.Resources>
                     <Style TargetType="TextBox" BasedOn="{StaticResource ModernTextBox}">
-                        <Setter Property="Background" Value="#FAFAFA"/>
-                        <Setter Property="SelectionBrush" Value="#B3D6F2"/>
-                        <Setter Property="CaretBrush" Value="#2C2C2C"/>
+                        <Setter Property="Background" Value="#FAFAFA" />
+                        <Setter Property="SelectionBrush" Value="#B3D6F2" />
+                        <Setter Property="CaretBrush" Value="#2C2C2C" />
                     </Style>
                 </TextBox.Resources>
 
                 <TextBox.Template>
                     <ControlTemplate TargetType="TextBox">
-                        <ScrollViewer x:Name="PART_ContentHost" 
-                                    Background="{TemplateBinding Background}"
-                                    Padding="{TemplateBinding Padding}"
-                                    VerticalAlignment="Stretch"
-                                    Template="{DynamicResource ScrollViewerControlTemplate}">
+                        <ScrollViewer x:Name="PART_ContentHost"
+                                      Background="{TemplateBinding Background}"
+                                      Padding="{TemplateBinding Padding}"
+                                      VerticalAlignment="Stretch"
+                                      Template="{DynamicResource ScrollViewerControlTemplate}">
                             <ScrollViewer.Resources>
                                 <Style TargetType="TextBlock">
-                                    <Setter Property="LineHeight" Value="20"/>
-                                    <Setter Property="VerticalAlignment" Value="Top"/>
+                                    <Setter Property="LineHeight" Value="20" />
+                                    <Setter Property="VerticalAlignment" Value="Top" />
                                 </Style>
                             </ScrollViewer.Resources>
                         </ScrollViewer>
@@ -85,15 +82,15 @@
         </Border>
 
         <!-- 按钮区域 -->
-        <StackPanel Grid.Row="2" 
-                    Orientation="Horizontal" 
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
                     HorizontalAlignment="Right">
             <Button Style="{StaticResource RoundedShadowButtonSmall}"
                     Command="{Binding ClearCommand}"
                     Content="清空"
                     Width="85"
                     Height="32"
-                    Margin="0,0,10,0"/>
+                    Margin="0,0,10,0" />
             <Button Style="{StaticResource RoundedShadowButtonSmall}"
                     Command="{Binding SubmitToGitHubCommand}"
                     ToolTip="在GitHub上提交Issue"
@@ -101,7 +98,7 @@
                     Height="32"
                     Margin="0,0,10,0">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="GitHub提交" VerticalAlignment="Center"/>
+                    <TextBlock Text="GitHub提交" VerticalAlignment="Center" />
                 </StackPanel>
             </Button>
             <Button Style="{StaticResource RoundedShadowButtonSmall}"
@@ -110,9 +107,9 @@
                     Width="120"
                     Height="32">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="联系作者" VerticalAlignment="Center"/>
+                    <TextBlock Text="联系作者" VerticalAlignment="Center" />
                 </StackPanel>
             </Button>
         </StackPanel>
     </Grid>
-</Page> 
+</Page>

@@ -6,7 +6,7 @@
         xmlns:behaviors="clr-namespace:WpfApp.Behaviors"
         xmlns:svgc="http://sharpvectors.codeplex.com/svgc/"
         mc:Ignorable="d"
-        behaviors:FocusManagerBehavior.AutoClearFocusOnClick="True" 
+        behaviors:FocusManagerBehavior.AutoClearFocusOnClick="True"
         behaviors:FocusManagerBehavior.EnableFocusManagement="True"
         Title="{Binding WindowTitle}"
         Icon="/Resource/icon/app.ico"
@@ -27,216 +27,233 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/Styles/WindowControlStyles.xaml"/>
-                <ResourceDictionary Source="/Styles/WindowStyles.xaml"/>
+                <ResourceDictionary Source="/Styles/WindowControlStyles.xaml" />
+                <ResourceDictionary Source="/Styles/WindowStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>
 
-    <Border x:Name="WindowBorder" 
-            Background="Transparent" 
-            BorderThickness="0" 
+    <Border x:Name="WindowBorder"
+            Background="Transparent"
+            BorderThickness="0"
             Margin="10">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="15" 
-                            Direction="0" 
-                            ShadowDepth="0" 
-                            Opacity="0.2" 
-                            Color="#000000"/>
+            <DropShadowEffect BlurRadius="15"
+                              Direction="0"
+                              ShadowDepth="0"
+                              Opacity="0.2"
+                              Color="#000000" />
         </Border.Effect>
-        
+
         <Grid>
             <!-- 调整大小的区域 -->
             <Grid>
                 <!-- 左边框 -->
-                <Rectangle x:Name="ResizeLeft" Width="5" HorizontalAlignment="Left" Fill="Transparent" Cursor="SizeWE" MouseDown="ResizeLeft_MouseDown"/>
+                <Rectangle x:Name="ResizeLeft" Width="5" HorizontalAlignment="Left" Fill="Transparent" Cursor="SizeWE"
+                           MouseDown="ResizeLeft_MouseDown" />
                 <!-- 右边框 -->
-                <Rectangle x:Name="ResizeRight" Width="5" HorizontalAlignment="Right" Fill="Transparent" Cursor="SizeWE" MouseDown="ResizeRight_MouseDown"/>
+                <Rectangle x:Name="ResizeRight" Width="5" HorizontalAlignment="Right" Fill="Transparent"
+                           Cursor="SizeWE" MouseDown="ResizeRight_MouseDown" />
                 <!-- 上边框 -->
-                <Rectangle x:Name="ResizeTop" Height="5" VerticalAlignment="Top" Fill="Transparent" Cursor="SizeNS" MouseDown="ResizeTop_MouseDown"/>
+                <Rectangle x:Name="ResizeTop" Height="5" VerticalAlignment="Top" Fill="Transparent" Cursor="SizeNS"
+                           MouseDown="ResizeTop_MouseDown" />
                 <!-- 下边框 -->
-                <Rectangle x:Name="ResizeBottom" Height="5" VerticalAlignment="Bottom" Fill="Transparent" Cursor="SizeNS" MouseDown="ResizeBottom_MouseDown"/>
+                <Rectangle x:Name="ResizeBottom" Height="5" VerticalAlignment="Bottom" Fill="Transparent"
+                           Cursor="SizeNS" MouseDown="ResizeBottom_MouseDown" />
                 <!-- 左上角 -->
-                <Rectangle x:Name="ResizeTopLeft" Width="5" Height="5" HorizontalAlignment="Left" VerticalAlignment="Top" Fill="Transparent" Cursor="SizeNWSE" MouseDown="ResizeTopLeft_MouseDown"/>
+                <Rectangle x:Name="ResizeTopLeft" Width="5" Height="5" HorizontalAlignment="Left"
+                           VerticalAlignment="Top" Fill="Transparent" Cursor="SizeNWSE"
+                           MouseDown="ResizeTopLeft_MouseDown" />
                 <!-- 右上角 -->
-                <Rectangle x:Name="ResizeTopRight" Width="5" Height="5" HorizontalAlignment="Right" VerticalAlignment="Top" Fill="Transparent" Cursor="SizeNESW" MouseDown="ResizeTopRight_MouseDown"/>
+                <Rectangle x:Name="ResizeTopRight" Width="5" Height="5" HorizontalAlignment="Right"
+                           VerticalAlignment="Top" Fill="Transparent" Cursor="SizeNESW"
+                           MouseDown="ResizeTopRight_MouseDown" />
                 <!-- 左下角 -->
-                <Rectangle x:Name="ResizeBottomLeft" Width="5" Height="5" HorizontalAlignment="Left" VerticalAlignment="Bottom" Fill="Transparent" Cursor="SizeNESW" MouseDown="ResizeBottomLeft_MouseDown"/>
+                <Rectangle x:Name="ResizeBottomLeft" Width="5" Height="5" HorizontalAlignment="Left"
+                           VerticalAlignment="Bottom" Fill="Transparent" Cursor="SizeNESW"
+                           MouseDown="ResizeBottomLeft_MouseDown" />
                 <!-- 右下角 -->
-                <Rectangle x:Name="ResizeBottomRight" Width="5" Height="5" HorizontalAlignment="Right" VerticalAlignment="Bottom" Fill="Transparent" Cursor="SizeNWSE" MouseDown="ResizeBottomRight_MouseDown"/>
+                <Rectangle x:Name="ResizeBottomRight" Width="5" Height="5" HorizontalAlignment="Right"
+                           VerticalAlignment="Bottom" Fill="Transparent" Cursor="SizeNWSE"
+                           MouseDown="ResizeBottomRight_MouseDown" />
 
                 <!-- 主窗口内容 -->
                 <Grid>
-                    <Border x:Name="MainBorder" 
-                            Background="White" 
+                    <Border x:Name="MainBorder"
+                            Background="White"
                             BorderBrush="#EEEEEE"
-                            BorderThickness="1" 
+                            BorderThickness="1"
                             CornerRadius="8"
                             Margin="5"
                             ClipToBounds="True">
                         <Grid>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="32"/>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="25"/>
+                                <RowDefinition Height="32" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="25" />
                             </Grid.RowDefinitions>
-                            
+
                             <Grid.ColumnDefinitions>
                                 <!-- 导航栏列 - 使用绑定宽度实现动态调整 -->
-                                <ColumnDefinition Width="{Binding NavColumnWidth}"/>
+                                <ColumnDefinition Width="{Binding NavColumnWidth}" />
                                 <!-- 主内容区域列 -->
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
                             <!-- 标题栏 - 跨越所有列 -->
-                            <Grid Grid.Row="0" Grid.ColumnSpan="2" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                            <Grid Grid.Row="0" Grid.ColumnSpan="2" Background="Transparent"
+                                  MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
                                 <!-- 图标和标题 -->
-                                <StackPanel Grid.Column="0" 
-                                        Orientation="Horizontal" 
-                                        Margin="10,0,0,0">
-                                    <Image Source="/Resource/icon/app.ico" 
-                                        Width="25" 
-                                        Height="25" 
-                                        Margin="0,0,5,0"/>
-                                    <TextBlock Text="{Binding WindowTitle}" 
-                                            VerticalAlignment="Center"/>
+                                <StackPanel Grid.Column="0"
+                                            Orientation="Horizontal"
+                                            Margin="10,0,0,0">
+                                    <Image Source="/Resource/icon/app.ico"
+                                           Width="25"
+                                           Height="25"
+                                           Margin="0,0,5,0" />
+                                    <TextBlock Text="{Binding WindowTitle}"
+                                               VerticalAlignment="Center" />
                                 </StackPanel>
 
                                 <!-- 窗口控制按钮 -->
-                                <StackPanel Grid.Column="2" 
-                                            Orientation="Horizontal" 
+                                <StackPanel Grid.Column="2"
+                                            Orientation="Horizontal"
                                             HorizontalAlignment="Right">
                                     <Button x:Name="TopMostButton"
                                             Style="{StaticResource TopMostButtonStyle}"
-                                            Click="TopMostButton_Click"/>
+                                            Click="TopMostButton_Click" />
                                     <Button x:Name="MinimizeButton"
                                             Style="{StaticResource MinimizeButtonStyle}"
-                                            Click="MinimizeButton_Click"/>
+                                            Click="MinimizeButton_Click" />
                                     <Button x:Name="MaximizeButton"
                                             Style="{StaticResource MaximizeButtonStyle}"
-                                            Click="MaximizeButton_Click"/>
+                                            Click="MaximizeButton_Click" />
                                     <Button x:Name="CloseButton"
                                             Style="{StaticResource CloseButtonStyle}"
-                                            Click="CloseButton_Click"/>
+                                            Click="CloseButton_Click" />
                                 </StackPanel>
                             </Grid>
 
                             <!-- 左侧导航栏 -->
-                            <Border Grid.Row="1" 
+                            <Border Grid.Row="1"
                                     Grid.Column="0"
                                     x:Name="NavPanel"
                                     Background="White"
-                                    BorderThickness="0,0,1,0" 
+                                    BorderThickness="0,0,1,0"
                                     BorderBrush="#EEEEEE">
-                                
+
                                 <DockPanel LastChildFill="True">
                                     <!-- 折叠按钮 -->
                                     <Button DockPanel.Dock="Top"
                                             x:Name="NavToggleButton"
                                             Style="{StaticResource NavToggleButtonStyle}"
                                             Content="{Binding NavToggleIcon}"
-                                            Click="NavToggleButton_Click"/>
-                                    
+                                            Click="NavToggleButton_Click" />
+
                                     <!-- 设置按钮 -->
                                     <RadioButton DockPanel.Dock="Bottom"
-                                               GroupName="NavGroup"
-                                               Style="{StaticResource NavButtonStyle}"
-                                               Command="{Binding NavigateCommand}"
-                                               CommandParameter="Settings"
-                                               Click="NavButton_Click">
+                                                 GroupName="NavGroup"
+                                                 Style="{StaticResource NavButtonStyle}"
+                                                 Command="{Binding NavigateCommand}"
+                                                 CommandParameter="Settings"
+                                                 Click="NavButton_Click">
                                         <StackPanel Orientation="Horizontal">
-                                            <svgc:SvgViewbox Source="/Resource/svg/setting.svg" 
-                                                            Width="20" 
-                                                            Height="20"
-                                                            Stretch="Uniform">
+                                            <svgc:SvgViewbox Source="/Resource/svg/setting.svg"
+                                                             Width="20"
+                                                             Height="20"
+                                                             Stretch="Uniform">
                                                 <svgc:SvgViewbox.Resources>
                                                     <Style TargetType="Path">
-                                                        <Setter Property="Fill" Value="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"/>
+                                                        <Setter Property="Fill"
+                                                                Value="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}" />
                                                     </Style>
                                                 </svgc:SvgViewbox.Resources>
                                             </svgc:SvgViewbox>
-                                            <TextBlock Text="设置" 
-                                                     Margin="15,0,0,0"
-                                                     VerticalAlignment="Center"
-                                                     Visibility="{Binding NavTextVisibility}"/>
+                                            <TextBlock Text="设置"
+                                                       Margin="15,0,0,0"
+                                                       VerticalAlignment="Center"
+                                                       Visibility="{Binding NavTextVisibility}" />
                                         </StackPanel>
                                     </RadioButton>
-                                    
+
                                     <!-- 导航菜单 -->
                                     <StackPanel Margin="0,10,0,0">
                                         <RadioButton Style="{StaticResource NavButtonStyle}"
-                                                    GroupName="NavGroup"
-                                                    IsChecked="True"
-                                                    Command="{Binding NavigateCommand}"
-                                                    CommandParameter="FrontKeys"
-                                                    Click="NavButton_Click">
+                                                     GroupName="NavGroup"
+                                                     IsChecked="True"
+                                                     Command="{Binding NavigateCommand}"
+                                                     CommandParameter="FrontKeys"
+                                                     Click="NavButton_Click">
                                             <StackPanel Orientation="Horizontal">
-                                                <svgc:SvgViewbox Source="/Resource/svg/game.svg" 
-                                                                Width="20" 
-                                                                Height="20"
-                                                                Stretch="Uniform">
+                                                <svgc:SvgViewbox Source="/Resource/svg/game.svg"
+                                                                 Width="20"
+                                                                 Height="20"
+                                                                 Stretch="Uniform">
                                                     <svgc:SvgViewbox.Resources>
                                                         <Style TargetType="Path">
-                                                            <Setter Property="Fill" Value="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"/>
+                                                            <Setter Property="Fill"
+                                                                    Value="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}" />
                                                         </Style>
                                                     </svgc:SvgViewbox.Resources>
                                                 </svgc:SvgViewbox>
-                                                <TextBlock Text="前台按键" 
-                                                         Margin="15,0,0,0"
-                                                         VerticalAlignment="Center"
-                                                         Visibility="{Binding NavTextVisibility}"/>
+                                                <TextBlock Text="前台按键"
+                                                           Margin="15,0,0,0"
+                                                           VerticalAlignment="Center"
+                                                           Visibility="{Binding NavTextVisibility}" />
                                             </StackPanel>
                                         </RadioButton>
-                                        
+
                                         <RadioButton Style="{StaticResource NavButtonStyle}"
-                                                    GroupName="NavGroup"
-                                                    Command="{Binding NavigateCommand}"
-                                                    CommandParameter="Feedback"
-                                                    Click="NavButton_Click">
+                                                     GroupName="NavGroup"
+                                                     Command="{Binding NavigateCommand}"
+                                                     CommandParameter="Feedback"
+                                                     Click="NavButton_Click">
                                             <StackPanel Orientation="Horizontal">
-                                                <svgc:SvgViewbox Source="/Resource/svg/feedback.svg" 
-                                                                Width="20" 
-                                                                Height="20"
-                                                                Stretch="Uniform">
+                                                <svgc:SvgViewbox Source="/Resource/svg/feedback.svg"
+                                                                 Width="20"
+                                                                 Height="20"
+                                                                 Stretch="Uniform">
                                                     <svgc:SvgViewbox.Resources>
                                                         <Style TargetType="Path">
-                                                            <Setter Property="Fill" Value="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"/>
+                                                            <Setter Property="Fill"
+                                                                    Value="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}" />
                                                         </Style>
                                                     </svgc:SvgViewbox.Resources>
                                                 </svgc:SvgViewbox>
-                                                <TextBlock Text="问题反馈" 
-                                                         Margin="15,0,0,0"
-                                                         VerticalAlignment="Center"
-                                                         Visibility="{Binding NavTextVisibility}"/>
+                                                <TextBlock Text="问题反馈"
+                                                           Margin="15,0,0,0"
+                                                           VerticalAlignment="Center"
+                                                           Visibility="{Binding NavTextVisibility}" />
                                             </StackPanel>
                                         </RadioButton>
-                                        
+
                                         <RadioButton Style="{StaticResource NavButtonStyle}"
-                                                    GroupName="NavGroup"
-                                                    Command="{Binding NavigateCommand}"
-                                                    CommandParameter="About"
-                                                    Click="NavButton_Click">
+                                                     GroupName="NavGroup"
+                                                     Command="{Binding NavigateCommand}"
+                                                     CommandParameter="About"
+                                                     Click="NavButton_Click">
                                             <StackPanel Orientation="Horizontal">
-                                                <svgc:SvgViewbox Source="/Resource/svg/about.svg" 
-                                                                Width="20" 
-                                                                Height="20"
-                                                                Stretch="Uniform">
+                                                <svgc:SvgViewbox Source="/Resource/svg/about.svg"
+                                                                 Width="20"
+                                                                 Height="20"
+                                                                 Stretch="Uniform">
                                                     <svgc:SvgViewbox.Resources>
                                                         <Style TargetType="Path">
-                                                            <Setter Property="Fill" Value="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"/>
+                                                            <Setter Property="Fill"
+                                                                    Value="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}" />
                                                         </Style>
                                                     </svgc:SvgViewbox.Resources>
                                                 </svgc:SvgViewbox>
-                                                <TextBlock Text="关于" 
-                                                         Margin="15,0,0,0"
-                                                         VerticalAlignment="Center"
-                                                         Visibility="{Binding NavTextVisibility}"/>
+                                                <TextBlock Text="关于"
+                                                           Margin="15,0,0,0"
+                                                           VerticalAlignment="Center"
+                                                           Visibility="{Binding NavTextVisibility}" />
                                             </StackPanel>
                                         </RadioButton>
                                     </StackPanel>
@@ -244,11 +261,11 @@
                             </Border>
 
                             <!-- 主内容区域 -->
-                            <Frame Grid.Row="1" 
+                            <Frame Grid.Row="1"
                                    Grid.Column="1"
                                    x:Name="MainFrame"
                                    NavigationUIVisibility="Hidden"
-                                   Content="{Binding CurrentPage}"/>
+                                   Content="{Binding CurrentPage}" />
 
                             <!-- 状态栏 - 跨越所有列 -->
                             <StatusBar Grid.Row="2" Grid.ColumnSpan="2" Background="Transparent">
@@ -256,20 +273,20 @@
                                     <ItemsPanelTemplate>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                         </Grid>
                                     </ItemsPanelTemplate>
                                 </StatusBar.ItemsPanel>
-                                
+
                                 <StatusBarItem>
-                                    <TextBlock Text="{Binding StatusMessage}" 
-                                             Foreground="{Binding StatusMessageColor, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Text="{Binding StatusMessage}"
+                                               Foreground="{Binding StatusMessageColor, UpdateSourceTrigger=PropertyChanged}" />
                                 </StatusBarItem>
-                                
+
                                 <StatusBarItem Grid.Column="1">
-                                    <TextBlock Text="{Binding AuthorInfo}" Margin="0,0,10,0"/>
+                                    <TextBlock Text="{Binding AuthorInfo}" Margin="0,0,10,0" />
                                 </StatusBarItem>
                             </StatusBar>
                         </Grid>

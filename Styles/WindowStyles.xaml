@@ -7,6 +7,6 @@
                       Direction="0"
                       ShadowDepth="0"
                       Opacity="0.2"
-                      Color="#000000"/>
+                      Color="#000000" />
 
-</ResourceDictionary> 
+</ResourceDictionary>

@@ -3,41 +3,41 @@
 
     <!-- 托盘菜单样式 -->
     <Style x:Key="TrayContextMenuStyle" TargetType="ContextMenu">
-        <Setter Property="Background" Value="White"/>
-        <Setter Property="BorderBrush" Value="Transparent"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Padding" Value="4"/>
-        <Setter Property="UseLayoutRounding" Value="True"/>
-        <Setter Property="SnapsToDevicePixels" Value="True"/>
-        <Setter Property="RenderOptions.BitmapScalingMode" Value="HighQuality"/>
-        <Setter Property="RenderOptions.EdgeMode" Value="Aliased"/>
-        <Setter Property="RenderOptions.ClearTypeHint" Value="Enabled"/>
+        <Setter Property="Background" Value="White" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="4" />
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="RenderOptions.BitmapScalingMode" Value="HighQuality" />
+        <Setter Property="RenderOptions.EdgeMode" Value="Aliased" />
+        <Setter Property="RenderOptions.ClearTypeHint" Value="Enabled" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ContextMenu">
-                    <Border x:Name="WindowBorder" 
-                            Background="Transparent" 
-                            BorderThickness="0" 
+                    <Border x:Name="WindowBorder"
+                            Background="Transparent"
+                            BorderThickness="0"
                             Margin="10">
                         <Border.Effect>
-                            <DropShadowEffect BlurRadius="15" 
-                                            Direction="0" 
-                                            ShadowDepth="0" 
-                                            Opacity="0.2" 
-                                            Color="#000000"/>
+                            <DropShadowEffect BlurRadius="15"
+                                              Direction="0"
+                                              ShadowDepth="0"
+                                              Opacity="0.2"
+                                              Color="#000000" />
                         </Border.Effect>
-                        
-                        <Border x:Name="MainBorder" 
-                                Background="White" 
+
+                        <Border x:Name="MainBorder"
+                                Background="White"
                                 BorderBrush="#EEEEEE"
-                                BorderThickness="1" 
+                                BorderThickness="1"
                                 CornerRadius="8"
                                 Margin="0">
-                            <ScrollViewer CanContentScroll="True" 
-                                        HorizontalScrollBarVisibility="Hidden"
-                                        VerticalScrollBarVisibility="Auto"
-                                        Margin="2">
-                                <ItemsPresenter Margin="0"/>
+                            <ScrollViewer CanContentScroll="True"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Auto"
+                                          Margin="2">
+                                <ItemsPresenter Margin="0" />
                             </ScrollViewer>
                         </Border>
                     </Border>
@@ -48,12 +48,12 @@
 
     <!-- 托盘菜单项样式 -->
     <Style x:Key="TrayMenuItemStyle" TargetType="MenuItem">
-        <Setter Property="Height" Value="32"/>
-        <Setter Property="Padding" Value="8,0"/>
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="#333333"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="#333333" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="MenuItem">
@@ -67,38 +67,38 @@
                             SnapsToDevicePixels="True">
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            
+
                             <!-- 图标 -->
                             <ContentPresenter x:Name="Icon"
-                                            Grid.Column="0"
-                                            Content="{TemplateBinding Icon}"
-                                            Width="16"
-                                            Height="16"
-                                            Margin="6,0,6,0"
-                                            VerticalAlignment="Center"
-                                            ContentSource="Icon"
-                                            RenderOptions.BitmapScalingMode="HighQuality"/>
-                            
+                                              Grid.Column="0"
+                                              Content="{TemplateBinding Icon}"
+                                              Width="16"
+                                              Height="16"
+                                              Margin="6,0,6,0"
+                                              VerticalAlignment="Center"
+                                              ContentSource="Icon"
+                                              RenderOptions.BitmapScalingMode="HighQuality" />
+
                             <!-- 文本 -->
                             <ContentPresenter Grid.Column="1"
-                                            Margin="{TemplateBinding Padding}"
-                                            VerticalAlignment="Center"
-                                            RecognizesAccessKey="True"
-                                            ContentSource="Header"
-                                            TextOptions.TextRenderingMode="ClearType"
-                                            TextOptions.TextFormattingMode="Display"/>
+                                              Margin="{TemplateBinding Padding}"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True"
+                                              ContentSource="Header"
+                                              TextOptions.TextRenderingMode="ClearType"
+                                              TextOptions.TextFormattingMode="Display" />
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsHighlighted" Value="True">
-                            <Setter Property="Background" TargetName="Border" Value="#e3f2fd"/>
-                            <Setter Property="Foreground" Value="#2196f3"/>
+                            <Setter Property="Background" TargetName="Border" Value="#e3f2fd" />
+                            <Setter Property="Foreground" Value="#2196f3" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Opacity" Value="0.5"/>
+                            <Setter Property="Opacity" Value="0.5" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -108,18 +108,18 @@
 
     <!-- 托盘菜单分隔符样式 -->
     <Style x:Key="TrayMenuSeparatorStyle" TargetType="Separator">
-        <Setter Property="Height" Value="1"/>
-        <Setter Property="Margin" Value="12,4"/>
+        <Setter Property="Height" Value="1" />
+        <Setter Property="Margin" Value="12,4" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Separator">
                     <Border BorderBrush="#EEEEEE"
                             BorderThickness="0,1,0,0"
                             UseLayoutRounding="True"
-                            SnapsToDevicePixels="True"/>
+                            SnapsToDevicePixels="True" />
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
 
-</ResourceDictionary> 
+</ResourceDictionary>
