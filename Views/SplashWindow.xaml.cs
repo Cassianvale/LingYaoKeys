@@ -17,6 +17,7 @@ public partial class SplashWindow : Window
     private double _containerActualWidth;
     private BlurEffect _glowEffect;
     private Storyboard _pulseStoryboard;
+    private Storyboard _fadeInStoryboard;
 
     public SplashWindow()
     {
@@ -24,7 +25,9 @@ public partial class SplashWindow : Window
         Loaded += OnSplashWindowLoaded;
         _statusText = (TextBlock)FindName("StatusText");
         _progressBarContainer = (Border)FindName("ProgressBarContainer");
-        _glowEffect = (BlurEffect)FindName("GlowEffect");
+        
+        // 获取淡入动画
+        _fadeInStoryboard = (Storyboard)FindResource("FadeInStoryboard");
         
         // 初始化脉冲动画
         InitializePulseAnimation();
@@ -42,20 +45,34 @@ public partial class SplashWindow : Window
             RepeatBehavior = RepeatBehavior.Forever,
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut }
         };
-        
-        Storyboard.SetTarget(animation, _glowEffect);
-        Storyboard.SetTargetProperty(animation, new PropertyPath(BlurEffect.RadiusProperty));
-        
-        _pulseStoryboard.Children.Add(animation);
+
+    }
+
+    /// <summary>
+    /// 窗口加载事件处理
+    /// </summary>
+    private void Window_Loaded(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            // 开始淡入动画
+            if (_fadeInStoryboard != null)
+            {
+                _fadeInStoryboard.Begin(this);
+            }
+        }
+        catch (Exception ex)
+        {
+            // 记录异常，防止动画异常影响程序启动
+            Console.WriteLine($"启动动画异常: {ex.Message}");
+        }
     }
 
     private void OnSplashWindowLoaded(object sender, RoutedEventArgs e)
     {
         // 获取进度条容器的实际宽度
         _containerActualWidth = ((Grid)_progressBarContainer.Parent).ActualWidth;
-        
-        // 启动脉冲动画
-        _pulseStoryboard.Begin();
+
     }
 
     public void UpdateProgress(string message, int percentage)
