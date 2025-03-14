@@ -332,23 +332,13 @@ public partial class KeyMappingView : Page
         if (IsModifierKey(keyCode)) return;
 
         // 记录热键输入处理
-        _logger.Debug($"处理热键输入 - keyCode: {keyCode}, 修饰键: {modifiers}, isStartHotkey: {isStartHotkey}");
+        _logger.Debug($"处理热键输入 - keyCode: {keyCode}, 修饰键: {modifiers}");
 
-        // 区分当前处理的是开始热键还是停止热键
-        if (isStartHotkey)
-        {
-            ViewModel?.SetStartHotkey(keyCode, modifiers);
+        // 使用统一的热键设置方法
+        ViewModel?.SetHotkey(keyCode, modifiers);
 
-            // 显示成功提示
-            ShowMessage("已设置开始热键");
-        }
-        else
-        {
-            ViewModel?.SetStopHotkey(keyCode, modifiers);
-
-            // 显示成功提示
-            ShowMessage("已设置停止热键");
-        }
+        // 显示成功提示
+        ShowMessage("已设置热键");
     }
 
     // 判断是否为修饰键
@@ -365,14 +355,14 @@ public partial class KeyMappingView : Page
     // 处理开始热键
     private void StartHotkeyInput_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
-        _logger.Debug("开始热键 Keyboard 按下 已触发");
+        _logger.Debug("热键 Keyboard 按下 已触发");
         _logger.Debug($"Key: {e.Key}, SystemKey: {e.SystemKey}, KeyStates: {e.KeyStates}");
         StartHotkeyInput_PreviewKeyDown(sender, e);
     }
 
     private void StartHotkeyInput_MouseDown(object sender, MouseButtonEventArgs e)
     {
-        _logger.Debug("开始热键 Mouse 按下 已触发");
+        _logger.Debug("热键 Mouse 按下 已触发");
         _logger.Debug($"ChangedButton: {e.ChangedButton}");
         StartHotkeyInput_PreviewMouseDown(sender, e);
     }
@@ -389,21 +379,10 @@ public partial class KeyMappingView : Page
         }
     }
 
-    private void StopHotkeyInput_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
-    {
-        if (sender is System.Windows.Controls.TextBox textBox)
-        {
-            e.Handled = true;
-            var keyCode = e.Delta > 0 ? LyKeysCode.VK_WHEELUP : LyKeysCode.VK_WHEELDOWN;
-            _logger.Debug($"检测到滚轮事件: {keyCode}, Delta: {e.Delta}");
-            HandleHotkeyInput(textBox, keyCode, Keyboard.Modifiers, false);
-        }
-    }
-
-    // 处理开始热键的鼠标释放
+    // 处理热键的鼠标释放
     private void StartHotkeyInput_PreviewMouseUp(object sender, MouseButtonEventArgs e)
     {
-        _logger.Debug("开始热键 Mouse 释放 已触发");
+        _logger.Debug("热键 Mouse 释放 已触发");
         _logger.Debug($"ChangedButton: {e.ChangedButton}");
     }
 
@@ -430,15 +409,15 @@ public partial class KeyMappingView : Page
             if (TryConvertToLyKeysCode(key, out var lyKeysCode))
             {
                 HandleHotkeyInput(textBox, lyKeysCode, Keyboard.Modifiers, true);
-                _logger.Debug($"开始热键已转换: {key} -> {lyKeysCode}");
+                _logger.Debug($"热键已转换: {key} -> {lyKeysCode}");
 
                 // 显示成功提示
-                ShowMessage("已设置开始热键");
+                ShowMessage("已设置热键");
             }
             else
             {
                 ShowError(KEY_ERROR);
-                _logger.Warning($"无法转换开始热键: {key}");
+                _logger.Warning($"无法转换热键: {key}");
             }
         }
         catch (Exception ex)
@@ -447,52 +426,7 @@ public partial class KeyMappingView : Page
         }
     }
 
-    // 处理停止热键
-    private void StopHotkeyInput_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
-    {
-        if (sender is not System.Windows.Controls.TextBox textBox) return;
-
-        try
-        {
-            e.Handled = true;
-
-            if (e.Key == Key.ImeProcessed && e.SystemKey == Key.None)
-            {
-                ShowError(KEY_ERROR);
-                return;
-            }
-
-            // 获取实际按键，优先使用SystemKey
-            var key = e.SystemKey != Key.None ? e.SystemKey :
-                e.Key == Key.ImeProcessed ? e.SystemKey : e.Key;
-
-            if (key == Key.None) return;
-
-            // 获取当前修饰键状态
-            var modifiers = Keyboard.Modifiers;
-
-            if (TryConvertToLyKeysCode(key, out var lyKeysCode))
-            {
-                if (IsModifierKey(lyKeysCode)) return;
-                HandleHotkeyInput(textBox, lyKeysCode, modifiers, false);
-                _logger.Debug($"停止热键已转换: {key} -> {lyKeysCode}");
-
-                // 显示成功提示
-                ShowMessage("已设置停止热键");
-            }
-            else
-            {
-                ShowError(KEY_ERROR);
-                _logger.Warning($"无法转换停止热键: {key}");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.Error("停止热键 Keyboard 按下 处理异常", ex);
-        }
-    }
-
-    // 处理开始热键的鼠标点击
+    // 处理热键的鼠标点击
     private void StartHotkeyInput_PreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (sender is System.Windows.Controls.TextBox textBox)
@@ -514,28 +448,6 @@ public partial class KeyMappingView : Page
                 // 显示成功提示
                 if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
                     mainViewModel.UpdateStatusMessage($"已选择按键: {ViewModel?.CurrentKeyText}", false);
-            }
-        }
-    }
-
-    // 处理停止热键的鼠标点击
-    private void StopHotkeyInput_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-    {
-        if (sender is System.Windows.Controls.TextBox textBox)
-        {
-            LyKeysCode? keyCode = e.ChangedButton switch
-            {
-                MouseButton.Middle => LyKeysCode.VK_MBUTTON,
-                MouseButton.XButton1 => LyKeysCode.VK_XBUTTON1,
-                MouseButton.XButton2 => LyKeysCode.VK_XBUTTON2,
-                _ => null // 对于左键和右键，不处理，让输入框正常获取焦点以接收键盘输入
-            };
-
-            if (keyCode.HasValue)
-            {
-                _logger.Debug($"检测到 Mouse 按键点击: {keyCode.Value}");
-                HandleHotkeyInput(textBox, keyCode.Value, Keyboard.Modifiers, false);
-                e.Handled = true; // 阻止事件继续传播
             }
         }
     }
@@ -933,22 +845,6 @@ public partial class KeyMappingView : Page
 
     private void ClearWindowHandle_Click(object sender, RoutedEventArgs e)
     {
-        try
-        {
-            ViewModel.ClearSelectedWindow();
-        }
-        catch (Exception ex)
-        {
-            _logger.Error("清除窗口句柄时发生异常", ex);
-            ShowError("清除窗口句柄失败，请查看日志");
-        }
-    }
-
-    /// <summary>
-    /// 删除按键按钮点击事件处理
-    /// </summary>
-    private void DeleteKeyButton_Click(object sender, RoutedEventArgs e)
-    {
         if (sender is not System.Windows.Controls.Button button)
             return;
 
@@ -956,18 +852,10 @@ public partial class KeyMappingView : Page
         {
             // 获取按钮是否已处于确认状态
             var isConfirmState = (bool)button.GetValue(DeleteConfirmStateProperty);
-            var keyItem = button.Tag as KeyItem;
-
-            // 检查KeyItem是否有效
-            if (keyItem == null)
-            {
-                _logger.Error("按钮Tag不是KeyItem类型或为空");
-                return;
-            }
 
             if (isConfirmState)
             {
-                // 已经是确认状态，执行删除操作
+                // 已经是确认状态，执行清除窗口句柄操作
                 try
                 {
                     // 停止并移除定时器
@@ -980,15 +868,17 @@ public partial class KeyMappingView : Page
                     // 重置按钮状态
                     button.SetValue(DeleteConfirmStateProperty, false);
 
-                    // 删除按键
-                    ViewModel.DeleteKey(keyItem);
-                    _logger.Debug($"已删除按键: {keyItem.DisplayName}");
+                    // 清除窗口句柄
+                    ViewModel.ClearSelectedWindow();
+                    _logger.Debug("已清除窗口句柄");
+                    
+                    // 恢复按钮为原始状态
+                    ResetDeleteButton(button);
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error("删除按键时发生异常", ex);
-                    System.Windows.MessageBox.Show($"删除按键失败: {ex.Message}", "错误", MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                    _logger.Error("清除窗口句柄时发生异常", ex);
+                    ShowError("清除窗口句柄失败，请查看日志");
 
                     // 恢复按钮原始状态
                     ResetDeleteButton(button);
@@ -1026,9 +916,10 @@ public partial class KeyMappingView : Page
         }
         catch (Exception ex)
         {
-            _logger.Error("处理删除按钮点击事件时发生异常", ex);
+            _logger.Error("处理清除窗口句柄按钮点击事件时发生异常", ex);
             // 确保按钮恢复原状
-            ResetDeleteButton(button);
+            if (sender is System.Windows.Controls.Button btn)
+                ResetDeleteButton(btn);
         }
     }
 
@@ -1177,6 +1068,94 @@ public partial class KeyMappingView : Page
         catch (Exception ex)
         {
             _logger.Error("处理音量设置按钮点击事件时发生异常", ex);
+        }
+    }
+
+    /// <summary>
+    /// 删除按键按钮点击事件处理
+    /// </summary>
+    private void DeleteKeyButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button button)
+            return;
+
+        try
+        {
+            // 获取按钮是否已处于确认状态
+            var isConfirmState = (bool)button.GetValue(DeleteConfirmStateProperty);
+            var keyItem = button.Tag as KeyItem;
+
+            // 检查KeyItem是否有效
+            if (keyItem == null)
+            {
+                _logger.Error("按钮Tag不是KeyItem类型或为空");
+                return;
+            }
+
+            if (isConfirmState)
+            {
+                // 已经是确认状态，执行删除操作
+                try
+                {
+                    // 停止并移除定时器
+                    if (_pendingDeleteButtons.TryGetValue(button, out var timer))
+                    {
+                        timer.Stop();
+                        _pendingDeleteButtons.Remove(button);
+                    }
+
+                    // 重置按钮状态
+                    button.SetValue(DeleteConfirmStateProperty, false);
+
+                    // 删除按键
+                    ViewModel.DeleteKey(keyItem);
+                    _logger.Debug($"已删除按键: {keyItem.DisplayName}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error("删除按键时发生异常", ex);
+                    System.Windows.MessageBox.Show($"删除按键失败: {ex.Message}", "错误", MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+
+                    // 恢复按钮原始状态
+                    ResetDeleteButton(button);
+                }
+            }
+            else
+            {
+                // 清除其他所有按钮的确认状态
+                ClearAllDeleteConfirmStates();
+
+                // 将按钮设置为确认状态
+                button.SetValue(DeleteConfirmStateProperty, true);
+                ConvertToConfirmButton(button);
+
+                // 创建3秒定时器
+                var timer = new System.Windows.Threading.DispatcherTimer
+                {
+                    Interval = TimeSpan.FromSeconds(3)
+                };
+
+                timer.Tick += (s, args) =>
+                {
+                    // 3秒后恢复按钮原始状态
+                    timer.Stop();
+                    if (_pendingDeleteButtons.ContainsKey(button)) _pendingDeleteButtons.Remove(button);
+                    button.SetValue(DeleteConfirmStateProperty, false);
+                    ResetDeleteButton(button);
+                };
+
+                // 添加到字典并启动定时器
+                if (_pendingDeleteButtons.ContainsKey(button)) _pendingDeleteButtons[button].Stop();
+                _pendingDeleteButtons[button] = timer;
+                timer.Start();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("处理删除按钮点击事件时发生异常", ex);
+            // 确保按钮恢复原状
+            ResetDeleteButton(button);
         }
     }
 }

@@ -14,10 +14,8 @@ public class KeyMappingService
     private readonly HotkeyService _hotkeyService;
     private readonly AudioService _audioService;
     private ObservableCollection<KeyItem> _keyList;
-    private LyKeysCode? _startHotkey;
-    private LyKeysCode? _stopHotkey;
-    private ModifierKeys _startModifiers = ModifierKeys.None;
-    private ModifierKeys _stopModifiers = ModifierKeys.None;
+    private LyKeysCode? _hotkey; // 简化为单一热键
+    private ModifierKeys _modifiers = ModifierKeys.None; // 简化为单一修饰键
 
     public event Action<bool>? ExecutionStateChanged;
     public event Action? KeyListChanged;
@@ -55,7 +53,7 @@ public class KeyMappingService
     private void InitializeEventHandlers()
     {
         _hotkeyService.StartHotkeyPressed += OnStartHotkeyPressed;
-        _hotkeyService.StopHotkeyPressed += OnStopHotkeyPressed;
+        _hotkeyService.StartHotkeyReleased += OnStartHotkeyReleased; // 订阅热键释放事件
     }
 
     public void AddKey(LyKeysCode keyCode)
@@ -87,35 +85,20 @@ public class KeyMappingService
         }
     }
 
-    public void SetStartHotkey(LyKeysCode keyCode, ModifierKeys modifiers)
+    // 合并热键设置方法
+    public void SetHotkey(LyKeysCode keyCode, ModifierKeys modifiers)
     {
         if (IsKeyInList(keyCode))
         {
-            _logger.Warning($"启动热键 {keyCode} 与现有按键冲突");
+            _logger.Warning($"热键 {keyCode} 与现有按键冲突");
             return;
         }
 
-        if (_hotkeyService.RegisterStartHotkey(keyCode, modifiers))
+        if (_hotkeyService.RegisterHotkey(keyCode, modifiers))
         {
-            _startHotkey = keyCode;
-            _startModifiers = modifiers;
-            _logger.Debug($"设置启动热键: {keyCode}, 修饰键: {modifiers}");
-        }
-    }
-
-    public void SetStopHotkey(LyKeysCode keyCode, ModifierKeys modifiers)
-    {
-        if (IsKeyInList(keyCode))
-        {
-            _logger.Warning($"停止热键 {keyCode} 与现有按键冲突");
-            return;
-        }
-
-        if (_hotkeyService.RegisterStopHotkey(keyCode, modifiers))
-        {
-            _stopHotkey = keyCode;
-            _stopModifiers = modifiers;
-            _logger.Debug($"设置停止热键: {keyCode}, 修饰键: {modifiers}");
+            _hotkey = keyCode;
+            _modifiers = modifiers;
+            _logger.Debug($"设置热键: {keyCode}, 修饰键: {modifiers}");
         }
     }
 
@@ -180,12 +163,33 @@ public class KeyMappingService
 
     private void OnStartHotkeyPressed()
     {
-        StartKeyMapping();
+        // 根据当前模式决定是启动还是停止
+        if (!_lyKeysService.IsHoldMode)
+        {
+            // 顺序模式下，根据当前执行状态决定启动或停止
+            if (IsExecuting)
+            {
+                StopKeyMapping();
+            }
+            else
+            {
+                StartKeyMapping();
+            }
+        }
+        else
+        {
+            // 按压模式下，按下时启动
+            StartKeyMapping(true);
+        }
     }
 
-    private void OnStopHotkeyPressed()
+    private void OnStartHotkeyReleased()
     {
-        StopKeyMapping();
+        // 在按压模式下，释放热键时停止
+        if (_lyKeysService.IsHoldMode && IsExecuting)
+        {
+            StopKeyMapping();
+        }
     }
 
     private void UpdateHotkeyServiceKeyList()
@@ -217,8 +221,8 @@ public class KeyMappingService
 
     private bool IsHotkeyConflict(LyKeysCode keyCode)
     {
-        return (_startHotkey.HasValue && keyCode.Equals(_startHotkey.Value)) ||
-               (_stopHotkey.HasValue && keyCode.Equals(_stopHotkey.Value));
+        // 简化为只检查单一热键
+        return _hotkey.HasValue && keyCode.Equals(_hotkey.Value);
     }
 
     public void LoadConfiguration(AppConfig config)
@@ -236,18 +240,22 @@ public class KeyMappingService
             _keyList.Add(keyItem);
         }
 
-        if (config.startKey.HasValue) SetStartHotkey(config.startKey.Value, config.startMods);
-
-        if (config.stopKey.HasValue) SetStopHotkey(config.stopKey.Value, config.stopMods);
+        // 只设置一个热键
+        if (config.startKey.HasValue) SetHotkey(config.startKey.Value, config.startMods);
 
         UpdateHotkeyServiceKeyList();
     }
 
     public void SaveConfiguration(AppConfig config)
     {
-        config.startKey = _startHotkey;
-        config.startMods = _startModifiers;
-        config.stopKey = _stopHotkey;
-        config.stopMods = _stopModifiers;
+        // 保存为相同的启动和停止热键
+        config.startKey = _hotkey;
+        config.startMods = _modifiers;
+        config.stopKey = _hotkey;
+        config.stopMods = _modifiers;
+
+        config.keys = _keyList
+            .Select(k => new KeyConfig(k.KeyCode, k.IsSelected))
+            .ToList();
     }
 }

@@ -56,7 +56,6 @@ public class HotkeyService
     // 事件
     public event Action? StartHotkeyPressed; // 启动热键按下事件
     public event Action? StartHotkeyReleased; // 启动热键释放事件
-    public event Action? StopHotkeyPressed; // 停止热键按下事件
     public event Action? SequenceModeStarted; // 序列模式开始事件
     public event Action? SequenceModeStopped; // 序列模式停止事件
     public event Action<LyKeysCode>? KeyTriggered; // 触发按键事件
@@ -70,10 +69,8 @@ public class HotkeyService
     private List<KeyItemSettings> _keySettings = new();
 
     // 热键状态
-    private int _startVirtualKey; // 启动热键虚拟键码
-    private int _stopVirtualKey; // 停止热键虚拟键码
-    private LyKeysCode? _pendingStartKey; // LyKeys启动键键码
-    private LyKeysCode? _pendingStopKey; // LyKeys停止键键码
+    private int _hotkeyVirtualKey; // 热键虚拟键码 (简化为一个热键)
+    private LyKeysCode? _pendingHotkey; // LyKeys热键键码 (简化为一个热键)
     private bool _isKeyHeld; // 防止全局热键的重复触发
     private bool _isSequenceRunning; // 序列模式是否正在运行
     private bool _isInputFocused; // 输入焦点是否在当前窗口
@@ -176,55 +173,32 @@ public class HotkeyService
         }
     }
 
-    // 注册开始热键
-    public bool RegisterStartHotkey(LyKeysCode keyCode, ModifierKeys modifiers)
+    // 注册热键 (简化为一个方法)
+    public bool RegisterHotkey(LyKeysCode keyCode, ModifierKeys modifiers)
     {
         try
         {
-            _startVirtualKey = GetVirtualKeyFromLyKey(keyCode); // 转换为Windows虚拟键码
-            _pendingStartKey = keyCode; // 保存LyKeys按键码
-            SaveHotkeyConfig(true, keyCode, modifiers); // 保存到配置文件
+            _hotkeyVirtualKey = GetVirtualKeyFromLyKey(keyCode); // 转换为Windows虚拟键码
+            _pendingHotkey = keyCode; // 保存LyKeys按键码
+            SaveHotkeyConfig(keyCode, modifiers); // 保存到配置文件
             return true;
         }
         catch (Exception ex)
         {
-            _logger.Error("注册开始热键失败", ex);
+            _logger.Error("注册热键失败", ex);
             return false;
         }
     }
 
-    // 注册停止热键
-    public bool RegisterStopHotkey(LyKeysCode keyCode, ModifierKeys modifiers)
-    {
-        try
-        {
-            _stopVirtualKey = GetVirtualKeyFromLyKey(keyCode); // 转换为Windows虚拟键码
-            _pendingStopKey = keyCode; // 保存LyKeys按键码
-            SaveHotkeyConfig(false, keyCode, modifiers); // 保存到配置文件
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.Error("注册停止热键失败", ex);
-            return false;
-        }
-    }
-
-    // 保存热键配置
-    private void SaveHotkeyConfig(bool isStart, LyKeysCode keyCode, ModifierKeys modifiers)
+    // 保存热键配置 (简化为一个方法)
+    private void SaveHotkeyConfig(LyKeysCode keyCode, ModifierKeys modifiers)
     {
         AppConfigService.UpdateConfig(config =>
         {
-            if (isStart)
-            {
-                config.startKey = keyCode;
-                config.startMods = modifiers;
-            }
-            else
-            {
-                config.stopKey = keyCode;
-                config.stopMods = modifiers;
-            }
+            config.startKey = keyCode;
+            config.startMods = modifiers;
+            config.stopKey = keyCode; // 设置相同的停止键
+            config.stopMods = modifiers; // 设置相同的修饰键
         });
     }
 
@@ -295,8 +269,7 @@ public class HotkeyService
             try
             {
                 var hookStruct = (KBDLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT))!;
-                var isStartKey = hookStruct.vkCode == _startVirtualKey;
-                var isStopKey = hookStruct.vkCode == _stopVirtualKey;
+                var isHotkey = hookStruct.vkCode == _hotkeyVirtualKey;
 
                 // 获取当前窗口状态
                 var windowState = GetWindowState();
@@ -311,44 +284,41 @@ public class HotkeyService
                 }
 
                 // 如果是热键，检查是否可以触发
-                if ((isStartKey || isStopKey) && !CanTriggerHotkey())
+                if (isHotkey && !CanTriggerHotkey())
                     return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);
 
                 // 处理热键
-                if (isStartKey || isStopKey)
+                if (isHotkey)
                 {
                     if (_lyKeysService.IsHoldMode)
                     {
-                        // 按压模式处理逻辑
-                        if (isStartKey)
-                            switch ((int)wParam)
-                            {
-                                case WM_KEYDOWN:
-                                case WM_SYSKEYDOWN:
-                                    if (!_isKeyHeld)
-                                    {
-                                        _isKeyHeld = true;
-                                        StartHotkeyPressed?.Invoke();
-                                        StartSequence();
-                                    }
+                        // 按压模式处理逻辑 - 保持不变
+                        switch ((int)wParam)
+                        {
+                            case WM_KEYDOWN:
+                            case WM_SYSKEYDOWN:
+                                if (!_isKeyHeld)
+                                {
+                                    _isKeyHeld = true;
+                                    StartHotkeyPressed?.Invoke();
+                                    StartSequence();
+                                }
+                                return new IntPtr(1);
 
-                                    return new IntPtr(1);
-
-                                case WM_KEYUP:
-                                case WM_SYSKEYUP:
-                                    if (_isKeyHeld)
-                                    {
-                                        _isKeyHeld = false;
-                                        StopHotkeyPressed?.Invoke();
-                                        StopSequence();
-                                    }
-
-                                    return new IntPtr(1);
-                            }
+                            case WM_KEYUP:
+                            case WM_SYSKEYUP:
+                                if (_isKeyHeld)
+                                {
+                                    _isKeyHeld = false;
+                                    StartHotkeyReleased?.Invoke();
+                                    StopSequence();
+                                }
+                                return new IntPtr(1);
+                        }
                     }
                     else
                     {
-                        // 顺序模式处理逻辑
+                        // 顺序模式处理逻辑 - 修改为使用相同热键切换开始/停止
                         switch ((int)wParam)
                         {
                             case WM_KEYDOWN:
@@ -358,19 +328,17 @@ public class HotkeyService
                                     _isKeyHeld = true;
                                     if (_isSequenceRunning)
                                     {
-                                        if (isStopKey || (_startVirtualKey == _stopVirtualKey && isStartKey))
-                                        {
-                                            StopHotkeyPressed?.Invoke();
-                                            StopSequence();
-                                        }
+                                        // 如果序列已在运行，则停止
+                                        StartHotkeyPressed?.Invoke();
+                                        StopSequence();
                                     }
-                                    else if (isStartKey)
+                                    else
                                     {
+                                        // 否则启动序列
                                         StartHotkeyPressed?.Invoke();
                                         StartSequence();
                                     }
                                 }
-
                                 break;
 
                             case WM_KEYUP:
@@ -378,9 +346,8 @@ public class HotkeyService
                                 if (_isKeyHeld)
                                 {
                                     _isKeyHeld = false;
-                                    if (isStartKey) StartHotkeyReleased?.Invoke();
+                                    StartHotkeyReleased?.Invoke();
                                 }
-
                                 break;
                         }
                     }
@@ -455,14 +422,13 @@ public class HotkeyService
     private void HandleMouseButtonDown(int wParam, MSLLHOOKSTRUCT hookStruct)
     {
         var buttonCode = GetMouseButtonCode(wParam, hookStruct);
-        var isStartKey = buttonCode == _pendingStartKey;
-        var isStopKey = buttonCode == _pendingStopKey;
+        var isHotkey = buttonCode == _pendingHotkey;
 
-        if (isStartKey || isStopKey)
+        if (isHotkey)
         {
             if (_lyKeysService.IsHoldMode)
             {
-                if (isStartKey && !_isKeyHeld)
+                if (!_isKeyHeld)
                 {
                     _isKeyHeld = true;
                     StartHotkeyPressed?.Invoke();
@@ -476,14 +442,13 @@ public class HotkeyService
                     _isKeyHeld = true;
                     if (_isSequenceRunning)
                     {
-                        if (isStopKey || (_pendingStartKey == _pendingStopKey && isStartKey))
-                        {
-                            StopHotkeyPressed?.Invoke();
-                            StopSequence();
-                        }
+                        // 如果序列已在运行，则停止
+                        StartHotkeyPressed?.Invoke();
+                        StopSequence();
                     }
-                    else if (isStartKey)
+                    else
                     {
+                        // 否则启动序列
                         StartHotkeyPressed?.Invoke();
                         StartSequence();
                     }
@@ -496,23 +461,26 @@ public class HotkeyService
     private void HandleMouseButtonUp(int wParam, MSLLHOOKSTRUCT hookStruct)
     {
         var buttonCode = GetMouseButtonCode(wParam, hookStruct);
-        var isStartKey = buttonCode == _pendingStartKey;
+        var isHotkey = buttonCode == _pendingHotkey;
 
-        if (_lyKeysService.IsHoldMode)
+        if (isHotkey)
         {
-            if (isStartKey && _isKeyHeld)
+            if (_lyKeysService.IsHoldMode)
             {
-                _isKeyHeld = false;
-                StopHotkeyPressed?.Invoke();
-                StopSequence();
+                if (_isKeyHeld)
+                {
+                    _isKeyHeld = false;
+                    StartHotkeyReleased?.Invoke();
+                    StopSequence();
+                }
             }
-        }
-        else
-        {
-            if (_isKeyHeld)
+            else
             {
-                _isKeyHeld = false;
-                if (isStartKey) StartHotkeyReleased?.Invoke();
+                if (_isKeyHeld)
+                {
+                    _isKeyHeld = false;
+                    StartHotkeyReleased?.Invoke();
+                }
             }
         }
     }
@@ -524,27 +492,23 @@ public class HotkeyService
         var wheelDelta = (short)((hookStruct.mouseData >> 16) & 0xFFFF);
         var buttonCode = wheelDelta > 0 ? LyKeysCode.VK_WHEELUP : LyKeysCode.VK_WHEELDOWN;
 
-        var isStartKey = buttonCode == _pendingStartKey;
-        var isStopKey = buttonCode == _pendingStopKey;
+        var isHotkey = buttonCode == _pendingHotkey;
 
-        if (isStartKey || isStopKey)
+        if (isHotkey)
         {
             if (_lyKeysService.IsHoldMode)
             {
-                if (isStartKey)
+                if (_isSequenceRunning)
                 {
-                    if (_isSequenceRunning)
-                    {
-                        _isKeyHeld = false;
-                        StopHotkeyPressed?.Invoke();
-                        StopSequence();
-                    }
-                    else if (!_isKeyHeld)
-                    {
-                        _isKeyHeld = true;
-                        StartHotkeyPressed?.Invoke();
-                        StartSequence();
-                    }
+                    _isKeyHeld = false;
+                    StartHotkeyReleased?.Invoke();
+                    StopSequence();
+                }
+                else if (!_isKeyHeld)
+                {
+                    _isKeyHeld = true;
+                    StartHotkeyPressed?.Invoke();
+                    StartSequence();
                 }
             }
             else
@@ -554,14 +518,13 @@ public class HotkeyService
                     _isKeyHeld = true;
                     if (_isSequenceRunning)
                     {
-                        if (isStopKey || (_pendingStartKey == _pendingStopKey && isStartKey))
-                        {
-                            StopHotkeyPressed?.Invoke();
-                            StopSequence();
-                        }
+                        // 如果序列已在运行，则停止
+                        StartHotkeyPressed?.Invoke();
+                        StopSequence();
                     }
-                    else if (isStartKey)
+                    else
                     {
+                        // 否则启动序列
                         StartHotkeyPressed?.Invoke();
                         StartSequence();
                     }
@@ -573,7 +536,7 @@ public class HotkeyService
         if (_isKeyHeld)
         {
             _isKeyHeld = false;
-            if (isStartKey) StartHotkeyReleased?.Invoke();
+            if (isHotkey) StartHotkeyReleased?.Invoke();
         }
     }
 
@@ -607,10 +570,9 @@ public class HotkeyService
         StopSequence();
 
         // 重新注册热键
-        if (_pendingStartKey.HasValue)
+        if (_pendingHotkey.HasValue)
         {
-            RegisterStartHotkey(_pendingStartKey.Value, ModifierKeys.None);
-            if (!isHoldMode && _pendingStopKey.HasValue) RegisterStopHotkey(_pendingStopKey.Value, ModifierKeys.None);
+            RegisterHotkey(_pendingHotkey.Value, ModifierKeys.None);
         }
     }
 
@@ -802,7 +764,7 @@ public class HotkeyService
         }
     }
 
-    // 判断是否可以触发热键
+    // 总开关：判断是否可以触发热键
     private bool CanTriggerHotkey()
     {
         // 首先检查热键总开关是否启用
@@ -814,9 +776,6 @@ public class HotkeyService
 
         // 继续检查窗口状态
         var state = GetWindowState();
-
-        // 记录状态变化
-        _logger.Debug($"当前窗口状态: {state}");
 
         switch (state)
         {

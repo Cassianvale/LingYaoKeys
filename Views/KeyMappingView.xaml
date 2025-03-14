@@ -531,50 +531,50 @@
                                        Foreground="#505050"
                                        Margin="0,0,0,8" />
 
-                            <!-- 获取窗口句柄按钮 -->
-                            <Button Style="{StaticResource RoundedShadowButtonSmall}"
-                                    Name="btnGetWindowHandle"
-                                    IsEnabled="{Binding IsNotExecuting}"
-                                    Height="32"
-                                    Margin="0,0,0,8"
-                                    Click="GetWindowHandle_Click">
-                                <DockPanel>
-                                    <Path
-                                        Data="M13,9V3.5L18.5,9M6,2C4.89,2 4,2.89 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6Z"
-                                        Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                        Width="16" Height="16"
-                                        Stretch="Uniform"
-                                        Margin="0,0,8,0" />
-                                    <TextBlock Text="获取窗口句柄"
-                                               VerticalAlignment="Center" />
-                                </DockPanel>
-                            </Button>
-
-                            <!-- 窗口句柄显示 -->
-                            <DockPanel Margin="0,0,0,0">
-                                <TextBlock Text="句柄"
-                                           DockPanel.Dock="Left"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,10,0" />
+                            <!-- 按钮区域 - 水平排列获取和清除按钮 -->
+                            <DockPanel Margin="0,0,0,8">
+                                <!-- 获取窗口句柄按钮 -->
+                                <Button Style="{StaticResource RoundedShadowButtonSmall}"
+                                        Name="btnGetWindowHandle"
+                                        IsEnabled="{Binding IsNotExecuting}"
+                                        Height="32"
+                                        MinWidth="160"
+                                        Margin="0,0,5,0"
+                                        Click="GetWindowHandle_Click"
+                                        DockPanel.Dock="Left">
+                                    <DockPanel>
+                                        <Path
+                                            Data="M13,9V3.5L18.5,9M6,2C4.89,2 4,2.89 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6Z"
+                                            Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                            Width="16" Height="16"
+                                            Stretch="Uniform"
+                                            Margin="0,0,10,0" />
+                                        <TextBlock Text="获取窗口句柄"
+                                                   VerticalAlignment="Center" />
+                                    </DockPanel>
+                                </Button>
+                                
+                                <!-- 清除窗口句柄按钮 -->
                                 <Button Style="{StaticResource CircleButtonStyle}"
-                                        DockPanel.Dock="Right"
-                                        Width="24" Height="24"
-                                        Margin="8,0,0,0"
+                                        Width="32" Height="32"
                                         Click="ClearWindowHandle_Click"
-                                        ToolTip="清除选择">
+                                        DockPanel.Dock="Left"
+                                        ToolTip="清除窗口句柄">
                                     <Path
                                         Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
                                         Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
                                         Width="14" Height="14"
                                         Stretch="Uniform" />
                                 </Button>
-                                <TextBox x:Name="txtWindowHandle"
-                                         Style="{StaticResource ModernTextBox}"
-                                         IsReadOnly="True"
-                                         Text="{Binding SelectedWindowTitle, Mode=OneWay}"
-                                         Tag="未选择窗口"
-                                         ToolTip="{Binding SelectedWindowClassName}" />
                             </DockPanel>
+
+                            <!-- 窗口句柄显示 -->
+                            <TextBox x:Name="txtWindowHandle"
+                                     Style="{StaticResource ModernTextBox}"
+                                     IsReadOnly="True"
+                                     Text="{Binding SelectedWindowTitle, Mode=OneWay}"
+                                     Tag="空"
+                                     ToolTip="{Binding SelectedWindowClassName}" />
                         </StackPanel>
                     </Border>
 
@@ -592,19 +592,19 @@
                                        Foreground="#505050"
                                        Margin="0,0,0,8" />
 
-                            <!-- 按键设置区域 -->
+                            <!-- 按键设置区域 - 修改为单一热键 -->
                             <DockPanel Margin="0,0,0,8">
-                                <TextBlock Text="启动键"
+                                <TextBlock Text="启停热键"
                                            DockPanel.Dock="Left"
                                            VerticalAlignment="Center"
                                            Width="50"
-                                           Margin="0,0,10,0" />
-                                <TextBox x:Name="txtStartHotkey"
+                                           Margin="0,0,25,0" />
+                                <TextBox x:Name="txtHotkey"
                                          Style="{StaticResource ModernTextBox}"
                                          IsEnabled="{Binding IsNotExecuting}"
                                          Tag="空"
                                          IsReadOnly="True"
-                                         Text="{Binding StartHotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                                         Text="{Binding HotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                                          IsUndoEnabled="False"
                                          CaretBrush="Transparent"
                                          TextAlignment="Center"
@@ -614,29 +614,6 @@
                                          PreviewMouseUp="StartHotkeyInput_PreviewMouseUp"
                                          PreviewMouseWheel="StartHotkeyInput_PreviewMouseWheel"
                                          MouseDown="StartHotkeyInput_MouseDown"
-                                         GotFocus="HotkeyInputBox_GotFocus"
-                                         LostFocus="HotkeyInputBox_LostFocus" />
-                            </DockPanel>
-
-                            <DockPanel Margin="0,0,0,0"
-                                       Visibility="{Binding IsSequenceMode, Converter={StaticResource BoolToVisibilityConverter}}">
-                                <TextBlock Text="停止键"
-                                           DockPanel.Dock="Left"
-                                           VerticalAlignment="Center"
-                                           Width="50"
-                                           Margin="0,0,10,0" />
-                                <TextBox x:Name="txtStopHotkey"
-                                         Style="{StaticResource ModernTextBox}"
-                                         IsEnabled="{Binding IsNotExecuting}"
-                                         Tag="空"
-                                         IsReadOnly="True"
-                                         Text="{Binding StopHotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                                         IsUndoEnabled="False"
-                                         CaretBrush="Transparent"
-                                         TextAlignment="Center"
-                                         PreviewKeyDown="StopHotkeyInput_PreviewKeyDown"
-                                         PreviewMouseDown="StopHotkeyInput_PreviewMouseDown"
-                                         PreviewMouseWheel="StopHotkeyInput_PreviewMouseWheel"
                                          GotFocus="HotkeyInputBox_GotFocus"
                                          LostFocus="HotkeyInputBox_LostFocus" />
                             </DockPanel>
@@ -696,14 +673,14 @@
                                                        Margin="0,8,0,0">
                                                 <Run Text="• 顺序模式" FontWeight="SemiBold" />
                                                 <LineBreak />
-                                                <Run Text="  按下启动键开始，按下停止键结束" />
+                                                <Run Text="  按一次热键开始，再按一次热键结束" />
                                                 <LineBreak />
                                                 <Run Text="  适合需要精确控制开始和结束的场景" />
                                                 <LineBreak />
                                                 <LineBreak />
                                                 <Run Text="• 按压模式" FontWeight="SemiBold" />
                                                 <LineBreak />
-                                                <Run Text="  按住启动键时持续执行，松开后停止" />
+                                                <Run Text="  按住热键时持续执行，松开后停止" />
                                                 <LineBreak />
                                                 <Run Text="  适合需要快速切换状态的场景" />
                                             </TextBlock>
