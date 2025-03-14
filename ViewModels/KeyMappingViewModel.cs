@@ -15,6 +15,7 @@ using System.Timers;
 using System;
 using WpfApp.Services.Core;
 using System.Threading.Tasks;
+using System.Windows.Threading;
 
 // 定义KeyItemSettings结构用于传递按键设置
 public class KeyItemSettings
@@ -464,32 +465,103 @@ namespace WpfApp.ViewModels
             set => SetProperty(ref _selectedKeyItem, value);
         }
 
-        private void UpdateFloatingWindow()
+        public void SetMainWindow(MainWindow mainWindow)
         {
-            if (AppConfigService.Config.UI.FloatingWindow.IsEnabled)
+            if (mainWindow == null)
             {
-                if (_floatingWindow == null)
-                {
-                    _floatingWindow = new FloatingStatusWindow(_mainWindow);
-                    _floatingViewModel = _floatingWindow.DataContext as FloatingStatusViewModel;
-                }
-
-                _floatingWindow.Show();
-                UpdateFloatingStatus(); // 确保显示后立即更新状态
+                _logger.Warning("传入的 MainWindow 为空");
+                return;
             }
-            else
+
+            _mainWindow = mainWindow;
+            _logger.Debug("已设置 MainWindow 引用");
+
+            // 延迟初始化浮窗，避免在主窗口显示时阻塞UI
+            if (IsFloatingWindowEnabled)
             {
-                _floatingWindow?.Hide();
+                // 使用延迟，避免在UI初始化阶段占用主线程
+                Task.Delay(500).ContinueWith(_ => {
+                    try 
+                    {
+                        // 在UI线程上执行但使用低优先级
+                        System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() => {
+                            try 
+                            {
+                                if (_floatingWindow == null)
+                                {
+                                    InitializeFloatingWindow();
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.Error("延迟初始化浮窗时发生错误", ex);
+                            }
+                        }), System.Windows.Threading.DispatcherPriority.Background);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error("延迟初始化浮窗任务失败", ex);
+                    }
+                });
             }
         }
 
-        private void UpdateFloatingStatus()
+        // 初始化浮窗的方法
+        private void InitializeFloatingWindow()
         {
-            if (_floatingWindow?.DataContext is FloatingStatusViewModel viewModel)
+            try
             {
-                viewModel.IsHotkeyControlEnabled = _isHotkeyControlEnabled; // 同步热键总开关状态
-                viewModel.IsExecuting = IsExecuting; // 同步执行状态
-                _logger.Debug($"更新浮窗状态: 热键总开关={_isHotkeyControlEnabled}, 执行状态={IsExecuting}");
+                if (_mainWindow == null)
+                {
+                    _logger.Warning("初始化浮窗: MainWindow 引用为空");
+                    return;
+                }
+
+                // 先创建 ViewModel
+                _floatingViewModel = new FloatingStatusViewModel();
+
+                // 初始化ViewModel属性
+                _floatingViewModel.IsHotkeyControlEnabled = _isHotkeyControlEnabled;
+                _floatingViewModel.IsExecuting = _isExecuting;
+
+                // 创建浮窗
+                _floatingWindow = new FloatingStatusWindow(_mainWindow);
+                
+                // 设置数据上下文
+                var dataContext = _floatingViewModel;
+                if (_floatingWindow != null)
+                {
+                    _logger.Debug("设置浮窗数据上下文");
+                    // 使用反射设置DataContext避免类型问题
+                    System.Type type = _floatingWindow.GetType();
+                    System.Reflection.PropertyInfo propInfo = type.GetProperty("DataContext");
+                    if (propInfo != null)
+                    {
+                        propInfo.SetValue(_floatingWindow, dataContext);
+                        _logger.Debug("浮窗数据上下文设置成功");
+                    }
+                    else
+                    {
+                        _logger.Warning("未找到浮窗的DataContext属性");
+                    }
+                    
+                    // 使用反射调用Show方法
+                    System.Reflection.MethodInfo showMethod = type.GetMethod("Show");
+                    if (showMethod != null)
+                    {
+                        showMethod.Invoke(_floatingWindow, null);
+                        UpdateFloatingStatusInternal();
+                        _logger.Debug("浮窗已显示并更新状态");
+                    }
+                    else
+                    {
+                        _logger.Warning("未找到浮窗的Show方法");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("初始化浮窗过程中发生错误", ex);
             }
         }
 
@@ -503,27 +575,32 @@ namespace WpfApp.ViewModels
                     return;
                 }
 
-                if (_floatingWindow == null)
-                {
-                    // 先创建 ViewModel
-                    _floatingViewModel = new FloatingStatusViewModel();
-
-                    // 初始化ViewModel属性
-                    _floatingViewModel.IsHotkeyControlEnabled = _isHotkeyControlEnabled;
-                    _floatingViewModel.IsExecuting = _isExecuting;
-
-                    // 创建浮窗并设置 DataContext
-                    _floatingWindow = new FloatingStatusWindow(_mainWindow)
+                // 通过异步方式初始化和显示浮窗
+                System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() => {
+                    try
                     {
-                        DataContext = _floatingViewModel
-                    };
-
-                    _logger.Debug("浮窗已创建并设置 DataContext");
-                }
-
-                _floatingWindow.Show();
-                UpdateFloatingStatus(); // 确保显示后立即更新状态
-                _logger.Debug("浮窗已显示并更新状态");
+                        if (_floatingWindow == null)
+                        {
+                            InitializeFloatingWindow();
+                        }
+                        else
+                        {
+                            // 对于已存在的浮窗，使用反射调用Show方法
+                            System.Type type = _floatingWindow.GetType();
+                            System.Reflection.MethodInfo showMethod = type.GetMethod("Show");
+                            if (showMethod != null)
+                            {
+                                showMethod.Invoke(_floatingWindow, null);
+                                UpdateFloatingStatusInternal();
+                                _logger.Debug("已有浮窗显示成功");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error("显示浮窗时发生错误", ex);
+                    }
+                }), System.Windows.Threading.DispatcherPriority.Background);
             }
             catch (Exception ex)
             {
@@ -535,8 +612,65 @@ namespace WpfApp.ViewModels
         {
             if (_floatingWindow != null)
             {
-                _floatingWindow.Hide();
-                if (_floatingWindow.DataContext is FloatingStatusViewModel viewModel) viewModel.StatusText = "已停止";
+                try
+                {
+                    // 使用反射调用Hide方法
+                    System.Type type = _floatingWindow.GetType();
+                    System.Reflection.MethodInfo hideMethod = type.GetMethod("Hide");
+                    if (hideMethod != null)
+                    {
+                        hideMethod.Invoke(_floatingWindow, null);
+                        
+                        // 使用反射获取DataContext属性
+                        System.Reflection.PropertyInfo propInfo = type.GetProperty("DataContext");
+                        if (propInfo != null)
+                        {
+                            var dataContext = propInfo.GetValue(_floatingWindow);
+                            if (dataContext is FloatingStatusViewModel viewModel)
+                            {
+                                viewModel.StatusText = "已停止";
+                            }
+                        }
+                        
+                        _logger.Debug("浮窗已隐藏");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error("隐藏浮窗时发生错误", ex);
+                }
+            }
+        }
+
+        private void UpdateFloatingStatus()
+        {
+            try
+            {
+                UpdateFloatingStatusInternal();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("更新浮窗状态时发生错误", ex);
+            }
+        }
+
+        private void UpdateFloatingStatusInternal()
+        {
+            if (_floatingWindow != null)
+            {
+                // 使用反射获取DataContext属性
+                System.Type type = _floatingWindow.GetType();
+                System.Reflection.PropertyInfo propInfo = type.GetProperty("DataContext");
+                if (propInfo != null)
+                {
+                    var dataContext = propInfo.GetValue(_floatingWindow);
+                    if (dataContext is FloatingStatusViewModel viewModel)
+                    {
+                        viewModel.IsHotkeyControlEnabled = _isHotkeyControlEnabled; // 同步热键总开关状态
+                        viewModel.IsExecuting = IsExecuting; // 同步执行状态
+                        _logger.Debug($"更新浮窗状态: 热键总开关={_isHotkeyControlEnabled}, 执行状态={IsExecuting}");
+                    }
+                }
             }
         }
 
@@ -570,21 +704,6 @@ namespace WpfApp.ViewModels
 
         [DllImport("user32.dll")]
         private static extern IntPtr GetForegroundWindow();
-
-        public void SetMainWindow(MainWindow mainWindow)
-        {
-            if (mainWindow == null)
-            {
-                _logger.Warning("传入的 MainWindow 为空");
-                return;
-            }
-
-            _mainWindow = mainWindow;
-            _logger.Debug("已设置 MainWindow 引用");
-
-            // 如果浮窗已启用，则创建浮窗
-            if (IsFloatingWindowEnabled && _floatingWindow == null) ShowFloatingWindow();
-        }
 
         public KeyMappingViewModel(LyKeysService lyKeysService, ConfigService configService,
             HotkeyService hotkeyService, MainViewModel mainViewModel, AudioService audioService)
@@ -625,6 +744,9 @@ namespace WpfApp.ViewModels
             _hotkeyService.StartHotkeyPressed += OnStartHotkeyPressed;
             _hotkeyService.StopHotkeyPressed += OnStopHotkeyPressed;
 
+            // 在加载配置之前，通知LyKeysService当前正在初始化
+            _logger.Debug("KeyMappingViewModel正在初始化，即将加载配置...");
+
             // 6. 加载配置
             LoadConfiguration();
 
@@ -648,27 +770,50 @@ namespace WpfApp.ViewModels
 
             // 最后标记初始化完成
             _isInitializing = false;
+            _logger.Debug("KeyMappingViewModel初始化完成");
+            
+            // 初始化完成后重新同步一次按键配置，确保正确加载完毕
+            Task.Delay(100).ContinueWith(_ => 
+            {
+                try 
+                {
+                    SyncConfigToServices();
+                    _logger.Debug("初始化完成后额外同步配置完成");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error("初始化完成后同步配置失败", ex);
+                }
+            });
         }
 
         private void SyncConfigToServices()
         {
             try
             {
+                // 记录当前状态
+                _logger.Debug($"执行同步配置到服务 - 初始化状态: {_isInitializing}, 按键数量: {KeyList?.Count ?? 0}");
+                
                 var selectedKeys = KeyList.Where(k => k.IsSelected).ToList();
                 if (selectedKeys.Any())
                 {
                     // 设置按键列表到驱动服务
-                    _lyKeysService.SetKeyList(selectedKeys.Select(k => k.KeyCode).ToList());
-
-                    // 将选中的按键及其间隔传递给HotkeyService
+                    var keyCodes = selectedKeys.Select(k => k.KeyCode).ToList();
+                    _lyKeysService.SetKeyList(keyCodes);
+                    
+                    // 将每个按键的独立间隔信息传递给HotkeyService
                     _hotkeyService.SetKeySequence(
-                        selectedKeys.Select(k => new KeyItemSettings
-                        {
-                            KeyCode = k.KeyCode,
-                            Interval = k.KeyInterval
+                        selectedKeys.Select(k => new KeyItemSettings 
+                        { 
+                            KeyCode = k.KeyCode, 
+                            Interval = k.KeyInterval 
                         }).ToList());
-
+                    
                     _logger.Debug($"同步配置到服务 - 按键数量: {selectedKeys.Count}, 每个按键使用独立间隔");
+                }
+                else
+                {
+                    _logger.Debug("没有选中的按键，跳过同步到服务");
                 }
             }
             catch (Exception ex)

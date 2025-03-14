@@ -33,6 +33,7 @@ public class MainViewModel : ViewModelBase
     private readonly Dictionary<string, Storyboard> _fadeOutCache = new();
     private readonly Storyboard? _fadeInStoryboard;
     private readonly Storyboard? _fadeOutStoryboard;
+    private bool _isInitializing = true;
 
     // 状态消息颜色
     private static readonly System.Windows.Media.Brush STATUS_COLOR_NORMAL = System.Windows.Media.Brushes.Black;
@@ -135,8 +136,24 @@ public class MainViewModel : ViewModelBase
     // 添加KeyMappingViewModel的公共属性
     public KeyMappingViewModel KeyMappingViewModel => _keyMappingViewModel;
 
+    // 定义页面配置类，用于配置页面的特性
+    private class PageConfig
+    {
+        public bool UseCaching { get; set; } = true;          // 是否使用缓存
+        public bool LogCreation { get; set; } = true;         // 是否记录创建日志
+        public bool IsFrequentlyAccessed { get; set; } = false; // 是否为频繁访问的页面
+        public Func<Page> CreatePageFunc { get; set; }        // 创建页面的函数
+    }
+
+    // 页面配置字典，用于存储不同页面的配置
+    private readonly Dictionary<string, PageConfig> _pageConfigs;
+
+    // 在构造函数中初始化页面配置字典
     public MainViewModel(LyKeysService lyKeysService, Window mainWindow)
     {
+        _isInitializing = true;
+        _logger.Debug("MainViewModel开始初始化");
+        
         _lyKeysService = lyKeysService;
         _mainWindow = mainWindow;
 
@@ -158,11 +175,21 @@ public class MainViewModel : ViewModelBase
 
         // 设置DataContext
         mainWindow.DataContext = this;
+        _logger.Debug("MainWindow的DataContext已设置为MainViewModel");
 
-        // 其他初始化
+        // 初始化HotkeyService，并传递窗口和驱动服务
         _hotkeyService = new HotkeyService(mainWindow, lyKeysService);
+        _logger.Debug("HotkeyService已初始化");
+        
+        // 先标记初始化完成，避免循环依赖问题
+        _isInitializing = false;
+        _logger.Debug("MainViewModel基础初始化完成，_isInitializing = false");
+        
+        // 初始化各个ViewModel
         _keyMappingViewModel =
             new KeyMappingViewModel(_lyKeysService, App.ConfigService, _hotkeyService, this, App.AudioService);
+        _logger.Debug("KeyMappingViewModel已初始化");
+        
         _feedbackViewModel = new FeedbackViewModel(this);
         _aboutViewModel = new AboutViewModel();
 
@@ -171,9 +198,80 @@ public class MainViewModel : ViewModelBase
         // 订阅状态消息事件
         _lyKeysService.StatusMessageChanged += OnDriverStatusMessageChanged;
 
+        // 初始化页面配置
+        _pageConfigs = new Dictionary<string, PageConfig>
+        {
+            // FrontKeys 页面：使用缓存，不记录创建日志，频繁访问
+            ["FrontKeys"] = new PageConfig
+            {
+                UseCaching = true,
+                LogCreation = false,
+                IsFrequentlyAccessed = true,
+                CreatePageFunc = () => {
+                    var page = new KeyMappingView();
+                    page.DataContext = _keyMappingViewModel;
+                    return page;
+                }
+            },
+            
+            // About 页面：使用缓存，记录创建日志，非频繁访问
+            ["About"] = new PageConfig
+            {
+                UseCaching = true,
+                LogCreation = true,
+                IsFrequentlyAccessed = false,
+                CreatePageFunc = () => {
+                    var page = new AboutView();
+                    page.DataContext = _aboutViewModel;
+                    return page;
+                }
+            },
+            
+            // Feedback 页面：使用缓存，记录创建日志，非频繁访问
+            ["Feedback"] = new PageConfig
+            {
+                UseCaching = true,
+                LogCreation = true,
+                IsFrequentlyAccessed = false,
+                CreatePageFunc = () => {
+                    var page = new FeedbackView();
+                    page.DataContext = _feedbackViewModel;
+                    return page;
+                }
+            },
+            
+            // QRCode 页面：使用缓存，记录创建日志，非频繁访问
+            ["QRCode"] = new PageConfig
+            {
+                UseCaching = true,
+                LogCreation = true,
+                IsFrequentlyAccessed = false,
+                CreatePageFunc = () => new QRCodeView()
+            },
+            
+            // Settings 页面：使用缓存，记录创建日志，非频繁访问
+            ["Settings"] = new PageConfig
+            {
+                UseCaching = true,
+                LogCreation = true,
+                IsFrequentlyAccessed = false,
+                CreatePageFunc = () => {
+                    var page = new SettingsView();
+                    page.DataContext = new SettingsViewModel();
+                    return page;
+                }
+            }
+        };
+
         // 最后设置默认页面
+        _logger.Debug("MainViewModel完全初始化完成，准备导航到默认页面");
         Navigate("FrontKeys");
     }
+
+    /// <summary>
+    /// 获取当前是否处于初始化状态
+    /// </summary>
+    public bool IsInitializing => _isInitializing;
 
     // 导航到指定页面
     private void Navigate(string? parameter)
@@ -279,35 +377,73 @@ public class MainViewModel : ViewModelBase
     {
         try
         {
-            _logger.Debug($"尝试获取或创建页面: {parameter}");
+            // 1. 检查页面配置是否存在
+            if (!_pageConfigs.TryGetValue(parameter, out var pageConfig))
+            {
+                _logger.Error($"未知的页面类型: {parameter}");
+                return null;
+            }
 
-            // 对于 About 页面，每次都创建新实例以确保内容正确显示
+            // 2. 记录创建日志（如果需要）
+            if (pageConfig.LogCreation)
+            {
+                _logger.Debug($"尝试获取或创建页面: {parameter}");
+            }
+
+            // 特殊处理About页面 - 即使启用了缓存，也强制刷新
             if (parameter == "About")
             {
-                _logger.Debug("创建新的About页面实例");
-                var aboutPage = new AboutView { DataContext = _aboutViewModel };
-                return aboutPage;
+                _logger.Debug("About页面需要特殊处理：强制刷新");
+                
+                // 如果已存在于缓存中，先移除
+                if (_pageCache.ContainsKey(parameter))
+                {
+                    _logger.Debug("从缓存中移除旧的About页面实例");
+                    _pageCache.Remove(parameter);
+                }
+                
+                // 创建新实例
+                var freshPage = pageConfig.CreatePageFunc();
+                if (pageConfig.LogCreation)
+                {
+                    _logger.Debug($"创建了新的About页面实例");
+                }
+                
+                // 设置初始不透明度为0，为动画做准备
+                freshPage.Opacity = 0;
+                
+                // 将页面添加到缓存
+                _pageCache[parameter] = freshPage;
+                
+                return freshPage;
             }
 
-            if (_pageCache.TryGetValue(parameter, out var page))
+            // 3. 如果不使用缓存，直接创建新实例
+            if (!pageConfig.UseCaching)
             {
-                _logger.Debug($"从缓存中获取页面: {parameter}");
-                return page;
+                var freshPage = pageConfig.CreatePageFunc();
+                if (pageConfig.LogCreation)
+                {
+                    _logger.Debug($"创建了新的页面实例: {parameter}");
+                }
+                return freshPage;
             }
 
-            _logger.Debug($"创建新页面: {parameter}");
-            Page? newPage = null;
+            // 4. 从缓存中获取页面
+            if (_pageCache.TryGetValue(parameter, out var cachedPage))
+            {
+                if (pageConfig.LogCreation && !pageConfig.IsFrequentlyAccessed)
+                {
+                    _logger.Debug($"从缓存中获取页面: {parameter}");
+                }
+                return cachedPage;
+            }
 
+            // 5. 创建新页面
+            Page? createdPage = null;
             try
             {
-                newPage = parameter switch
-                {
-                    "FrontKeys" => new KeyMappingView { DataContext = _keyMappingViewModel },
-                    "Feedback" => new FeedbackView { DataContext = _feedbackViewModel },
-                    "QRCode" => new QRCodeView(),
-                    "Settings" => new SettingsView { DataContext = new SettingsViewModel() },
-                    _ => null
-                };
+                createdPage = pageConfig.CreatePageFunc();
             }
             catch (Exception ex)
             {
@@ -315,23 +451,82 @@ public class MainViewModel : ViewModelBase
                 throw;
             }
 
-            if (newPage != null)
+            // 6. 处理新创建的页面
+            if (createdPage != null)
             {
-                _logger.Debug($"页面创建成功: {parameter}");
-                newPage.Opacity = 0;
-                _pageCache[parameter] = newPage;
+                // 设置初始不透明度为0，为动画做准备
+                createdPage.Opacity = 0;
+                
+                // 将页面添加到缓存
+                _pageCache[parameter] = createdPage;
+                
+                // 记录创建成功日志（如果需要）
+                if (pageConfig.LogCreation && !pageConfig.IsFrequentlyAccessed)
+                {
+                    _logger.Debug($"页面创建成功: {parameter}");
+                }
             }
             else
             {
                 _logger.Error($"页面创建失败: {parameter}");
             }
 
-            return newPage;
+            return createdPage;
         }
         catch (Exception ex)
         {
             _logger.Error($"GetOrCreatePage 方法执行失败: {parameter}", ex);
             throw;
+        }
+    }
+    
+    // 预加载方法，在应用启动时预先加载常用页面
+    public void PreloadCommonPages()
+    {
+        try
+        {
+            // 在后台线程中预加载频繁访问的页面
+            Task.Run(() =>
+            {
+                try
+                {
+                    // 找出所有标记为频繁访问的页面
+                    var frequentPages = _pageConfigs
+                        .Where(kvp => kvp.Value.IsFrequentlyAccessed && kvp.Value.UseCaching)
+                        .Select(kvp => kvp.Key)
+                        .ToList();
+
+                    foreach (var pageName in frequentPages)
+                    {
+                        if (!_pageCache.ContainsKey(pageName))
+                        {
+                            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                try
+                                {
+                                    var page = GetOrCreatePage(pageName);
+                                    if (page != null)
+                                    {
+                                        _logger.Debug($"已预加载页面: {pageName}");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.Error($"预加载页面 {pageName} 失败", ex);
+                                }
+                            }, System.Windows.Threading.DispatcherPriority.Background);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error("预加载页面失败", ex);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("启动预加载任务失败", ex);
         }
     }
 

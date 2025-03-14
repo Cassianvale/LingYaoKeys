@@ -37,6 +37,14 @@ namespace WpfApp.Services.Core
         private bool _autoSwitchIME = true; // 是否自动切换输入法
         // 存储每个按键的间隔信息
         private Dictionary<LyKeysCode, int> _keyIntervals = new Dictionary<LyKeysCode, int>();
+        // 添加初始化标志
+        private bool _isGettingKeyItem = false;
+        // 添加缓存字典，用于存储按键配置
+        private Dictionary<LyKeysCode, KeyItem> _keyItemCache = new Dictionary<LyKeysCode, KeyItem>();
+        // 缓存过期时间戳
+        private DateTime _cacheExpirationTime = DateTime.MinValue;
+        // 是否正在执行SetKeyList
+        private bool _isSettingKeyList = false;
         #endregion
 
         #region 事件定义
@@ -379,6 +387,15 @@ namespace WpfApp.Services.Core
         {
             try
             {
+                // 添加防循环调用保护
+                if (_isSettingKeyList)
+                {
+                    _logger.Warning("检测到SetKeyList正在执行中，跳过重复调用");
+                    return;
+                }
+                
+                _isSettingKeyList = true;
+                
                 if (keyList == null || keyList.Count == 0)
                 {
                     _logger.Warning("收到空的按键列表");
@@ -387,6 +404,7 @@ namespace WpfApp.Services.Core
                         IsEnabled = false;
                     }
                     _keyList.Clear();
+                    _isSettingKeyList = false;
                     return;
                 }
 
@@ -394,38 +412,61 @@ namespace WpfApp.Services.Core
                 if (keyList.Any(k => !IsValidLyKeysCode(k)))
                 {
                     _logger.Warning("按键列表包含无效的键码");
+                    _isSettingKeyList = false;
                     return;
                 }
 
-                // 获取所有按键项和它们的间隔
-                var keyItems = keyList.Select(k => new { Code = k, Item = GetKeyItem(k) }).ToList();
+                // 更新按键列表前清空缓存
+                _keyItemCache.Clear();
+                _cacheExpirationTime = DateTime.MinValue;
                 
-                // 记录所有按键的间隔详情
-                var intervalLog = new StringBuilder();
-                intervalLog.AppendLine($"按键列表详情 [{keyItems.Count}个]:");
-                foreach (var item in keyItems)
+                // 创建缓存key对象
+                var keyItemsToUse = new List<(LyKeysCode Code, KeyItem Item)>();
+                
+                // 无需每次都调用GetKeyItem，只在缓存无效时获取
+                if (!IsInitializing())
                 {
-                    if (item.Item != null)
+                    // 记录所有按键的间隔详情
+                    var intervalLog = new StringBuilder();
+                    intervalLog.AppendLine($"按键列表详情 [{keyList.Count}个]:");
+                    
+                    foreach (var code in keyList)
                     {
-                        intervalLog.AppendLine($"  按键: {item.Code}, 间隔: {item.Item.KeyInterval}ms");
+                        KeyItem item = null;
+                        // 调用优化后的GetKeyItem方法获取按键间隔
+                        if (!_keyIntervals.ContainsKey(code))
+                        {
+                            item = GetKeyItem(code);
+                            if (item != null)
+                            {
+                                _keyIntervals[code] = item.KeyInterval;
+                                intervalLog.AppendLine($"  按键: {code}, 间隔: {item.KeyInterval}ms");
+                            }
+                            else
+                            {
+                                _keyIntervals[code] = _keyInterval;
+                                intervalLog.AppendLine($"  按键: {code}, KeyItem为空，将使用默认间隔: {_keyInterval}ms");
+                            }
+                        }
+                        else
+                        {
+                            intervalLog.AppendLine($"  按键: {code}, 使用已缓存间隔: {_keyIntervals[code]}ms");
+                        }
+                        
+                        keyItemsToUse.Add((code, item));
                     }
-                    else
-                    {
-                        intervalLog.AppendLine($"  按键: {item.Code}, KeyItem为空，将使用默认间隔: {_keyInterval}ms");
-                    }
+                    
+                    _logger.Debug(intervalLog.ToString());
                 }
-                _logger.Debug(intervalLog.ToString());
-
-                // 清除并重新收集每个按键的间隔信息
-                _keyIntervals.Clear();
-                foreach (var item in keyItems)
+                else
                 {
-                    int interval = _keyInterval; // 默认使用全局间隔
-                    if (item.Item != null)
+                    // 初始化阶段，使用默认间隔
+                    foreach (var code in keyList)
                     {
-                        interval = item.Item.KeyInterval;
+                        _keyIntervals[code] = _keyInterval;
+                        keyItemsToUse.Add((code, null));
                     }
-                    _keyIntervals[item.Code] = interval;
+                    _logger.Debug($"初始化阶段设置按键列表 - 按键数量: {keyList.Count}, 使用默认间隔: {_keyInterval}ms");
                 }
 
                 _keyList = keyList.ToList();    // 创建副本
@@ -437,6 +478,10 @@ namespace WpfApp.Services.Core
                 _keyList.Clear();
                 IsEnabled = false;
             }
+            finally
+            {
+                _isSettingKeyList = false;
+            }
         }
 
         /// <summary>
@@ -444,13 +489,38 @@ namespace WpfApp.Services.Core
         /// </summary>
         private KeyItem? GetKeyItem(LyKeysCode keyCode)
         {
+            // 防止循环调用
+            if (_isGettingKeyItem)
+            {
+                return null;
+            }
+            
+            _isGettingKeyItem = true;
+            
             try
             {
+                // 首先检查缓存是否有效
+                if (_keyItemCache.ContainsKey(keyCode) && DateTime.Now < _cacheExpirationTime)
+                {
+                    var cachedItem = _keyItemCache[keyCode];
+                    _logger.Debug($"[GetKeyItem] 从缓存获取按键{keyCode}的KeyItem, 间隔值: {cachedItem?.KeyInterval ?? _keyInterval}ms");
+                    _isGettingKeyItem = false;
+                    return cachedItem;
+                }
+                
+                // 检查是否处于初始化阶段
+                if (IsInitializing())
+                {
+                    _isGettingKeyItem = false;
+                    return null;
+                }
+                
                 // 通过反射获取主窗口实例
                 var mainWindow = System.Windows.Application.Current?.MainWindow;
                 if (mainWindow == null)
                 {
                     _logger.Debug($"[GetKeyItem] 主窗口为空");
+                    _isGettingKeyItem = false;
                     return null;
                 }
 
@@ -458,6 +528,7 @@ namespace WpfApp.Services.Core
                 if (mainViewModel == null)
                 {
                     _logger.Debug($"[GetKeyItem] MainViewModel为空");
+                    _isGettingKeyItem = false;
                     return null;
                 }
 
@@ -469,24 +540,35 @@ namespace WpfApp.Services.Core
                     {
                         _logger.Debug($"[GetKeyItem] KeyMappingViewModel未初始化，跳过获取KeyItem: {keyCode}");
                     }
+                    _isGettingKeyItem = false;
                     return null;
                 }
 
                 if (keyMappingViewModel.KeyList == null)
                 {
                     _logger.Debug($"[GetKeyItem] KeyList为空");
+                    _isGettingKeyItem = false;
                     return null;
                 }
 
                 var keyItem = keyMappingViewModel.KeyList.FirstOrDefault(k => k?.KeyCode == keyCode);
-                if (keyItem == null)
+                
+                // 更新缓存
+                if (keyItem != null)
                 {
-                    _logger.Debug($"[GetKeyItem] 未找到按键{keyCode}的KeyItem");
+                    _keyItemCache[keyCode] = keyItem;
+                    // 设置缓存过期时间为5秒
+                    _cacheExpirationTime = DateTime.Now.AddSeconds(5);
+                    _logger.Debug($"[GetKeyItem] 找到按键{keyCode}的KeyItem, 间隔值: {keyItem.KeyInterval}ms，已缓存");
                 }
                 else
                 {
-                    _logger.Debug($"[GetKeyItem] 找到按键{keyCode}的KeyItem, 间隔值: {keyItem.KeyInterval}ms");
+                    if (!IsInitializing())
+                    {
+                        _logger.Debug($"[GetKeyItem] 未找到按键{keyCode}的KeyItem");
+                    }
                 }
+                
                 return keyItem;
             }
             catch (Exception ex)
@@ -498,6 +580,10 @@ namespace WpfApp.Services.Core
                 }
                 return null;
             }
+            finally
+            {
+                _isGettingKeyItem = false;
+            }
         }
 
         /// <summary>
@@ -507,13 +593,33 @@ namespace WpfApp.Services.Core
         {
             try
             {
-                var mainWindow = System.Windows.Application.Current?.MainWindow;
-                if (mainWindow?.DataContext is MainViewModel mainViewModel &&
-                    mainViewModel.KeyMappingViewModel != null)
+                // 检查Application是否已经初始化
+                if (System.Windows.Application.Current == null)
                 {
-                    return mainViewModel.KeyMappingViewModel.IsInitializing;
+                    return true;
                 }
-                return true;
+                
+                // 检查主窗口是否存在
+                var mainWindow = System.Windows.Application.Current.MainWindow;
+                if (mainWindow == null)
+                {
+                    return true;
+                }
+                
+                // 检查MainViewModel是否存在
+                if (!(mainWindow.DataContext is MainViewModel mainViewModel))
+                {
+                    return true;
+                }
+                
+                // 检查KeyMappingViewModel是否存在和是否正在初始化
+                if (mainViewModel.KeyMappingViewModel == null || 
+                    mainViewModel.KeyMappingViewModel.IsInitializing)
+                {
+                    return true;
+                }
+                
+                return false;
             }
             catch
             {
@@ -905,23 +1011,32 @@ namespace WpfApp.Services.Core
             // 首先尝试从缓存字典中获取间隔
             if (_keyIntervals.TryGetValue(keyCode, out int interval))
             {
-                _logger.Debug($"从缓存中获取按键{keyCode}的间隔: {interval}ms");
+                // 只在调试模式记录此日志，减少冗余日志
+                if (AppConfigService.Config.Debug.IsDebugMode && !IsInitializing())
+                {
+                    _logger.Debug($"从缓存中获取按键{keyCode}的间隔: {interval}ms");
+                }
                 return interval;
             }
             
-            // 如果缓存中没有，尝试从KeyItem获取间隔
-            var keyItem = GetKeyItem(keyCode);
-            if (keyItem != null)
+            // 如果缓存中没有且不在初始化阶段，尝试从KeyItem获取间隔
+            if (!IsInitializing())
             {
-                interval = keyItem.KeyInterval;
-                // 更新缓存
-                _keyIntervals[keyCode] = interval;
-                _logger.Debug($"已找到按键{keyCode}的KeyItem，使用独立间隔: {interval}ms");
-                return interval;
+                var keyItem = GetKeyItem(keyCode);
+                if (keyItem != null)
+                {
+                    interval = keyItem.KeyInterval;
+                    // 更新缓存
+                    _keyIntervals[keyCode] = interval;
+                    _logger.Debug($"已找到按键{keyCode}的KeyItem，使用独立间隔: {interval}ms");
+                    return interval;
+                }
             }
             
             // 使用默认间隔
             _logger.Debug($"未找到按键{keyCode}的间隔信息，使用默认间隔: {_keyInterval}ms");
+            // 更新缓存以避免频繁查询
+            _keyIntervals[keyCode] = _keyInterval;
             return _keyInterval;
         }
 

@@ -6,6 +6,7 @@ using System.Windows;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using WpfApp.Services.Core;
+using WpfApp.ViewModels;
 using MessageBox = System.Windows.MessageBox;
 
 namespace WpfApp;
@@ -16,6 +17,7 @@ public partial class App
     public static LyKeysService LyKeysDriver { get; private set; }
     public static ConfigService ConfigService { get; private set; }
     public static AudioService AudioService { get; private set; }
+    
     private bool _isShuttingDown;
 
     private readonly string _userDataPath = Path.Combine(
@@ -405,6 +407,12 @@ public partial class App
 
             // 注册应用程序退出事件
             RegisterExitHandlers();
+
+            // 预加载常用页面，提高性能
+            if (MainWindow.DataContext is MainViewModel mainViewModel)
+            {
+                mainViewModel.PreloadCommonPages();
+            }
 
             // 显示主窗口
             splashWindow.UpdateProgress("启动完成", 100);

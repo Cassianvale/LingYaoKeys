@@ -142,11 +142,11 @@ public class UIConfig
 public class WindowConfig
 {
     [JsonIgnore] public double MinWidth { get; set; } = 800;
-    [JsonIgnore] public double MinHeight { get; set; } = 650;
+    [JsonIgnore] public double MinHeight { get; set; } = 660;
 
     // 当前窗口尺寸
     public double Width { get; set; } = 880;
-    public double Height { get; set; } = 650;
+    public double Height { get; set; } = 660;
 }
 
 public class FloatingWindowConfig

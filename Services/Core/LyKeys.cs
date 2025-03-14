@@ -237,7 +237,6 @@ public sealed class LyKeys : IDisposable
                     // 检查设备状态
                     _logger.Debug("开始检查设备状态");
                     CheckDeviceStatus();
-                    await Task.Delay(100, cancellationToken); // 等待状态更新
                     var status = GetDriverStatus();
                     _logger.Debug($"设备状态: {status}");
 

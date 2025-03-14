@@ -49,33 +49,23 @@
 
             <!-- 内容区域 -->
             <Grid Grid.Row="1">
-                <FlowDocumentScrollViewer x:Name="DocumentViewer"
-                                          VerticalScrollBarVisibility="Auto"
-                                          HorizontalScrollBarVisibility="Disabled"
-                                          Visibility="Collapsed">
-                    <!-- 使用自定义滚动条样式 -->
-                    <FlowDocumentScrollViewer.Template>
-                        <ControlTemplate TargetType="FlowDocumentScrollViewer">
-                            <Border BorderThickness="{TemplateBinding BorderThickness}"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    Background="{TemplateBinding Background}"
-                                    Padding="{TemplateBinding Padding}">
-                                <ScrollViewer x:Name="PART_ContentHost"
-                                              CanContentScroll="True"
-                                              VerticalScrollBarVisibility="{TemplateBinding VerticalScrollBarVisibility}"
-                                              HorizontalScrollBarVisibility="{TemplateBinding HorizontalScrollBarVisibility}"
-                                              Template="{DynamicResource ScrollViewerControlTemplate}">
-                                    <FlowDocumentPageViewer Document="{TemplateBinding Document}" />
-                                </ScrollViewer>
-                            </Border>
-                        </ControlTemplate>
-                    </FlowDocumentScrollViewer.Template>
-
-                    <FlowDocument x:Name="MainDocument"
-                                  PagePadding="20"
-                                  FontFamily="Microsoft YaHei"
-                                  FontSize="14" />
-                </FlowDocumentScrollViewer>
+                <!-- 使用更简单的方式显示内容 -->
+                <ScrollViewer x:Name="DocumentViewer"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              Visibility="Collapsed">
+                    <RichTextBox x:Name="MainDocument"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 IsReadOnly="True"
+                                 Padding="20"
+                                 FontSize="14"
+                                 FontFamily="Microsoft YaHei">
+                        <FlowDocument>
+                            <!-- 内容将在代码中动态添加 -->
+                        </FlowDocument>
+                    </RichTextBox>
+                </ScrollViewer>
 
                 <!-- 加载指示器 -->
                 <Border x:Name="LoadingIndicator"
@@ -114,34 +104,32 @@
                     </Grid>
                 </Border>
 
-                <!-- 错误消息 -->
+                <!-- 错误信息显示 -->
                 <Border x:Name="ErrorMessage"
+                        Background="#FFFFFFFF"
+                        BorderBrush="#FFDDDDDD"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="15"
+                        Margin="20"
+                        Visibility="Collapsed"
                         HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        Background="White"
-                        CornerRadius="8"
-                        Padding="20"
-                        Panel.ZIndex="1"
-                        Visibility="Collapsed">
-                    <Border.Effect>
-                        <DropShadowEffect BlurRadius="10"
-                                          Direction="270"
-                                          ShadowDepth="2"
-                                          Opacity="0.2"
-                                          Color="#000000" />
-                    </Border.Effect>
+                        VerticalAlignment="Center">
                     <StackPanel>
-                        <TextBlock Text="加载失败"
-                                   FontSize="16"
+                        <TextBlock Text="加载内容出错"
+                                   FontSize="18"
                                    FontWeight="Bold"
-                                   Foreground="{StaticResource ErrorBrush}"
-                                   HorizontalAlignment="Center"
                                    Margin="0,0,0,10" />
                         <TextBlock x:Name="ErrorDetails"
-                                   Text="请检查网络连接后重试"
-                                   FontSize="14"
-                                   Foreground="{StaticResource TextForegroundBrush}"
-                                   HorizontalAlignment="Center" />
+                                   Text="无法加载README内容，请检查资源文件是否存在。"
+                                   TextWrapping="Wrap"
+                                   Width="300"
+                                   Foreground="#FF555555" />
+                        <Button Content="刷新"
+                                Command="{Binding RefreshCommand}"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Margin="0,15,0,0"
+                                HorizontalAlignment="Right" />
                     </StackPanel>
                 </Border>
             </Grid>

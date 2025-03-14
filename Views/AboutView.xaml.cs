@@ -9,13 +9,14 @@ using Color = System.Windows.Media.Color;
 using FontFamily = System.Windows.Media.FontFamily;
 using WpfApp.Services.Cache;
 using WpfApp.Services.Utils;
+using System.Windows.Controls;
 
 namespace WpfApp.Views;
 
 /// <summary>
 /// AboutView.xaml 的交互逻辑
 /// </summary>
-public partial class AboutView
+public partial class AboutView : Page
 {
     private readonly ViewModels.AboutViewModel _viewModel;
     private bool _disposedValue;
@@ -38,13 +39,27 @@ public partial class AboutView
 
     private void AboutView_Loaded(object sender, RoutedEventArgs e)
     {
-        if (!_isLoading && !_disposedValue)
+        // 修改：每次页面加载时，重置状态，确保能够正确加载内容
+        _isLoading = false;
+        _logger.Debug("AboutView页面加载事件触发 - 重置状态");
+
+        if (!_disposedValue)
         {
             _isLoading = true;
-            _logger.Debug("AboutView页面加载事件触发");
+            _logger.Debug("AboutView开始加载内容");
 
             try
             {
+                // 确保视图元素是可见的
+                if (DocumentViewer != null)
+                    DocumentViewer.Visibility = Visibility.Collapsed;
+                
+                if (LoadingIndicator != null)
+                    LoadingIndicator.Visibility = Visibility.Visible;
+                
+                if (ErrorMessage != null)
+                    ErrorMessage.Visibility = Visibility.Collapsed;
+
                 // 检查缓存中是否有内容
                 if (_markdownCache.HasContent())
                 {
@@ -106,7 +121,13 @@ public partial class AboutView
 
     private void AboutView_Unloaded(object sender, RoutedEventArgs e)
     {
-        Dispose();
+        // 修改：页面卸载时不真正释放资源，仅重置状态
+        _isLoading = false;
+        
+        // 取消当前加载任务，但不释放资源
+        _cts?.Cancel();
+        
+        _logger.Debug("AboutView页面卸载 - 重置状态但不释放资源");
     }
 
     private async Task LoadMarkdownContentAsync(CancellationToken cancellationToken)
@@ -153,13 +174,15 @@ public partial class AboutView
         try
         {
             _logger.Debug("开始显示Markdown文档");
-            // 清理现有内容
-            if (MainDocument != null)
+            
+            // 获取RichTextBox中的FlowDocument
+            if (MainDocument != null && MainDocument.Document != null)
             {
-                MainDocument.Blocks.Clear();
+                // 清理现有内容
+                MainDocument.Document.Blocks.Clear();
 
                 // 转换Markdown为FlowDocument
-                ConvertMarkdownToFlowDocument(document, MainDocument);
+                ConvertMarkdownToFlowDocument(document, MainDocument.Document);
 
                 // 显示文档
                 if (DocumentViewer != null)
@@ -168,6 +191,14 @@ public partial class AboutView
                     LoadingIndicator.Visibility = Visibility.Collapsed;
 
                 _logger.Debug("Markdown文档显示完成");
+            }
+            else
+            {
+                _logger.Error("MainDocument或其Document为null");
+                if (ErrorMessage != null)
+                    ErrorMessage.Visibility = Visibility.Visible;
+                if (ErrorDetails != null)
+                    ErrorDetails.Text = "无法加载文档显示控件";
             }
         }
         catch (Exception ex)
@@ -358,6 +389,7 @@ public partial class AboutView
             }
     }
 
+    // 资源释放时要重新初始化状态，以便页面可以重用
     protected virtual void Dispose(bool disposing)
     {
         if (!_disposedValue)
@@ -366,14 +398,21 @@ public partial class AboutView
                 try
                 {
                     _cts?.Cancel();
+                    
+                    // 重新创建取消令牌源，以便下次使用
                     _cts?.Dispose();
+                    _cts = new CancellationTokenSource();
+                    
+                    // 重置加载状态
+                    _isLoading = false;
 
                     // 清理事件订阅
                     Loaded -= AboutView_Loaded;
                     Unloaded -= AboutView_Unloaded;
 
                     // 清理文档内容
-                    if (MainDocument != null) MainDocument.Blocks.Clear();
+                    if (MainDocument != null && MainDocument.Document != null) 
+                        MainDocument.Document.Blocks.Clear();
                 }
                 catch (Exception ex)
                 {
