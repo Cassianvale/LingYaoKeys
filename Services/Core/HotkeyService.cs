@@ -221,19 +221,9 @@ public class HotkeyService
 
             _isSequenceRunning = true;
             _logger.Debug($"序列运行状态已设置为: {_isSequenceRunning}");
-
-            if (!_lyKeysService.IsHoldMode)
-            {
-                _logger.Debug("当前为顺序模式，启动LyKeysService");
-                _lyKeysService.IsEnabled = true;
-            }
-            else
-            {
-                _logger.Debug("当前为按压模式，设置并启动LyKeysService");
-                _lyKeysService.IsHoldMode = true;
-                _lyKeysService.IsEnabled = true;
-            }
-
+            
+            _lyKeysService.IsEnabled = true;
+            
             _logger.Debug($"序列已启动 - 模式: {(_lyKeysService.IsHoldMode ? "按压" : "顺序")}, " +
                           $"按键数: {_keyList.Count}, 使用独立按键间隔设置, " +
                           $"目标窗口句柄: {_targetWindowHandle}");
@@ -256,8 +246,6 @@ public class HotkeyService
 
         _isSequenceRunning = false;
         _lyKeysService.IsEnabled = false;
-
-        if (_lyKeysService.IsHoldMode) _lyKeysService.IsHoldMode = false;
 
         SequenceModeStopped?.Invoke();
     }
@@ -318,7 +306,7 @@ public class HotkeyService
                     }
                     else
                     {
-                        // 顺序模式处理逻辑 - 修改为使用相同热键切换开始/停止
+                        // 顺序模式处理逻辑
                         switch ((int)wParam)
                         {
                             case WM_KEYDOWN:

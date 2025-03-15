@@ -431,7 +431,7 @@
                                                      PreviewTextInput="NumberValidationTextBox"
                                                      GotFocus="NumberInput_GotFocus"
                                                      LostFocus="NumberInput_LostFocus"
-                                                     Text="{Binding KeyInterval, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                     Text="{Binding KeyInterval, Converter={StaticResource IntToStringConverter}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                             <TextBlock Margin="0,0,0,0"
                                                        VerticalAlignment="Center"
                                                        FontSize="12"

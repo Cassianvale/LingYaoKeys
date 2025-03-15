@@ -8,10 +8,21 @@ using System.Diagnostics;
 using WpfApp.Services.Core;
 using WpfApp.ViewModels;
 using MessageBox = System.Windows.MessageBox;
+using System.Windows.Media;
+using System.Windows.Interop;
+using System.Threading;
+using System.Windows.Threading;
+
+// 避免命名空间冲突
+using Application = System.Windows.Application;
+using AppDomain = System.AppDomain;
 
 namespace WpfApp;
 
-public partial class App
+/// <summary>
+/// App.xaml 的交互逻辑
+/// </summary>
+public partial class App : Application
 {
     private readonly SerilogManager _logger = SerilogManager.Instance;
     public static LyKeysService LyKeysDriver { get; private set; }
@@ -52,6 +63,7 @@ public partial class App
 
     public App()
     {
+        // 先初始化基本服务，推迟硬件加速配置
         // 注册进程退出事件处理
         _handler += new EventHandler(Handler);
         SetConsoleCtrlHandler(_handler, true);
@@ -68,6 +80,9 @@ public partial class App
 
         // 注册应用程序退出事件
         Exit += OnApplicationExit;
+        
+        // 硬件加速配置放在基本初始化之后
+        ConfigureHardwareAcceleration();
     }
 
     private bool Handler(CtrlType sig)
@@ -555,5 +570,42 @@ public partial class App
     private void OnApplicationExit(object sender, ExitEventArgs e)
     {
         Cleanup(CleanupLevel.Normal);
+    }
+
+    /// <summary>
+    /// 配置WPF的硬件加速和渲染优化
+    /// </summary>
+    private void ConfigureHardwareAcceleration()
+    {
+        try
+        {
+            // 启用默认渲染模式（通常会启用硬件加速，如果可用）
+            RenderOptions.ProcessRenderMode = RenderMode.Default;
+            
+            // 在主线程调度器启动后记录渲染信息
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    // 获取当前渲染能力等级
+                    int tier = RenderCapability.Tier >> 16;
+                    bool isHardwareAccelerated = RenderOptions.ProcessRenderMode != RenderMode.SoftwareOnly;
+                    _logger.Debug($"渲染能力: Tier{tier}, 硬件加速状态: {isHardwareAccelerated}");
+                    
+                    // 不在启动阶段访问MainWindow，以避免初始化顺序问题
+                    // 改为通过Loaded事件为各窗口单独设置硬件加速
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warning($"检查渲染能力时出错: {ex.Message}");
+                }
+            }), DispatcherPriority.ApplicationIdle);
+            
+            _logger.Debug("已配置WPF渲染优化");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("配置硬件加速时出错，将使用默认设置", ex);
+        }
     }
 }

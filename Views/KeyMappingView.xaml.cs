@@ -469,70 +469,33 @@ public partial class KeyMappingView : Page
                 _logger.Debug("数字输入框失去焦点");
             }
 
-            // 验证并纠正值
-            if (!string.IsNullOrEmpty(textBox.Text))
+            // 处理空值情况，设置默认值
+            if (string.IsNullOrWhiteSpace(textBox.Text))
             {
-                if (int.TryParse(textBox.Text, out var value))
+                textBox.Text = "5"; // 设置默认值为5
+                _logger.Debug("输入框为空，设置默认值5");
+            }
+
+            // 验证并纠正值
+            if (int.TryParse(textBox.Text, out var value))
+            {
+                if (value <= 0)
                 {
-                    if (value <= 0)
-                    {
-                        // 处理无效值（小于等于0），自动设置为1
-                        _logger.Debug($"按键间隔值 {value} 无效，自动设置为1ms");
-                        value = 1; // 自动设置为1
-
-                        // 区分是默认间隔输入框还是按键列表中的间隔输入框
-                        if (textBox.Name == "txtKeyInterval") // 默认间隔输入框
-                        {
-                            if (ViewModel != null)
-                            {
-                                // 更新为1
-                                ViewModel.KeyInterval = value;
-                                textBox.Text = value.ToString();
-
-                                if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel
-                                    mainViewModel) mainViewModel.UpdateStatusMessage("按键间隔必须大于0毫秒，已自动设置为1ms", true);
-                            }
-                        }
-                        else // 按键列表中的间隔输入框
-                        {
-                            // 获取绑定的KeyItem对象
-                            if (textBox.DataContext is KeyItem keyItem)
-                            {
-                                // 更新为1
-                                keyItem.KeyInterval = value;
-                                textBox.Text = value.ToString();
-
-                                if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel
-                                    mainViewModel) mainViewModel.UpdateStatusMessage("按键间隔必须大于0毫秒，已自动设置为1ms", true);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // 值有效，直接更新到ViewModel，不显示自动调整提示
-                        // 区分是默认间隔输入框还是按键列表中的间隔输入框
-                        if (textBox.Name == "txtKeyInterval") // 默认间隔输入框
-                            if (ViewModel != null)
-                            {
-                                ViewModel.KeyInterval = value;
-                                _logger.Debug($"更新默认间隔值为: {value}ms");
-                            }
-                        // 按键列表中的间隔输入框由数据绑定自动更新，不需要额外处理
-                    }
-                }
-                else
-                {
-                    // 输入的不是有效数字
-                    _logger.Debug("输入的不是有效数字");
+                    // 处理无效值（小于等于0），自动设置为1
+                    _logger.Debug($"按键间隔值 {value} 无效，自动设置为1ms");
+                    value = 1; // 自动设置为1
 
                     // 区分是默认间隔输入框还是按键列表中的间隔输入框
                     if (textBox.Name == "txtKeyInterval") // 默认间隔输入框
                     {
                         if (ViewModel != null)
                         {
-                            textBox.Text = ViewModel.KeyInterval.ToString(); // 恢复为当前值
+                            // 更新为1
+                            ViewModel.KeyInterval = value;
+                            textBox.Text = value.ToString();
+
                             if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel
-                                mainViewModel) mainViewModel.UpdateStatusMessage("请输入有效的数字", true);
+                                mainViewModel) mainViewModel.UpdateStatusMessage("按键间隔必须大于0毫秒，已自动设置为1ms", true);
                         }
                     }
                     else // 按键列表中的间隔输入框
@@ -540,25 +503,53 @@ public partial class KeyMappingView : Page
                         // 获取绑定的KeyItem对象
                         if (textBox.DataContext is KeyItem keyItem)
                         {
-                            textBox.Text = keyItem.KeyInterval.ToString(); // 恢复为当前值
+                            // 更新为1
+                            keyItem.KeyInterval = value;
+                            textBox.Text = value.ToString();
+
                             if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel
-                                mainViewModel) mainViewModel.UpdateStatusMessage("请输入有效的数字", true);
+                                mainViewModel) mainViewModel.UpdateStatusMessage("按键间隔必须大于0毫秒，已自动设置为1ms", true);
                         }
                     }
+                }
+                else
+                {
+                    // 值有效，直接更新到ViewModel，不显示自动调整提示
+                    // 区分是默认间隔输入框还是按键列表中的间隔输入框
+                    if (textBox.Name == "txtKeyInterval") // 默认间隔输入框
+                        if (ViewModel != null)
+                        {
+                            ViewModel.KeyInterval = value;
+                            _logger.Debug($"更新默认间隔值为: {value}ms");
+                        }
+                    // 按键列表中的间隔输入框由数据绑定自动更新，不需要额外处理
                 }
             }
             else
             {
-                // 输入框为空，恢复为当前值
+                // 输入的不是有效数字，但由于我们已经在PreviewTextInput事件中验证，
+                // 理论上不应该出现这种情况，除非是空字符串，但我们已经在前面处理了
+                _logger.Debug("输入的不是有效数字");
+
                 // 区分是默认间隔输入框还是按键列表中的间隔输入框
                 if (textBox.Name == "txtKeyInterval") // 默认间隔输入框
                 {
-                    if (ViewModel != null) textBox.Text = ViewModel.KeyInterval.ToString();
+                    if (ViewModel != null)
+                    {
+                        textBox.Text = ViewModel.KeyInterval.ToString(); // 恢复为当前值
+                        if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel
+                            mainViewModel) mainViewModel.UpdateStatusMessage("请输入有效的数字", true);
+                    }
                 }
                 else // 按键列表中的间隔输入框
                 {
                     // 获取绑定的KeyItem对象
-                    if (textBox.DataContext is KeyItem keyItem) textBox.Text = keyItem.KeyInterval.ToString();
+                    if (textBox.DataContext is KeyItem keyItem)
+                    {
+                        textBox.Text = keyItem.KeyInterval.ToString(); // 恢复为当前值
+                        if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel
+                            mainViewModel) mainViewModel.UpdateStatusMessage("请输入有效的数字", true);
+                    }
                 }
             }
         }

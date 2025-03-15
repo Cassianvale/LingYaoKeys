@@ -13,7 +13,14 @@ public class IntToStringConverter : IValueConverter
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        if (value is string stringValue && int.TryParse(stringValue, out var result)) return result;
+        if (value is string stringValue)
+        {
+            if (string.IsNullOrWhiteSpace(stringValue))
+                return 0;
+                
+            if (int.TryParse(stringValue, out var result))
+                return result;
+        }
         return 0;
     }
 }
