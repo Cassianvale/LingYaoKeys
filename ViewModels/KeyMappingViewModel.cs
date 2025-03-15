@@ -1051,8 +1051,7 @@ namespace WpfApp.ViewModels
         // 检查是否可以添加按键
         private bool CanAddKey()
         {
-            // 移除了重复键检查(!IsKeyInList)，现在只检查有没有选中按键
-            return _currentKey.HasValue;
+            return _currentKey.HasValue && !IsKeyInList(_currentKey.Value);
         }
 
         // 添加按键
@@ -1075,6 +1074,13 @@ namespace WpfApp.ViewModels
                     return;
                 }
 
+                if (IsKeyInList(keyCode))
+                {
+                    _logger.Warning($"按键已存在: {_lyKeysService.GetKeyDescription(keyCode)}");
+                    _mainViewModel.UpdateStatusMessage($"按键 {_lyKeysService.GetKeyDescription(keyCode)} 已存在于列表中", true);
+                    return;
+                }
+
                 if (IsHotkeyConflict(keyCode))
                 {
                     _logger.Warning($"按键与热键冲突: {_lyKeysService.GetKeyDescription(keyCode)}");
@@ -1092,21 +1098,35 @@ namespace WpfApp.ViewModels
                     if (!_isInitializing)
                     {
                         SaveConfig();
-                        _logger.Debug($"按键{keyCode}的间隔已更新为{newInterval}ms并保存到配置");
+                        _logger.Debug($"按键{newKey.KeyCode}的间隔已更新为{newInterval}ms并保存到配置");
                     }
                 };
-
                 KeyList.Add(newKey);
-                
-                // 添加：更新HotkeyService的按键列表，确保添加按键后立即更新循环
-                UpdateHotkeyServiceKeyList();
-                
-                SaveConfig();
 
-                // 重置输入状态
-                _mainViewModel.UpdateStatusMessage($"已添加按键: {_lyKeysService.GetKeyDescription(keyCode)}", false);
-                _logger.Debug($"已添加按键: {keyCode}");
+                // 更新HotkeyService的按键列表
+                UpdateHotkeyServiceKeyList();
+
+                _logger.Debug($"添加按键: {keyCode} | {newKey.DisplayName}");
+                CurrentKeyText = string.Empty;
                 _currentKey = null;
+
+                // 实时保存按键列表
+                if (!_isInitializing)
+                {
+                    var keyConfigs = KeyList.Select(k => new KeyConfig(k.KeyCode, k.IsSelected)
+                    {
+                        KeyInterval = k.KeyInterval
+                    }).ToList();
+
+                    // 添加日志记录每个按键的间隔
+                    foreach (var keyConfig in keyConfigs)
+                        _logger.Debug(
+                            $"保存按键配置 - 按键: {_lyKeysService.GetKeyDescription(keyCode)}, 间隔: {keyConfig.KeyInterval}ms");
+
+                    AppConfigService.UpdateConfig(config => { config.keys = keyConfigs; });
+                }
+
+                _mainViewModel.UpdateStatusMessage($" {_lyKeysService.GetKeyDescription(keyCode)} 按键添加成功");
             }
             catch (Exception ex)
             {
