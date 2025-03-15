@@ -564,6 +564,7 @@ public partial class KeyMappingView : Page
         }
     }
 
+    // 处理开始热键
     private void HandleStartHotkey(bool isKeyDown)
     {
         if (ViewModel == null)

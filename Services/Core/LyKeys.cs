@@ -374,23 +374,32 @@ public sealed class LyKeys : IDisposable
     /// <returns>操作是否成功</returns>
     public bool SendKeyDown(ushort vkCode)
     {
-        if (_isDisposed || !_isInitialized)
-            return false;
+        // 使用内联条件加速检查
+        if (_isDisposed || !_isInitialized) return false;
 
         try
         {
-            var status = GetDriverStatus();
-            if (status == DeviceStatus.Ready)
-            {
-                KeyDown(vkCode);
-                return true;
-            }
-
-            return false;
+            KeyDown(vkCode);
+            return true;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            _logger.Error($"按下按键失败, vkCode: {vkCode}", ex);
+            // 捕获异常时才进行完整状态检查
+            try
+            {
+                var status = GetDriverStatus();
+                if (status == DeviceStatus.Ready)
+                {
+                    try
+                    {
+                        KeyDown(vkCode);
+                        return true;
+                    }
+                    catch { /* 已重试，忽略第二次异常 */ }
+                }
+            }
+            catch { /* 忽略异常直接返回失败 */ }
+            
             return false;
         }
     }
@@ -402,23 +411,32 @@ public sealed class LyKeys : IDisposable
     /// <returns>操作是否成功</returns>
     public bool SendKeyUp(ushort vkCode)
     {
-        if (_isDisposed || !_isInitialized)
-            return false;
+        // 使用内联条件加速检查
+        if (_isDisposed || !_isInitialized) return false;
 
         try
         {
-            var status = GetDriverStatus();
-            if (status == DeviceStatus.Ready)
-            {
-                KeyUp(vkCode);
-                return true;
-            }
-
-            return false;
+            KeyUp(vkCode);
+            return true;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            _logger.Error($"释放按键失败, vkCode: {vkCode}", ex);
+            // 捕获异常时才进行完整状态检查
+            try
+            {
+                var status = GetDriverStatus();
+                if (status == DeviceStatus.Ready)
+                {
+                    try
+                    {
+                        KeyUp(vkCode);
+                        return true;
+                    }
+                    catch { /* 已重试，忽略第二次异常 */ }
+                }
+            }
+            catch { /* 忽略异常直接返回失败 */ }
+            
             return false;
         }
     }

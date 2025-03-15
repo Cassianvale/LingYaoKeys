@@ -12,22 +12,20 @@ public class KeyMappingService
     private readonly SerilogManager _logger = SerilogManager.Instance;
     private readonly LyKeysService _lyKeysService;
     private readonly HotkeyService _hotkeyService;
-    private readonly AudioService _audioService;
     private ObservableCollection<KeyItem> _keyList;
-    private LyKeysCode? _hotkey; // 简化为单一热键
-    private ModifierKeys _modifiers = ModifierKeys.None; // 简化为单一修饰键
+    private LyKeysCode? _hotkey;    // 触发热键-主按键
+    private ModifierKeys _modifiers = ModifierKeys.None; // 触发热键-修饰键
 
     public event Action<bool>? ExecutionStateChanged;
     public event Action? KeyListChanged;
 
     public KeyMappingService(
         LyKeysService lyKeysService,
-        HotkeyService hotkeyService,
-        AudioService audioService)
+        HotkeyService hotkeyService
+        )
     {
         _lyKeysService = lyKeysService;
         _hotkeyService = hotkeyService;
-        _audioService = audioService;
         _keyList = new ObservableCollection<KeyItem>();
 
         InitializeEventHandlers();
