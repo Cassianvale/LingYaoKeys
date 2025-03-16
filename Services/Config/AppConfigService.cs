@@ -2,6 +2,7 @@ using System.IO;
 using Newtonsoft.Json;
 using WpfApp.Services.Core;
 using WpfApp.Services.Utils;
+using WpfApp.Services.Models;
 
 namespace WpfApp.Services.Config;
 
@@ -92,17 +93,12 @@ public class AppConfigService
             var jsonSettings = new JsonSerializerSettings
             {
                 ObjectCreationHandling = ObjectCreationHandling.Replace,
-                NullValueHandling = NullValueHandling.Include
+                NullValueHandling = NullValueHandling.Include,
+                TypeNameHandling = TypeNameHandling.Auto,
+                MissingMemberHandling = MissingMemberHandling.Ignore,
+                DefaultValueHandling = DefaultValueHandling.Populate
             };
             _config = JsonConvert.DeserializeObject<AppConfig>(json, jsonSettings);
-
-            // 如果配置为空或关键值为null，使用默认值初始化
-            if (_config == null || HasNullValues(_config))
-            {
-                _config = CreateDefaultConfig();
-                SaveConfig();
-                Console.WriteLine("使用默认配置初始化");
-            }
 
             Console.WriteLine($"从配置文件加载成功: {_configPath}");
             ValidateConfig();
@@ -113,14 +109,6 @@ public class AppConfigService
             _config = CreateDefaultConfig();
             SaveConfig();
         }
-    }
-
-    private static bool HasNullValues(AppConfig config)
-    {
-        return config.soundEnabled == null
-               || config.IsGameMode == null
-               || config.KeyPressInterval == null
-               || config.UI?.MainWindow == null; // 只检查 MainWindow 是否为 null
     }
 
     private static AppConfig CreateDefaultConfig()
@@ -143,8 +131,8 @@ public class AppConfigService
             },
             Debug = new DebugConfig
             {
-                IsDebugMode = false, // 调试模式总开关
-                EnableLogging = false, // 日志记录开关
+                IsDebugMode = true, // 调试模式总开关
+                EnableLogging = true, // 日志记录开关
                 LogLevel = "Debug", // 日志级别
                 FileSettings = new LogFileSettings
                 {
@@ -172,9 +160,9 @@ public class AppConfigService
             stopMods = 0,
             keys = new List<KeyConfig>
             {
-                new(LyKeysCode.VK_F, true),
-                new(LyKeysCode.VK_1, false),
-                new(LyKeysCode.VK_2, false)
+                new KeyConfig(LyKeysCode.VK_F, true, 5),
+                new KeyConfig(LyKeysCode.VK_1, false, 5),
+                new KeyConfig(LyKeysCode.VK_2, false, 5)
             },
             keyMode = 0,
             interval = 5,
@@ -221,11 +209,11 @@ public class AppConfigService
         if (_config.startKey == null)
         {
             _logger.Debug("启动热键未设置，已设置为默认值");
-            _config.startKey = LyKeysCode.VK_F9;
+            _config.startKey = LyKeysCode.VK_F10;
             configChanged = true;
         }
 
-        if (_config.stopKey == null && _config.keyMode == 0)
+        if (_config.stopKey == null)
         {
             _logger.Debug("停止热键未设置，已设置为默认值");
             _config.stopKey = LyKeysCode.VK_F10;
@@ -248,7 +236,14 @@ public class AppConfigService
             {
                 if (_config == null) return;
 
-                var newJson = JsonConvert.SerializeObject(_config, Formatting.Indented);
+                var jsonSettings = new JsonSerializerSettings
+                {
+                    Formatting = Formatting.Indented,
+                    NullValueHandling = NullValueHandling.Include,
+                    TypeNameHandling = TypeNameHandling.Auto,
+                    DefaultValueHandling = DefaultValueHandling.Populate
+                };
+                var newJson = JsonConvert.SerializeObject(_config, jsonSettings);
 
                 // 检查配置是否真的发生了变化
                 if (File.Exists(_configPath))

@@ -1047,12 +1047,11 @@ namespace WpfApp.ViewModels
                             // 坐标类型必须将Code设为null
                             keyConfig.Code = null;
                             
-                            // 坐标不能同时为0,0，至少有一个需要大于0
+                            // 坐标不能同时为0,0（只针对坐标类型）
                             if (keyConfig.X == 0 && keyConfig.Y == 0)
                             {
-                                _logger.Warning($"修正无效的坐标配置: ({keyConfig.X}, {keyConfig.Y}) => (1, 1)");
-                                keyConfig.X = 1;
-                                keyConfig.Y = 1;
+                                _logger.Warning($"跳过无效的坐标配置: ({keyConfig.X}, {keyConfig.Y})，坐标不能同时为(0,0)");
+                                continue; // 跳过这一项，不添加到KeyList
                             }
                         }
                         // 验证键盘类型按键配置
@@ -2247,7 +2246,15 @@ namespace WpfApp.ViewModels
         private bool CanAddCoordinate()
         {
             // 检查X和Y坐标是否已设置
-            return _currentX.HasValue && _currentY.HasValue;
+            if (!_currentX.HasValue || !_currentY.HasValue)
+                return false;
+                
+            // 检查坐标是否为(0,0)
+            // 注意：这里是添加坐标按钮，所以一定是坐标类型
+            if (_currentX.Value == 0 && _currentY.Value == 0)
+                return false;
+                
+            return true;
         }
         
         // 添加坐标点
@@ -2267,12 +2274,12 @@ namespace WpfApp.ViewModels
                 int x = _currentX.Value;
                 int y = _currentY.Value;
                 
+                // 坐标类型的坐标不能同时为(0,0)
                 if (x == 0 && y == 0)
                 {
-                    _logger.Warning("坐标不能同时为(0,0)，已自动修正为(1,1)");
-                    _mainViewModel.UpdateStatusMessage("坐标不能同时为(0,0)，已自动修正为(1,1)", true);
-                    x = 1;
-                    y = 1;
+                    _logger.Warning("坐标不能同时为(0,0)，添加操作被拒绝");
+                    _mainViewModel.UpdateStatusMessage("坐标不能同时为(0,0)，请修改后再添加", true);
+                    return; // 直接返回，不添加坐标
                 }
 
                 // 创建坐标类型的KeyItem
@@ -2304,8 +2311,8 @@ namespace WpfApp.ViewModels
                 SaveConfig();
                 
                 // 提示和日志
-                _mainViewModel.UpdateStatusMessage($"已添加坐标: [{x}, {y}]", false);
-                _logger.Debug($"已添加坐标: [{x}, {y}]");
+                _mainViewModel.UpdateStatusMessage($"已添加坐标: ({x}, {y})", false);
+                _logger.Debug($"已添加坐标: ({x}, {y})");
                 
                 // 重置输入状态
                 _currentX = null;

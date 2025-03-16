@@ -60,12 +60,20 @@ public class VersionInfo
 
 public class KeyConfig
 {
-    public LyKeysCode? Code { get; set; }  // 使用可空类型，坐标类型不需要此属性
+    public LyKeysCode? Code { get; set; }  // 使用可空类型，坐标类型不需要此属性 
     public bool IsSelected { get; set; }
     public int KeyInterval { get; set; }
     public KeyItemType Type { get; set; } = KeyItemType.Keyboard;
     public int X { get; set; }
     public int Y { get; set; }
+
+    // 无参构造函数，用于JSON反序列化
+    public KeyConfig()
+    {
+        IsSelected = true;
+        KeyInterval = 5;
+        Type = KeyItemType.Keyboard;
+    }
 
     // 键盘按键构造函数
     public KeyConfig(LyKeysCode code, bool isSelected = true, int keyInterval = 5)
@@ -79,12 +87,45 @@ public class KeyConfig
     // 坐标构造函数
     public KeyConfig(int x, int y, bool isSelected = true, int keyInterval = 5)
     {
+        // 验证坐标不能同时为0（只针对坐标类型）
+        if (x == 0 && y == 0)
+        {
+            throw new ArgumentException("坐标不能同时为(0,0)");
+        }
+        
         X = x;
         Y = y;
         IsSelected = isSelected;
         KeyInterval = keyInterval;
         Type = KeyItemType.Coordinates;
         Code = null; // 坐标类型不使用Code属性
+    }
+    
+    /// <summary>
+    /// 将KeyConfig转换为LyKeysCode，用于与LyKeysService兼容
+    /// 注意：坐标类型会被忽略，返回null
+    /// </summary>
+    public LyKeysCode? ToLyKeysCode()
+    {
+        // 只有键盘类型且被选中的按键才会返回有效值
+        if (Type == KeyItemType.Keyboard && IsSelected && Code.HasValue)
+        {
+            return Code.Value;
+        }
+        return null;
+    }
+    
+    /// <summary>
+    /// 从KeyConfig列表中提取有效的LyKeysCode列表
+    /// </summary>
+    public static List<LyKeysCode> ExtractValidKeyCodes(List<KeyConfig> keyConfigs)
+    {
+        if (keyConfigs == null) return new List<LyKeysCode>();
+        
+        return keyConfigs
+            .Where(k => k.Type == KeyItemType.Keyboard && k.IsSelected && k.Code.HasValue)
+            .Select(k => k.Code.Value)
+            .ToList();
     }
 }
 

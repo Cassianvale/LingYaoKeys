@@ -161,7 +161,7 @@ public class KeyItem : INotifyPropertyChanged
             return _type switch
             {
                 KeyItemType.Keyboard => _lyKeysService.GetKeyDescription(_keyCode),
-                KeyItemType.Coordinates => $"坐标 [{_x}, {_y}]",
+                KeyItemType.Coordinates => $"坐标 ({_x}, {_y})",
                 _ => "未知类型"
             };
         }
