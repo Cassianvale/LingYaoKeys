@@ -240,46 +240,174 @@
                         </DockPanel>
                     </Border>
 
-                    <!-- 顶部输入区域 -->
-                    <DockPanel DockPanel.Dock="Top"
-                               Height="35"
-                               Margin="0,0,0,10">
-                        <Button Style="{StaticResource RoundedShadowButtonSmall}"
-                                Command="{Binding AddKeyCommand}"
-                                Name="btnAddKey"
-                                IsEnabled="{Binding IsNotExecuting}"
-                                Width="95" Height="35"
-                                Margin="0,0,10,0"
-                                DockPanel.Dock="Left"
-                                ToolTip="添加当前输入的按键">
-                            <DockPanel>
-                                <Path Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"
-                                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                    <!-- 输入区域容器 -->
+                    <Grid DockPanel.Dock="Top"
+                          Margin="0,0,0,10">
+                        
+                        <!-- 设计时说明：
+                            要在设计器中查看不同的输入模式：
+                            1. 切换KeyInputArea的d:Visibility属性 (Visible/Collapsed)
+                            2. 切换CoordinateInputArea的d:Visibility属性 (Visible/Collapsed)
+                            修改后请记住保存文件以更新设计器视图 -->
+                        
+                        <!-- 按键输入区域 -->
+                        <DockPanel x:Name="KeyInputArea"
+                                   Height="35"
+                                   Visibility="Visible"
+                                   d:Visibility="Visible">
+                            <!-- 按键/坐标模式切换按钮 - 移到最前面 -->
+                            <Button x:Name="btnToggleCoordinateMode"
+                                    Style="{StaticResource CircleButtonStyle}"
+                                    Width="32" Height="32"
+                                    DockPanel.Dock="Left"
+                                    Margin="0,0,10,0"
+                                    Click="ToggleCoordinateMode_Click"
+                                    ToolTip="切换到鼠标坐标模式">
+                                <Path Data="M960 640a64 64 0 0 1-64 64H448v197.504a64 64 0 0 1-13.184 38.912l-5.568 6.336a64 64 0 0 1-84.48 5.312l-6.016-5.312-261.504-261.504a64 64 0 0 1 37.76-108.8L122.56 576H896a64 64 0 0 1 64 64z m5.504-256a64 64 0 0 1-56.576 63.552L901.504 448H128a64 64 0 0 1 0-128h448V122.432a64 64 0 0 1 13.184-38.912l5.568-6.336a64 64 0 0 1 84.48-5.312l6.016 5.312 261.504 261.504a64 64 0 0 1 18.752 45.248z"
+                                      Fill="#707070"
                                       Width="16" Height="16"
-                                      Stretch="Uniform"
-                                      Margin="0,0,8,0" />
-                                <TextBlock Text="添加按键"
-                                           FontSize="13"
-                                           FontWeight="Bold"
-                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                           VerticalAlignment="Center" />
-                            </DockPanel>
-                        </Button>
+                                      Stretch="Uniform" />
+                            </Button>
+                            
+                            <Button Style="{StaticResource RoundedShadowButtonSmall}"
+                                    Command="{Binding AddKeyCommand}"
+                                    Name="btnAddKey"
+                                    IsEnabled="{Binding IsNotExecuting}"
+                                    Width="95" Height="35"
+                                    Margin="0,0,10,0"
+                                    DockPanel.Dock="Left"
+                                    Click="AddKey_Click"
+                                    ToolTip="添加当前输入的按键">
+                                <DockPanel>
+                                    <Path Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"
+                                          Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                          Width="16" Height="16"
+                                          Stretch="Uniform"
+                                          Margin="0,0,8,0" />
+                                    <TextBlock Text="添加按键"
+                                               FontSize="13"
+                                               FontWeight="Bold"
+                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                               VerticalAlignment="Center" />
+                                </DockPanel>
+                            </Button>
 
-                        <TextBox x:Name="KeyInputBox"
-                                 Style="{StaticResource ModernTextBox}"
-                                 IsEnabled="{Binding IsNotExecuting}"
-                                 Text="{Binding CurrentKeyText, Mode=OneWay}"
-                                 PreviewKeyDown="KeyInputBox_PreviewKeyDown"
-                                 PreviewMouseDown="KeyInputBox_PreviewMouseDown"
-                                 GotFocus="KeyInputBox_GotFocus"
-                                 LostFocus="KeyInputBox_LostFocus"
-                                 TextAlignment="Center"
-                                 Tag="点此输入按键"
-                                 IsReadOnly="True"
-                                 IsUndoEnabled="False"
-                                 CaretBrush="Transparent" />
-                    </DockPanel>
+                            <TextBox x:Name="KeyInputBox"
+                                     Style="{StaticResource ModernTextBox}"
+                                     IsEnabled="{Binding IsNotExecuting}"
+                                     Text="{Binding CurrentKeyText, Mode=OneWay}"
+                                     PreviewKeyDown="KeyInputBox_PreviewKeyDown"
+                                     PreviewMouseDown="KeyInputBox_PreviewMouseDown"
+                                     GotFocus="KeyInputBox_GotFocus"
+                                     LostFocus="KeyInputBox_LostFocus"
+                                     TextAlignment="Center"
+                                     Tag="点此输入按键"
+                                     IsReadOnly="True"
+                                     IsUndoEnabled="False"
+                                     CaretBrush="Transparent" />
+                        </DockPanel>
+                        
+                        <!-- 坐标输入区域 -->
+                        <Grid x:Name="CoordinateInputArea" 
+                              Height="35"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/> <!-- 切换按钮 -->
+                                <ColumnDefinition Width="Auto"/> <!-- 添加坐标按钮 -->
+                                <ColumnDefinition Width="Auto"/> <!-- 鼠标图标按钮 -->
+                                <ColumnDefinition Width="Auto"/> <!-- X输入框 -->
+                                <ColumnDefinition Width="Auto"/> <!-- 逗号分隔符 -->
+                                <ColumnDefinition Width="Auto"/> <!-- Y输入框 -->
+                                <ColumnDefinition Width="*"/> <!-- 占位，确保控件居左 -->
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- 按键/坐标模式切换按钮 - 放置在最左侧 -->
+                            <Button x:Name="btnToggleKeyMode"
+                                    Style="{StaticResource CircleButtonStyle}"
+                                    Width="32" Height="32"
+                                    Grid.Column="0"
+                                    Margin="0,0,10,0"
+                                    Click="ToggleCoordinateMode_Click"
+                                    ToolTip="切换到按键模式">
+                                <Path Data="M960 640a64 64 0 0 1-64 64H448v197.504a64 64 0 0 1-13.184 38.912l-5.568 6.336a64 64 0 0 1-84.48 5.312l-6.016-5.312-261.504-261.504a64 64 0 0 1 37.76-108.8L122.56 576H896a64 64 0 0 1 64 64z m5.504-256a64 64 0 0 1-56.576 63.552L901.504 448H128a64 64 0 0 1 0-128h448V122.432a64 64 0 0 1 13.184-38.912l5.568-6.336a64 64 0 0 1 84.48-5.312l6.016 5.312 261.504 261.504a64 64 0 0 1 18.752 45.248z"
+                                      Fill="#707070"
+                                      Width="16" Height="16"
+                                      Stretch="Uniform" />
+                            </Button>
+                            
+                            <!-- 添加坐标按钮 -->
+                            <Button Style="{StaticResource RoundedShadowButtonSmall}"
+                                    
+                                    Name="btnAddCoordinate"
+                                    IsEnabled="{Binding IsNotExecuting}"
+                                    Width="95" Height="35"
+                                    Grid.Column="1"
+                                    Margin="0,0,10,0"
+                                    Click="AddCoordinate_Click"
+                                    ToolTip="添加当前坐标">
+                                <DockPanel>
+                                    <Path Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"
+                                          Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                          Width="16" Height="16"
+                                          Stretch="Uniform"
+                                          Margin="0,0,8,0" />
+                                    <TextBlock Text="添加坐标"
+                                               FontSize="13"
+                                               FontWeight="Bold"
+                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                               VerticalAlignment="Center" />
+                                </DockPanel>
+                            </Button>
+                            
+                            <!-- 鼠标图标按钮 -->
+                            <Button x:Name="btnMouseIcon"
+                                    Style="{StaticResource CircleButtonStyle}"
+                                    Width="32" Height="32"
+                                    Grid.Column="2"
+                                    Margin="0,0,15,0"
+                                    ToolTip="鼠标位置">
+                                <Path Data="M874.048 533.333333C863.424 716.629333 716.629333 863.424 533.333333 874.048V917.333333a21.333333 21.333333 0 0 1-42.666666 0v-43.285333C307.370667 863.424 160.576 716.629333 149.952 533.333333H106.666667a21.333333 21.333333 0 0 1 0-42.666666h43.285333C160.576 307.370667 307.370667 160.576 490.666667 149.952V106.666667a21.333333 21.333333 0 0 1 42.666666 0v43.285333c183.296 10.624 330.090667 157.418667 340.714667 340.714667h42.816a21.333333 21.333333 0 1 1 0 42.666666H874.026667z m-42.752 0h-127.786667a21.333333 21.333333 0 0 1 0-42.666666h127.786667C820.778667 330.922667 693.056 203.221333 533.333333 192.704V320a21.333333 21.333333 0 0 1-42.666666 0V192.704C330.922667 203.221333 203.221333 330.944 192.704 490.666667H320a21.333333 21.333333 0 0 1 0 42.666666H192.704c10.517333 159.744 138.24 287.445333 297.962667 297.962667V704a21.333333 21.333333 0 0 1 42.666666 0v127.296c159.744-10.517333 287.445333-138.24 297.962667-297.962667zM512 554.666667a42.666667 42.666667 0 1 1 0-85.333334 42.666667 42.666667 0 0 1 0 85.333334z"
+                                      Fill="#707070"
+                                      Width="20" Height="20"
+                                      Stretch="Uniform" />
+                            </Button>
+                            
+                            <!-- X坐标输入框 -->
+                            <TextBox x:Name="XCoordinateInputBox"
+                                     Grid.Column="3"
+                                     Style="{StaticResource ModernTextBox}"
+                                     Width="80"
+                                     IsEnabled="{Binding IsNotExecuting}"
+                                     TextAlignment="Center"
+                                     Tag="X坐标"
+                                     Margin="0,0,5,0"
+                                     PreviewTextInput="NumberValidationTextBox"
+                                     GotFocus="NumberInput_GotFocus"
+                                     LostFocus="NumberInput_LostFocus"/>
+                            
+                            <!-- 逗号间隔符 -->
+                            <TextBlock Grid.Column="4"
+                                       Text=","
+                                       FontSize="18"
+                                       FontWeight="SemiBold"
+                                       Foreground="#505050"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,5,0"/>
+                            
+                            <!-- Y坐标输入框 -->
+                            <TextBox x:Name="YCoordinateInputBox"
+                                     Grid.Column="5"
+                                     Style="{StaticResource ModernTextBox}"
+                                     Width="80"
+                                     IsEnabled="{Binding IsNotExecuting}"
+                                     TextAlignment="Center"
+                                     Tag="Y坐标"
+                                     PreviewTextInput="NumberValidationTextBox"
+                                     GotFocus="NumberInput_GotFocus"
+                                     LostFocus="NumberInput_LostFocus"/>
+                        </Grid>
+                    </Grid>
 
                     <ListBox x:Name="KeysList"
                              IsEnabled="{Binding IsNotExecuting}"
@@ -571,10 +699,14 @@
                             <!-- 窗口句柄显示 -->
                             <TextBox x:Name="txtWindowHandle"
                                      Style="{StaticResource ModernTextBox}"
+                                     Focusable="False"
                                      IsReadOnly="True"
                                      Text="{Binding SelectedWindowTitle, Mode=OneWay}"
                                      Tag="空"
-                                     ToolTip="{Binding SelectedWindowClassName}" />
+                                     ToolTip="{Binding SelectedWindowClassName}"
+                                     behaviors:AutoScrollBehavior.IsEnabled="True"
+                                     behaviors:AutoScrollBehavior.ScrollDelay="1000"
+                                     behaviors:AutoScrollBehavior.ScrollSpeed="100" />
                         </StackPanel>
                     </Border>
 

@@ -483,7 +483,8 @@ public sealed class LyKeys : IDisposable
     }
 
     /// <summary>
-    /// 相对移动鼠标
+    /// 鼠标相对位移
+    /// 表示鼠标从当前位置移动指定的偏移量
     /// </summary>
     public bool MoveMouse(int dx, int dy)
     {
@@ -509,7 +510,8 @@ public sealed class LyKeys : IDisposable
     }
 
     /// <summary>
-    /// 绝对移动鼠标
+    /// 鼠标绝对位移
+    /// 表示将鼠标直接定位到屏幕上的指定坐标点
     /// </summary>
     public bool MoveMouseAbsolute(int x, int y)
     {

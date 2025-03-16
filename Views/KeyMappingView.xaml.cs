@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows.Shapes;
 using System.Windows.Controls.Primitives;
+using System.Windows.Threading;
 
 // 提供按键映射视图
 namespace WpfApp.Views;
@@ -339,6 +340,22 @@ public partial class KeyMappingView : Page
 
         // 显示成功提示
         ShowMessage("已设置热键");
+        
+        // 添加失焦处理，与按键输入保持一致的行为
+        // 强制清除焦点
+        var focusScope = FocusManager.GetFocusScope(textBox);
+        FocusManager.SetFocusedElement(focusScope, null);
+        Keyboard.ClearFocus();
+
+        // 确保输入框失去焦点
+        if (textBox.IsFocused)
+        {
+            var parent = textBox.Parent as UIElement;
+            if (parent != null) parent.Focus();
+        }
+        
+        // 记录日志
+        _logger.Debug("热键设置后已自动清除焦点");
     }
 
     // 判断是否为修饰键
@@ -1149,5 +1166,87 @@ public partial class KeyMappingView : Page
             // 确保按钮恢复原状
             ResetDeleteButton(button);
         }
+    }
+
+    /// <summary>
+    /// 添加按键后清空输入框
+    /// </summary>
+    private void AddKey_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (KeyInputBox != null)
+            {
+                // 等待绑定的Command执行完成，使用Dispatcher延迟执行
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    // 清空输入框显示内容
+                    KeyInputBox.Clear();
+                    
+                    // 通知用户界面已更新
+                    KeyInputBox.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateSource();
+                    
+                    // 记录日志
+                    _logger.Debug("添加按键后已清空输入框");
+                }), System.Windows.Threading.DispatcherPriority.Background);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("清空按键输入框时发生异常", ex);
+        }
+    }
+
+    /// <summary>
+    /// 添加坐标后清空坐标输入框
+    /// </summary>
+    private void AddCoordinate_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            // 等待绑定的Command执行完成，使用Dispatcher延迟执行
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                // 清空X坐标输入框
+                if (XCoordinateInputBox != null)
+                {
+                    XCoordinateInputBox.Clear();
+                    XCoordinateInputBox.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateSource();
+                }
+                
+                // 清空Y坐标输入框
+                if (YCoordinateInputBox != null)
+                {
+                    YCoordinateInputBox.Clear();
+                    YCoordinateInputBox.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateSource();
+                }
+                
+                // 记录日志
+                _logger.Debug("添加坐标后已清空坐标输入框");
+                
+            }), System.Windows.Threading.DispatcherPriority.Background);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("清空坐标输入框时发生异常", ex);
+        }
+    }
+
+    /// <summary>
+    /// 坐标模式与按键模式切换
+    /// </summary>
+    private void ToggleCoordinateMode_Click(object sender, RoutedEventArgs e)
+    {
+        // 切换输入模式
+        bool isCoordinateMode = CoordinateInputArea.Visibility == Visibility.Visible;
+        
+        // 切换视图可见性 - 现在直接切换两个面板的可见性
+        KeyInputArea.Visibility = isCoordinateMode ? Visibility.Visible : Visibility.Collapsed;
+        CoordinateInputArea.Visibility = isCoordinateMode ? Visibility.Collapsed : Visibility.Visible;
+        
+        // 输出日志记录当前切换的模式
+        _logger.Debug($"输入模式已切换为: {(isCoordinateMode ? "按键模式" : "坐标模式")}");
+        
+        // 提示信息不需要更新，因为每个模式下有自己的按钮，按钮在XAML中已经设置了固定的提示
     }
 }

@@ -75,6 +75,7 @@ public class HotkeyService
     private bool _isSequenceRunning; // 序列模式是否正在运行
     private bool _isInputFocused; // 输入焦点是否在当前窗口
     private bool _isHotkeyControlEnabled = true; // 热键总开关状态
+    private bool _isRegisteringHotkey = false; // 是否正在注册热键
 
     // 保持回调函数的引用
     private readonly HookProc _mouseProcDelegate; // 鼠标钩子回调函数
@@ -178,14 +179,17 @@ public class HotkeyService
     {
         try
         {
+            _isRegisteringHotkey = true; // 进入热键注册模式
             _hotkeyVirtualKey = GetVirtualKeyFromLyKey(keyCode); // 转换为Windows虚拟键码
             _pendingHotkey = keyCode; // 保存LyKeys按键码
             SaveHotkeyConfig(keyCode, modifiers); // 保存到配置文件
+            _isRegisteringHotkey = false; // 退出热键注册模式
             return true;
         }
         catch (Exception ex)
         {
             _logger.Error("注册热键失败", ex);
+            _isRegisteringHotkey = false; // 确保异常情况下也能退出注册模式
             return false;
         }
     }
@@ -271,8 +275,8 @@ public class HotkeyService
                     return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);
                 }
 
-                // 如果是热键，检查是否可以触发
-                if (isHotkey && !CanTriggerHotkey())
+                // 如果是热键，并且不在注册模式，检查是否可以触发
+                if (isHotkey && !_isRegisteringHotkey && !CanTriggerHotkey())
                     return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);
 
                 // 处理热键
@@ -363,7 +367,7 @@ public class HotkeyService
                 var isTargetWindowActive = _targetWindowHandle == IntPtr.Zero || activeWindow == _targetWindowHandle;
 
                 // 如果目标窗口未激活，停止当前执行
-                if (!isTargetWindowActive && _isSequenceRunning)
+                if (!isTargetWindowActive && _isSequenceRunning && !_isRegisteringHotkey)
                 {
                     _lyKeysService.EmergencyStop(); // 使用紧急停止
                     StopSequence();
@@ -373,10 +377,10 @@ public class HotkeyService
                 var hookStruct = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT))!;
                 var wParamInt = (int)wParam;
 
-                // 如果是鼠标热键且窗口未激活，直接返回
+                // 如果是鼠标热键且窗口未激活，且不是在注册热键模式下，直接返回
                 if ((wParamInt == WM_XBUTTONDOWN || wParamInt == WM_MBUTTONDOWN ||
                      wParamInt == WM_XBUTTONUP || wParamInt == WM_MBUTTONUP ||
-                     wParamInt == WM_MOUSEWHEEL) && !isTargetWindowActive)
+                     wParamInt == WM_MOUSEWHEEL) && !isTargetWindowActive && !_isRegisteringHotkey)
                     return CallNextHookEx(_mouseHookHandle, nCode, wParam, lParam);
 
                 switch (wParamInt)
@@ -411,6 +415,10 @@ public class HotkeyService
     {
         var buttonCode = GetMouseButtonCode(wParam, hookStruct);
         var isHotkey = buttonCode == _pendingHotkey;
+
+        // 如果是在注册热键模式，则不触发序列控制
+        if (isHotkey && _isRegisteringHotkey)
+            return;
 
         if (isHotkey)
         {
@@ -451,6 +459,10 @@ public class HotkeyService
         var buttonCode = GetMouseButtonCode(wParam, hookStruct);
         var isHotkey = buttonCode == _pendingHotkey;
 
+        // 如果是在注册热键模式，则不触发序列控制
+        if (isHotkey && _isRegisteringHotkey)
+            return;
+
         if (isHotkey)
         {
             if (_lyKeysService.IsHoldMode)
@@ -481,6 +493,10 @@ public class HotkeyService
         var buttonCode = wheelDelta > 0 ? LyKeysCode.VK_WHEELUP : LyKeysCode.VK_WHEELDOWN;
 
         var isHotkey = buttonCode == _pendingHotkey;
+
+        // 如果是在注册热键模式，则不触发序列控制
+        if (isHotkey && _isRegisteringHotkey)
+            return;
 
         if (isHotkey)
         {
@@ -755,6 +771,10 @@ public class HotkeyService
     // 总开关：判断是否可以触发热键
     private bool CanTriggerHotkey()
     {
+        // 如果正在注册热键，跳过窗口状态检查
+        if (_isRegisteringHotkey)
+            return true;
+
         // 首先检查热键总开关是否启用
         if (!_isHotkeyControlEnabled)
         {
