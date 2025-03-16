@@ -447,8 +447,8 @@
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="32" />
                                                 <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="80" />
-                                                <ColumnDefinition Width="50" />
+                                                <ColumnDefinition Width="70" />
+                                                <ColumnDefinition Width="60" />
                                             </Grid.ColumnDefinitions>
 
                                             <!-- 删除列表头 -->
