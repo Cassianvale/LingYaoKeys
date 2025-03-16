@@ -421,14 +421,31 @@ namespace WpfApp.ViewModels
             {
                 if (_isExecuting != value)
                 {
+                    _logger.Debug($"执行状态改变: {_isExecuting} -> {value}");
                     _isExecuting = value;
                     OnPropertyChanged(nameof(IsExecuting));
                     OnPropertyChanged(nameof(IsNotExecuting));
                     
-                    // 添加标记，只有在特定情况下才更新浮窗状态
-                    // UpdateFloatingStatus方法已在StartKeyMapping和StopKeyMapping中显式调用
-                    // 此处不再调用，避免重复更新
-                    // UpdateFloatingStatus();
+                    // 确保状态变更能直接同步到浮窗ViewModel
+                    try {
+                        if (_floatingWindow != null)
+                        {
+                            // 反射获取DataContext
+                            var type = _floatingWindow.GetType();
+                            var propInfo = type.GetProperty("DataContext");
+                            if (propInfo != null)
+                            {
+                                var dataContext = propInfo.GetValue(_floatingWindow);
+                                if (dataContext is FloatingStatusViewModel viewModel)
+                                {
+                                    viewModel.IsExecuting = value;
+                                    _logger.Debug($"已直接更新浮窗ViewModel状态: IsExecuting={value}");
+                                }
+                            }
+                        }
+                    } catch (Exception ex) {
+                        _logger.Error("在执行状态变更时更新浮窗状态失败", ex);
+                    }
                 }
             }
         }
@@ -655,7 +672,7 @@ namespace WpfApp.ViewModels
             }
         }
 
-        private void UpdateFloatingStatus()
+        private void UpdateFloatingStatus(bool forceUpdate = false)
         {
             try
             {
@@ -663,8 +680,8 @@ namespace WpfApp.ViewModels
                 lock (_floatingStatusUpdateLock)
                 {
                     var now = DateTime.Now;
-                    // 如果距离上次更新不足节流间隔，则跳过本次更新
-                    if ((now - _lastFloatingStatusUpdateTime).TotalMilliseconds < FLOATING_STATUS_UPDATE_THROTTLE_MS)
+                    // 如果不是强制更新且距离上次更新不足节流间隔，则跳过本次更新
+                    if (!forceUpdate && (now - _lastFloatingStatusUpdateTime).TotalMilliseconds < FLOATING_STATUS_UPDATE_THROTTLE_MS)
                     {
                         _logger.Debug("浮窗状态更新被节流控制跳过");
                         return;
@@ -674,6 +691,7 @@ namespace WpfApp.ViewModels
                     _lastFloatingStatusUpdateTime = now;
                 }
                 
+                _logger.Debug($"执行浮窗状态更新(forceUpdate={forceUpdate})");
                 UpdateFloatingStatusInternal();
             }
             catch (Exception ex)
@@ -686,22 +704,121 @@ namespace WpfApp.ViewModels
         {
             if (_floatingWindow != null)
             {
-                // 使用反射获取DataContext属性
-                System.Type type = _floatingWindow.GetType();
-                System.Reflection.PropertyInfo propInfo = type.GetProperty("DataContext");
-                if (propInfo != null)
+                try
                 {
-                    var dataContext = propInfo.GetValue(_floatingWindow);
-                    if (dataContext is FloatingStatusViewModel viewModel)
+                    // 尝试直接获取和保存ViewModel引用，减少后续反射操作
+                    if (_floatingViewModel == null)
                     {
-                        viewModel.IsHotkeyControlEnabled = _isHotkeyControlEnabled; // 同步热键总开关状态
-                        viewModel.IsExecuting = IsExecuting; // 同步执行状态
-                        _logger.Debug($"更新浮窗状态: 热键总开关={_isHotkeyControlEnabled}, 执行状态={IsExecuting}");
+                        // 使用反射获取DataContext属性
+                        System.Type type = _floatingWindow.GetType();
+                        System.Reflection.PropertyInfo propInfo = type.GetProperty("DataContext");
+                        if (propInfo != null)
+                        {
+                            var dataContext = propInfo.GetValue(_floatingWindow);
+                            if (dataContext is FloatingStatusViewModel viewModel)
+                            {
+                                _floatingViewModel = viewModel;
+                                _logger.Debug("成功获取并缓存浮窗ViewModel引用");
+                            }
+                        }
+                    }
+                    
+                    // 如果已有缓存的ViewModel引用，直接使用
+                    if (_floatingViewModel != null)
+                    {
+                        _logger.Debug($"更新浮窗前状态: IsHotkeyControlEnabled={_floatingViewModel.IsHotkeyControlEnabled}, IsExecuting={_floatingViewModel.IsExecuting}");
                         
-                        // 直接更新边框颜色，确保边框样式与状态同步
-                        _floatingWindow.UpdateBorderStyle(viewModel.StatusText);
+                        // 更新ViewModel状态
+                        _floatingViewModel.IsHotkeyControlEnabled = _isHotkeyControlEnabled; // 同步热键总开关状态
+                        _floatingViewModel.IsExecuting = _isExecuting; // 同步执行状态
+                        
+                        _logger.Debug($"更新浮窗状态完成: 热键总开关={_isHotkeyControlEnabled}, 执行状态={_isExecuting}, 当前状态文本={_floatingViewModel.StatusText}");
+                        
+                        try
+                        {
+                            // 直接更新边框颜色，确保边框样式与状态同步
+                            _floatingWindow.UpdateBorderStyle(_floatingViewModel.StatusText);
+                            _logger.Debug($"已更新浮窗边框样式，状态文本: {_floatingViewModel.StatusText}");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error("更新浮窗边框样式时出错", ex);
+                        }
+                    }
+                    // 如果没有缓存的ViewModel，则使用反射方式
+                    else
+                    {
+                        // 使用反射获取DataContext属性
+                        System.Type type = _floatingWindow.GetType();
+                        System.Reflection.PropertyInfo propInfo = type.GetProperty("DataContext");
+                        if (propInfo != null)
+                        {
+                            var dataContext = propInfo.GetValue(_floatingWindow);
+                            if (dataContext is FloatingStatusViewModel viewModel)
+                            {
+                                _logger.Debug($"更新浮窗前状态: IsHotkeyControlEnabled={viewModel.IsHotkeyControlEnabled}, IsExecuting={viewModel.IsExecuting}");
+                                
+                                // 更新ViewMode状态
+                                viewModel.IsHotkeyControlEnabled = _isHotkeyControlEnabled; // 同步热键总开关状态
+                                viewModel.IsExecuting = _isExecuting; // 同步执行状态
+                                
+                                _logger.Debug($"更新浮窗状态完成: 热键总开关={_isHotkeyControlEnabled}, 执行状态={_isExecuting}, 当前状态文本={viewModel.StatusText}");
+                                
+                                // 缓存ViewModel引用，减少后续反射操作
+                                _floatingViewModel = viewModel;
+                                
+                                try
+                                {
+                                    // 直接更新边框颜色，确保边框样式与状态同步
+                                    _floatingWindow.UpdateBorderStyle(viewModel.StatusText);
+                                    _logger.Debug($"已更新浮窗边框样式，状态文本: {viewModel.StatusText}");
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.Error("更新浮窗边框样式时出错", ex);
+                                }
+                            }
+                            else
+                            {
+                                _logger.Warning($"浮窗DataContext类型错误: {dataContext?.GetType().Name ?? "null"}");
+                            }
+                        }
+                        else
+                        {
+                            _logger.Warning("无法获取浮窗DataContext属性");
+                        }
                     }
                 }
+                catch (Exception ex)
+                {
+                    _logger.Error("更新浮窗状态内部处理时出错", ex);
+                    
+                    // 尝试重新创建浮窗ViewModel以修复问题
+                    try {
+                        if (_floatingViewModel == null)
+                        {
+                            _floatingViewModel = new FloatingStatusViewModel();
+                            _floatingViewModel.IsHotkeyControlEnabled = _isHotkeyControlEnabled;
+                            _floatingViewModel.IsExecuting = _isExecuting;
+                            _logger.Debug("已创建新的浮窗ViewModel实例");
+                            
+                            // 尝试更新浮窗DataContext
+                            var type = _floatingWindow.GetType();
+                            var propInfo = type.GetProperty("DataContext");
+                            if (propInfo != null)
+                            {
+                                propInfo.SetValue(_floatingWindow, _floatingViewModel);
+                                _logger.Debug("已成功重置浮窗DataContext");
+                            }
+                        }
+                    } catch (Exception innerEx) {
+                        _logger.Error("尝试修复浮窗ViewModel失败", innerEx);
+                    }
+                }
+            }
+            else
+            {
+                _logger.Debug("浮窗对象为null，无法更新状态");
             }
         }
 
@@ -1011,9 +1128,23 @@ namespace WpfApp.ViewModels
                     // IsExecuting和更新浮窗已在StopKeyMapping中集中处理
                     if (_isExecuting)
                     {
+                        _logger.Debug("收到序列停止事件，但UI仍显示运行中状态，进行状态同步");
+                        _mainViewModel.UpdateStatusMessage("已停止按键序列", false);
+                        
+                        // 确保UI状态一致性，即使StopKeyMapping已被调用，也需要强制更新一次状态
+                        _isExecuting = false;
+                        OnPropertyChanged(nameof(IsExecuting));
+                        OnPropertyChanged(nameof(IsNotExecuting));
+                        
+                        // 强制更新浮窗状态，不受节流控制
+                        UpdateFloatingStatus(true);
+                        _logger.Debug("已强制更新浮窗状态，确保显示已停止");
+                    }
+                    else
+                    {
+                        _logger.Debug("收到序列停止事件，UI状态已是停止状态");
                         _mainViewModel.UpdateStatusMessage("已停止按键序列", false);
                     }
-                    
                 };
             }
 
@@ -1434,30 +1565,41 @@ namespace WpfApp.ViewModels
             {
                 if (_lyKeysService == null) return;
 
-                _logger.Debug($"开始停止按键映射，当前模式: {(SelectedKeyMode == 1 ? "按压模式" : "顺序模式")}");
+                _logger.Debug($"开始停止按键映射，当前模式: {(SelectedKeyMode == 1 ? "按压模式" : "顺序模式")}, 当前执行状态: {_isExecuting}");
 
                 // 标记状态变更，但暂不触发更新
                 bool wasExecuting = IsExecuting;
+                _logger.Debug($"当前执行状态标记: wasExecuting={wasExecuting}");
 
                 // 先更新UI状态变量，但不触发UI更新和事件
                 _isExecuting = false;
                 IsHotkeyEnabled = false;
+                _logger.Debug("UI状态变量已更新: _isExecuting=false, IsHotkeyEnabled=false");
 
                 // 再停止热键服务
+                _logger.Debug("即将调用热键服务的StopSequence()方法");
                 _hotkeyService?.StopSequence();
+                _logger.Debug("热键服务StopSequence()调用完成");
 
                 // 然后停止驱动服务，但保留模式设置
                 _lyKeysService.IsEnabled = false;
+                _logger.Debug("按键服务已禁用: _lyKeysService.IsEnabled=false");
 
                 // 最后在已执行状态发生变化时一次性更新UI
                 if (wasExecuting)
                 {
+                    _logger.Debug("检测到之前的执行状态为true，即将更新UI");
                     // 通知属性变更
                     OnPropertyChanged(nameof(IsExecuting));
                     OnPropertyChanged(nameof(IsNotExecuting));
                     
-                    // 一次性更新浮窗状态
-                    UpdateFloatingStatus();
+                    // 一次性更新浮窗状态 - 使用强制更新确保状态立即生效
+                    UpdateFloatingStatus(true);
+                    _logger.Debug("UI状态更新完成：属性变更通知已发送，浮窗状态已强制更新");
+                }
+                else
+                {
+                    _logger.Debug("之前的执行状态为false，跳过UI更新");
                 }
 
                 _logger.Debug("按键映射已停止");
@@ -1470,7 +1612,8 @@ namespace WpfApp.ViewModels
                 IsHotkeyEnabled = false;
                 OnPropertyChanged(nameof(IsExecuting));
                 OnPropertyChanged(nameof(IsNotExecuting));
-                UpdateFloatingStatus();
+                UpdateFloatingStatus(true); // 使用强制更新确保异常情况下也能更新状态
+                _logger.Debug("异常处理：已重置所有状态并强制更新UI");
             }
         }
 
