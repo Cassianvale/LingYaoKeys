@@ -1038,6 +1038,38 @@ namespace WpfApp.ViewModels
                 // 加载按键列表和选中状态
                 if (config.keys != null)
                 {
+                    // 验证并修正配置中的按键项
+                    foreach (var keyConfig in config.keys)
+                    {
+                        // 验证坐标类型按键配置
+                        if (keyConfig.Type == KeyItemType.Coordinates)
+                        {
+                            // 坐标类型必须将Code设为null
+                            keyConfig.Code = null;
+                            
+                            // 坐标不能同时为0,0，至少有一个需要大于0
+                            if (keyConfig.X == 0 && keyConfig.Y == 0)
+                            {
+                                _logger.Warning($"修正无效的坐标配置: ({keyConfig.X}, {keyConfig.Y}) => (1, 1)");
+                                keyConfig.X = 1;
+                                keyConfig.Y = 1;
+                            }
+                        }
+                        // 验证键盘类型按键配置
+                        else if (keyConfig.Type == KeyItemType.Keyboard)
+                        {
+                            // 键盘类型的X和Y应设为0
+                            keyConfig.X = 0;
+                            keyConfig.Y = 0;
+
+                            // 如果键盘类型但Code为null，则记录警告
+                            if (!keyConfig.Code.HasValue)
+                            {
+                                _logger.Warning($"跳过无效的键盘配置: Code为null");
+                            }
+                        }
+                    }
+
                     KeyList.Clear();
                     foreach (var keyConfig in config.keys)
                     {
@@ -1463,16 +1495,30 @@ namespace WpfApp.ViewModels
                         keyConfig = new KeyConfig(item.KeyCode, item.IsSelected)
                         {
                             KeyInterval = item.KeyInterval,
-                            Type = KeyItemType.Keyboard
+                            Type = KeyItemType.Keyboard,
+                            X = 0,  // 确保键盘类型的X和Y为0
+                            Y = 0
                         };
                     }
                     else // KeyItemType.Coordinates
                     {
+                        // 确保坐标不能同时为0
+                        int x = item.X;
+                        int y = item.Y;
+                        
+                        if (x == 0 && y == 0)
+                        {
+                            _logger.Warning($"修正无效的坐标配置: ({x}, {y}) => (1, 1)");
+                            x = 1;
+                            y = 1;
+                        }
+                        
                         // 创建坐标配置
-                        keyConfig = new KeyConfig(item.X, item.Y, item.IsSelected)
+                        keyConfig = new KeyConfig(x, y, item.IsSelected)
                         {
                             KeyInterval = item.KeyInterval,
-                            Type = KeyItemType.Coordinates
+                            Type = KeyItemType.Coordinates,
+                            Code = null  // 确保坐标类型的Code为null
                         };
                     }
                     
@@ -1581,6 +1627,7 @@ namespace WpfApp.ViewModels
             }
         }
 
+        // 检查两个按键配置列表是否相等
         private bool AreKeyConfigsEqual(List<KeyConfig> list1, List<KeyConfig> list2)
         {
             if (list1 == null || list2 == null)
@@ -1592,7 +1639,10 @@ namespace WpfApp.ViewModels
             for (var i = 0; i < list1.Count; i++)
                 if (list1[i].Code != list2[i].Code ||
                     list1[i].IsSelected != list2[i].IsSelected ||
-                    list1[i].KeyInterval != list2[i].KeyInterval)
+                    list1[i].KeyInterval != list2[i].KeyInterval ||
+                    list1[i].Type != list2[i].Type ||
+                    list1[i].X != list2[i].X ||
+                    list1[i].Y != list2[i].Y)
                     return false;
 
             return true;
@@ -2213,8 +2263,20 @@ namespace WpfApp.ViewModels
                     return;
                 }
 
+                // 确保坐标不能同时为0
+                int x = _currentX.Value;
+                int y = _currentY.Value;
+                
+                if (x == 0 && y == 0)
+                {
+                    _logger.Warning("坐标不能同时为(0,0)，已自动修正为(1,1)");
+                    _mainViewModel.UpdateStatusMessage("坐标不能同时为(0,0)，已自动修正为(1,1)", true);
+                    x = 1;
+                    y = 1;
+                }
+
                 // 创建坐标类型的KeyItem
-                var newCoordinate = new KeyItem(_currentX.Value, _currentY.Value, _lyKeysService);
+                var newCoordinate = new KeyItem(x, y, _lyKeysService);
                 newCoordinate.KeyInterval = _keyInterval; // 使用当前默认间隔值
                 
                 // 添加事件订阅
@@ -2242,8 +2304,8 @@ namespace WpfApp.ViewModels
                 SaveConfig();
                 
                 // 提示和日志
-                _mainViewModel.UpdateStatusMessage($"已添加坐标: [{_currentX.Value}, {_currentY.Value}]", false);
-                _logger.Debug($"已添加坐标: [{_currentX.Value}, {_currentY.Value}]");
+                _mainViewModel.UpdateStatusMessage($"已添加坐标: [{x}, {y}]", false);
+                _logger.Debug($"已添加坐标: [{x}, {y}]");
                 
                 // 重置输入状态
                 _currentX = null;
