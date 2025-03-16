@@ -235,8 +235,12 @@ public class ListBoxDragDropBehavior : Behavior<System.Windows.Controls.ListBox>
                             // 清除所有拖拽标记
                             ClearAllDragTargets(listBox);
 
-                            // 触发保存
-                            if (listBox.DataContext is KeyMappingViewModel viewModel) viewModel.SaveConfig();
+                            // 更新HotkeyService的按键列表并触发保存
+                            if (listBox.DataContext is KeyMappingViewModel viewModel) 
+                            {
+                                viewModel.SyncKeyListToHotkeyService();
+                                viewModel.SaveConfig();
+                            }
                         }
                     }
                 }

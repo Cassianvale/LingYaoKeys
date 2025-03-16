@@ -486,7 +486,18 @@ public partial class KeyMappingView : Page
                 _logger.Debug("数字输入框失去焦点");
             }
 
-            // 处理空值情况，设置默认值
+            // 对于坐标输入框，允许为空
+            if (textBox.Name == "XCoordinateInputBox" || textBox.Name == "YCoordinateInputBox")
+            {
+                // 对坐标输入框，允许为空，不设置默认值
+                _logger.Debug($"坐标输入框 {textBox.Name} 失去焦点，当前值为: {textBox.Text}");
+                
+                // 确保绑定更新
+                textBox.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateSource();
+                return;
+            }
+
+            // 处理其他数字输入框的空值情况，设置默认值
             if (string.IsNullOrWhiteSpace(textBox.Text))
             {
                 textBox.Text = "5"; // 设置默认值为5
@@ -1186,8 +1197,15 @@ public partial class KeyMappingView : Page
                     // 通知用户界面已更新
                     KeyInputBox.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateSource();
                     
+                    // 确保ViewModel中的值也被清空（双重保险）
+                    if (ViewModel != null && ViewModel.GetType().GetProperty("CurrentKey") != null)
+                    {
+                        // 通过反射清空CurrentKey，因为它可能是private
+                        ViewModel.GetType().GetProperty("CurrentKey")?.SetValue(ViewModel, null);
+                    }
+                    
                     // 记录日志
-                    _logger.Debug("添加按键后已清空输入框");
+                    _logger.Debug("添加按键后已清空输入框和ViewModel属性");
                 }), System.Windows.Threading.DispatcherPriority.Background);
             }
         }
@@ -1211,6 +1229,7 @@ public partial class KeyMappingView : Page
                 if (XCoordinateInputBox != null)
                 {
                     XCoordinateInputBox.Clear();
+                    // 强制更新绑定
                     XCoordinateInputBox.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateSource();
                 }
                 
@@ -1218,11 +1237,19 @@ public partial class KeyMappingView : Page
                 if (YCoordinateInputBox != null)
                 {
                     YCoordinateInputBox.Clear();
+                    // 强制更新绑定
                     YCoordinateInputBox.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateSource();
                 }
                 
+                // 确保ViewModel中的值也被清空（双重保险）
+                if (ViewModel != null)
+                {
+                    ViewModel.CurrentX = null;
+                    ViewModel.CurrentY = null;
+                }
+                
                 // 记录日志
-                _logger.Debug("添加坐标后已清空坐标输入框");
+                _logger.Debug("添加坐标后已清空坐标输入框和ViewModel属性");
                 
             }), System.Windows.Threading.DispatcherPriority.Background);
         }

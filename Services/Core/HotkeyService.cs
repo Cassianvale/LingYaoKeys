@@ -6,6 +6,7 @@ using System.ComponentModel;
 using WpfApp.ViewModels;
 using WpfApp.Services.Config;
 using WpfApp.Services.Utils;
+using WpfApp.Services.Models;
 
 // 提供快捷键服务
 namespace WpfApp.Services.Core;
@@ -131,10 +132,10 @@ public class HotkeyService
         // 加载按键列表
         if (config.keys?.Count > 0)
         {
-            // 只获取选中的按键
+            // 只获取选中的键盘类型按键，并且确保Code有值
             var selectedKeys = config.keys
-                .Where(k => k.IsSelected)
-                .Select(k => k.Code)
+                .Where(k => k.IsSelected && k.Type == KeyItemType.Keyboard && k.Code.HasValue)
+                .Select(k => k.Code.Value)  // 提取非空值
                 .ToList();
 
             if (selectedKeys.Count > 0)
@@ -719,27 +720,23 @@ public class HotkeyService
     // 设置按键序列
     public void SetKeySequence(List<KeyItemSettings> keySettings)
     {
-        // 仅保存按键码列表
-        _keyList = keySettings.Select(k => k.KeyCode).ToList();
-
-        // 保存按键设置，包括每个按键的间隔
-        _keySettings = keySettings.ToList();
-
-        _logger.Debug($"设置按键序列: 按键数={keySettings.Count}, 使用独立按键间隔");
-    }
-
-    // 旧方法保留用于兼容现有代码，但标记为弃用
-    [Obsolete("请使用接受KeyItemSettings列表的重载")]
-    public void SetKeySequence(List<LyKeysCode> keys, int interval)
-    {
-        // 转换为新的格式调用新方法
-        var settings = keys.Select(k => new KeyItemSettings
+        try
         {
-            KeyCode = k,
-            Interval = interval
-        }).ToList();
+            // 筛选出键盘类型且KeyCode有值的按键，然后提取KeyCode值组成新列表
+            _keyList = keySettings
+                .Where(k => k.Type == KeyItemType.Keyboard && k.KeyCode.HasValue)
+                .Select(k => k.KeyCode.Value)
+                .ToList();
 
-        SetKeySequence(settings);
+            // 保存完整的按键设置，包括坐标类型
+            _keySettings = keySettings.ToList();
+
+            _logger.Debug($"设置按键序列: 按键数={keySettings.Count}, 使用独立按键间隔");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("设置按键序列失败", ex);
+        }
     }
 
     // 判断是否为鼠标按键

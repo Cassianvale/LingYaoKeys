@@ -338,7 +338,7 @@
                             
                             <!-- 添加坐标按钮 -->
                             <Button Style="{StaticResource RoundedShadowButtonSmall}"
-                                    
+                                    Command="{Binding AddCoordinateCommand}"
                                     Name="btnAddCoordinate"
                                     IsEnabled="{Binding IsNotExecuting}"
                                     Width="95" Height="35"
@@ -379,7 +379,7 @@
                                      Style="{StaticResource ModernTextBox}"
                                      Width="80"
                                      IsEnabled="{Binding IsNotExecuting}"
-                                     TextAlignment="Center"
+                                     Text="{Binding CurrentX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, TargetNullValue=''}"
                                      Tag="X坐标"
                                      Margin="0,0,5,0"
                                      PreviewTextInput="NumberValidationTextBox"
@@ -401,7 +401,7 @@
                                      Style="{StaticResource ModernTextBox}"
                                      Width="80"
                                      IsEnabled="{Binding IsNotExecuting}"
-                                     TextAlignment="Center"
+                                     Text="{Binding CurrentY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, TargetNullValue=''}"
                                      Tag="Y坐标"
                                      PreviewTextInput="NumberValidationTextBox"
                                      GotFocus="NumberInput_GotFocus"
@@ -462,14 +462,14 @@
                                                            Foreground="#505050"
                                                            Text="" />
 
-                                                <!-- 按键名称列表头 -->
+                                                <!-- 按键名称/坐标列表头 -->
                                                 <TextBlock Grid.Column="1"
                                                            Margin="4,0,0,0"
                                                            VerticalAlignment="Center"
                                                            FontSize="12"
                                                            FontWeight="SemiBold"
                                                            Foreground="#505050"
-                                                           Text="按键名称" />
+                                                           Text="按键名称/坐标" />
 
                                                 <!-- 间隔列表头 -->
                                                 <TextBlock Grid.Column="2"

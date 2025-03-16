@@ -2,6 +2,7 @@ using System.Reflection;
 using Newtonsoft.Json;
 using System.Windows.Input;
 using WpfApp.Services.Core;
+using WpfApp.Services.Models;
 
 namespace WpfApp.Services.Config;
 
@@ -59,15 +60,31 @@ public class VersionInfo
 
 public class KeyConfig
 {
-    public LyKeysCode Code { get; set; }
+    public LyKeysCode? Code { get; set; }  // 使用可空类型，坐标类型不需要此属性
     public bool IsSelected { get; set; }
     public int KeyInterval { get; set; }
+    public KeyItemType Type { get; set; } = KeyItemType.Keyboard;
+    public int X { get; set; }
+    public int Y { get; set; }
 
+    // 键盘按键构造函数
     public KeyConfig(LyKeysCode code, bool isSelected = true, int keyInterval = 5)
     {
         Code = code;
         IsSelected = isSelected;
         KeyInterval = keyInterval;
+        Type = KeyItemType.Keyboard;
+    }
+    
+    // 坐标构造函数
+    public KeyConfig(int x, int y, bool isSelected = true, int keyInterval = 5)
+    {
+        X = x;
+        Y = y;
+        IsSelected = isSelected;
+        KeyInterval = keyInterval;
+        Type = KeyItemType.Coordinates;
+        Code = null; // 坐标类型不使用Code属性
     }
 }
 

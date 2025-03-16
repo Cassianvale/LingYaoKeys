@@ -104,8 +104,11 @@ public class KeyMappingService
     {
         if (IsExecuting) return;
 
-        var selectedKeys = GetSelectedKeys();
-        if (selectedKeys.Count == 0)
+        // 获取选中的键盘类型按键
+        var keyboardKeys = GetSelectedKeyboardKeys();
+        var selectedItems = GetSelectedItems();
+        
+        if (selectedItems.Count == 0)
         {
             _logger.Warning("没有选中的按键");
             return;
@@ -113,24 +116,31 @@ public class KeyMappingService
 
         try
         {
-            // 设置按键列表到驱动服务
-            _lyKeysService.SetKeyList(selectedKeys);
+            // 设置按键列表到驱动服务 - 仅键盘类型
+            _lyKeysService.SetKeyList(keyboardKeys);
 
-            // 将选中的按键及其间隔传递给HotkeyService
-            _hotkeyService.SetKeySequence(
-                _keyList.Where(k => k.IsSelected)
-                    .Select(k => new KeyItemSettings
-                    {
-                        KeyCode = k.KeyCode,
-                        Interval = k.KeyInterval
-                    }).ToList());
+            // 创建按键设置，支持不同类型
+            var keySettings = selectedItems.Select(k => 
+            {
+                if (k.Type == KeyItemType.Keyboard)
+                {
+                    return KeyItemSettings.CreateKeyboard(k.KeyCode, k.KeyInterval);
+                }
+                else // KeyItemType.Coordinates
+                {
+                    return KeyItemSettings.CreateCoordinates(k.X, k.Y, k.KeyInterval);
+                }
+            }).ToList();
+            
+            // 传递给HotkeyService所有类型的按键
+            _hotkeyService.SetKeySequence(keySettings);
 
             _lyKeysService.IsHoldMode = isHoldMode;
             _lyKeysService.IsEnabled = true;
 
             IsExecuting = true;
             ExecutionStateChanged?.Invoke(true);
-            _logger.Debug($"开始按键映射: 模式={isHoldMode}, 按键数={selectedKeys.Count}");
+            _logger.Debug($"开始按键映射: 模式={isHoldMode}, 按键数={selectedItems.Count}");
         }
         catch (Exception ex)
         {
@@ -192,29 +202,61 @@ public class KeyMappingService
 
     private void UpdateHotkeyServiceKeyList()
     {
-        var selectedKeys = GetSelectedKeys();
-
-        // 将选中的按键及其间隔传递给HotkeyService
-        _hotkeyService.SetKeySequence(
-            _keyList.Where(k => k.IsSelected)
-                .Select(k => new KeyItemSettings
+        try
+        {
+            // 获取选中的按键列表
+            var selectedItems = _keyList.Where(k => k.IsSelected).ToList();
+            
+            // 创建KeyItemSettings，根据类型创建不同的设置
+            var keySettings = selectedItems.Select(k => 
+            {
+                if (k.Type == KeyItemType.Keyboard)
                 {
-                    KeyCode = k.KeyCode,
-                    Interval = k.KeyInterval
-                }).ToList());
-
-        _lyKeysService.SetKeyList(selectedKeys);
-        _logger.Debug($"更新按键列表 - 选中按键数: {selectedKeys.Count}, 使用独立按键间隔");
+                    return KeyItemSettings.CreateKeyboard(k.KeyCode, k.KeyInterval);
+                }
+                else // KeyItemType.Coordinates
+                {
+                    return KeyItemSettings.CreateCoordinates(k.X, k.Y, k.KeyInterval);
+                }
+            }).ToList();
+            
+            // 将所有设置（包括键盘和坐标）传递给HotkeyService
+            _hotkeyService.SetKeySequence(keySettings);
+            
+            // 只提取键盘类型的按键发送给LyKeysService
+            var keyboardKeys = GetSelectedKeyboardKeys();
+            _lyKeysService.SetKeyList(keyboardKeys);
+            
+            _logger.Debug($"更新按键列表 - 选中按键数: {selectedItems.Count}, 键盘按键数: {keyboardKeys.Count}, 使用独立按键间隔");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("更新按键列表失败", ex);
+        }
     }
 
-    private List<LyKeysCode> GetSelectedKeys()
+    /// <summary>
+    /// 获取所有选中的按键（包括键盘和坐标类型）
+    /// </summary>
+    private List<KeyItem> GetSelectedItems()
     {
-        return _keyList.Where(k => k.IsSelected).Select(k => k.KeyCode).ToList();
+        return _keyList.Where(k => k.IsSelected).ToList();
+    }
+    
+    /// <summary>
+    /// 获取选中的键盘类型按键
+    /// </summary>
+    private List<LyKeysCode> GetSelectedKeyboardKeys()
+    {
+        return _keyList
+            .Where(k => k.IsSelected && k.Type == KeyItemType.Keyboard)
+            .Select(k => k.KeyCode)
+            .ToList();
     }
 
     private bool IsKeyInList(LyKeysCode keyCode)
     {
-        return _keyList.Any(k => k.KeyCode.Equals(keyCode));
+        return _keyList.Any(k => k.Type == KeyItemType.Keyboard && k.KeyCode.Equals(keyCode));
     }
 
     private bool IsHotkeyConflict(LyKeysCode keyCode)
@@ -230,10 +272,32 @@ public class KeyMappingService
         _keyList.Clear();
         foreach (var keyConfig in config.keys)
         {
-            var keyItem = new KeyItem(keyConfig.Code, _lyKeysService)
+            KeyItem keyItem;
+            
+            // 根据类型创建不同的KeyItem
+            if (keyConfig.Type == KeyItemType.Keyboard && keyConfig.Code.HasValue)
             {
-                IsSelected = keyConfig.IsSelected
-            };
+                // 创建键盘按键
+                keyItem = new KeyItem(keyConfig.Code.Value, _lyKeysService)
+                {
+                    IsSelected = keyConfig.IsSelected
+                };
+            }
+            else if (keyConfig.Type == KeyItemType.Coordinates)
+            {
+                // 创建坐标按键
+                keyItem = new KeyItem(keyConfig.X, keyConfig.Y, _lyKeysService)
+                {
+                    IsSelected = keyConfig.IsSelected
+                };
+            }
+            else
+            {
+                // 跳过无效的配置项
+                _logger.Warning($"跳过无效的按键配置: 类型={keyConfig.Type}, Code={keyConfig.Code}");
+                continue;
+            }
+            
             keyItem.SelectionChanged += (s, isSelected) => KeyListChanged?.Invoke();
             _keyList.Add(keyItem);
         }
@@ -252,8 +316,33 @@ public class KeyMappingService
         config.stopKey = _hotkey;
         config.stopMods = _modifiers;
 
-        config.keys = _keyList
-            .Select(k => new KeyConfig(k.KeyCode, k.IsSelected))
-            .ToList();
+        config.keys = new List<KeyConfig>();
+        
+        // 根据不同类型创建不同的KeyConfig
+        foreach (var item in _keyList)
+        {
+            KeyConfig keyConfig;
+            
+            if (item.Type == KeyItemType.Keyboard)
+            {
+                // 创建键盘按键配置
+                keyConfig = new KeyConfig(item.KeyCode, item.IsSelected)
+                {
+                    KeyInterval = item.KeyInterval,
+                    Type = KeyItemType.Keyboard
+                };
+            }
+            else // KeyItemType.Coordinates
+            {
+                // 创建坐标配置
+                keyConfig = new KeyConfig(item.X, item.Y, item.IsSelected)
+                {
+                    KeyInterval = item.KeyInterval,
+                    Type = KeyItemType.Coordinates
+                };
+            }
+            
+            config.keys.Add(keyConfig);
+        }
     }
 }
