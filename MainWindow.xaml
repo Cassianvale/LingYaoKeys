@@ -155,7 +155,7 @@
                                     Grid.Column="0"
                                     x:Name="NavPanel"
                                     Background="White"
-                                    BorderThickness="0,0,1,0"
+                                    BorderThickness="0,0,0,0"
                                     BorderBrush="#EEEEEE">
 
                                 <DockPanel LastChildFill="True">
