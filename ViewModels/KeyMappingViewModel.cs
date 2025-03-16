@@ -1148,16 +1148,24 @@ namespace WpfApp.ViewModels
                 // 1. 从AppConfig获取配置值，设置到ViewModel的属性中
                 // 2. ViewModel的属性setter会自动将值同步到LyKeysService服务层
                 // 3. 形成"配置 -> ViewModel -> 服务层"的单向数据流
+                // 加载按键间隔
                 _keyInterval = config.interval; // 先直接设置字段，避免触发属性变更事件
-                _lyKeysService.KeyInterval = config.interval; // 再同步到服务
-                SelectedKeyMode = config.keyMode;
-                IsSequenceMode = config.keyMode == 0;
-                IsSoundEnabled = config.soundEnabled ?? true;
-                IsGameMode = config.IsGameMode ?? true;
-                IsFloatingWindowEnabled = config.UI.FloatingWindow.IsEnabled;
-                AutoSwitchToEnglishIME = config.AutoSwitchToEnglishIME ?? true;
-
+                _lyKeysService.KeyInterval = config.interval; 
+                // 加载按键模式
+                SelectedKeyMode = config.keyMode;   
+                IsSequenceMode = config.keyMode == 0;   
                 // 加载音量设置
+                IsSoundEnabled = config.soundEnabled ?? true;
+                // 加载游戏模式
+                IsGameMode = config.IsGameMode ?? true;
+                // 加载浮窗状态
+                IsFloatingWindowEnabled = config.UI.FloatingWindow.IsEnabled;
+                // 加载自动切换输入法状态
+                AutoSwitchToEnglishIME = config.AutoSwitchToEnglishIME ?? true;
+                // 加载热键总开关状态
+                IsHotkeyControlEnabled = config.isHotkeyControlEnabled ?? true;
+
+                // 加载音量大小
                 if (config.SoundVolume.HasValue)
                 {
                     _soundVolume = config.SoundVolume.Value;
@@ -1179,11 +1187,35 @@ namespace WpfApp.ViewModels
 
         private void SetDefaultConfiguration()
         {
-            IsSequenceMode = true;
-            IsSoundEnabled = true;
-            IsFloatingWindowEnabled = true; // 默认开启浮窗
-            IsHotkeyControlEnabled = true; // 默认启用热键总开关
-            _lyKeysService.KeyPressInterval = IsGameMode ? LyKeysService.DEFAULT_KEY_PRESS_INTERVAL : 0;
+            // 此函数用于在配置加载失败或不完整时设置ViewModel的默认值
+            // 注意：这些默认值应当与AppConfigService.CreateDefaultConfig中相应配置保持一致
+            
+            // 基本配置
+            IsSequenceMode = true;                // 默认顺序模式
+            _selectedKeyMode = 0;                 // 0=顺序模式
+            _keyInterval = 5;                     // 默认按键间隔
+            
+            // 功能开关
+            IsSoundEnabled = true;                // 默认开启声音
+            IsGameMode = true;                    // 默认开启游戏模式
+            AutoSwitchToEnglishIME = true;        // 默认开启自动切换输入法
+            IsFloatingWindowEnabled = true;       // 默认开启浮窗
+            IsHotkeyControlEnabled = true;        // 默认启用热键总开关
+            
+            // 设置音量
+            _soundVolume = 0.8;                   // 默认音量80%
+            if (_audioService != null)
+                _audioService.Volume = _soundVolume;
+            
+            // 设置按键按下时长
+            if (_lyKeysService != null)
+                _lyKeysService.KeyPressInterval = IsGameMode ? LyKeysService.DEFAULT_KEY_PRESS_INTERVAL : 0;
+            
+            // 重置当前状态
+            IsHotkeyEnabled = false;              // 默认未启动按键
+            HotkeyStatus = "初始化完成";           // 重置状态提示
+            
+            _logger.Debug("已应用SetDefaultConfiguration()函数中的默认配置");
         }
 
         private void InitializeCommands()

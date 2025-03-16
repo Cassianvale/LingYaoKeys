@@ -209,14 +209,22 @@ public class AppConfigService
         if (_config.startKey == null)
         {
             _logger.Debug("启动热键未设置，已设置为默认值");
-            _config.startKey = LyKeysCode.VK_F10;
+            _config.startKey = LyKeysCode.VK_F9;
             configChanged = true;
         }
 
         if (_config.stopKey == null)
         {
             _logger.Debug("停止热键未设置，已设置为默认值");
-            _config.stopKey = LyKeysCode.VK_F10;
+            _config.stopKey = LyKeysCode.VK_F9;
+            configChanged = true;
+        }
+
+        // 验证热键总开关配置
+        if (_config.isHotkeyControlEnabled == null)
+        {
+            _logger.Debug("热键总开关状态未设置，已设置为默认值(启用)");
+            _config.isHotkeyControlEnabled = true;
             configChanged = true;
         }
 
