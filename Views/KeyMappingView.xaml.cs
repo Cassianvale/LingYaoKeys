@@ -1391,10 +1391,32 @@ public partial class KeyMappingView : Page
                 // 获取鼠标的屏幕绝对位置
                 System.Drawing.Point cursorPos = System.Windows.Forms.Cursor.Position;
                 
-                // 直接设置窗口位置为鼠标位置，不使用任何偏移量
-                // 使红点完全覆盖鼠标当前位置，提供精确的视觉反馈
-                _dragWindow.Left = cursorPos.X;
-                _dragWindow.Top = cursorPos.Y;
+                // 为了解决DPI缩放问题，需要将Windows Forms坐标转换为WPF坐标
+                // 获取PresentationSource以进行坐标转换
+                PresentationSource source = PresentationSource.FromVisual(_dragWindow);
+                if (source != null && source.CompositionTarget != null)
+                {
+                    // 获取设备到逻辑单位的转换矩阵
+                    Matrix transformMatrix = source.CompositionTarget.TransformFromDevice;
+                    
+                    // 将设备坐标点转换为WPF逻辑坐标
+                    System.Windows.Point devicePoint = new System.Windows.Point(cursorPos.X, cursorPos.Y);
+                    System.Windows.Point wpfPoint = transformMatrix.Transform(devicePoint);
+                    
+                    // 应用转换后的坐标，加上准星中心点的偏移（十字准星尺寸为20x20）
+                    _dragWindow.Left = wpfPoint.X - 10; // 居中显示，偏移一半宽度
+                    _dragWindow.Top = wpfPoint.Y - 10;  // 居中显示，偏移一半高度
+                    
+                    _logger.Debug($"光标位置: 设备({cursorPos.X}, {cursorPos.Y}) -> WPF({wpfPoint.X}, {wpfPoint.Y})");
+                }
+                else
+                {
+                    // 如果无法获取转换矩阵，则使用原始方法设置位置（回退方案）
+                    _dragWindow.Left = cursorPos.X - 10; // 偏移10像素使十字准星居中
+                    _dragWindow.Top = cursorPos.Y - 10;  // 偏移10像素使十字准星居中
+                    
+                    _logger.Warning("无法获取坐标转换信息，使用原始位置计算方法");
+                }
                 
                 // 阻止事件传递
                 e.Handled = true;
@@ -1414,13 +1436,22 @@ public partial class KeyMappingView : Page
         {
             if (_isDragging)
             {
-                // 使用System.Windows.Forms.Cursor获取精确的屏幕坐标
+                // 获取鼠标的屏幕绝对位置
                 System.Drawing.Point cursorPos = System.Windows.Forms.Cursor.Position;
+                int sysX = cursorPos.X;
+                int sysY = cursorPos.Y;
+                
+                // 记录原始系统坐标，用于日志比较
+                _logger.Debug($"原始系统坐标: ({sysX}, {sysY})");
+                
+                // 由于我们需要的是原始屏幕坐标而不是WPF坐标，所以直接使用Windows Forms提供的坐标
+                // 在UpdateCoordinateInputs方法中会将系统坐标转换为从1开始的用户坐标
                 
                 // 将坐标填入输入框
-                UpdateCoordinateInputs(cursorPos.X, cursorPos.Y);
+                UpdateCoordinateInputs(sysX, sysY);
                 
-                _logger.Debug($"拖拽结束，获取坐标: X={cursorPos.X}, Y={cursorPos.Y}");
+                // 使用从1开始的坐标系显示日志
+                _logger.Debug($"拖拽结束，获取坐标: X={sysX+1}, Y={sysY+1}");
                 
                 // 清理拖拽资源
                 CleanupDragOperation();
@@ -1441,40 +1472,81 @@ public partial class KeyMappingView : Page
     {
         try
         {
-            // 创建一个椭圆形作为拖拽指示器 - 增大尺寸并添加阴影
+            // 创建更精确的指示器 - 使用十字准星图案
+            Grid mainGrid = new Grid
+            {
+                Width = 20,       // 增加布局区域大小
+                Height = 20,      // 增加布局区域大小
+                Background = null // 透明背景
+            };
+            
+            // 创建中心红点
             _dragPoint = new Ellipse
             {
-                Width = 10,      // 增大红点尺寸，提高可见度
-                Height = 10,     // 增大红点尺寸，提高可见度
+                Width = 6,       // 减小红点尺寸，更精确
+                Height = 6,      // 减小红点尺寸，更精确
                 Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 0, 0)), // 鲜红色
-                Stroke = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 255, 255)), // 白色边框
-                StrokeThickness = 2,  // 增加边框粗细
-                Margin = new Thickness(-5, -5, 0, 0),  // 调整负边距以保持准确位置
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
-                VerticalAlignment = System.Windows.VerticalAlignment.Top
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center
             };
             
-            // 添加阴影效果
-            System.Windows.Media.Effects.DropShadowEffect shadowEffect = new System.Windows.Media.Effects.DropShadowEffect
+            // 创建水平线
+            System.Windows.Shapes.Rectangle horizontalLine = new System.Windows.Shapes.Rectangle
             {
-                Color = System.Windows.Media.Color.FromRgb(0, 0, 0),  // 黑色阴影
-                Direction = 315,                  // 右下方向
-                ShadowDepth = 2,                  // 阴影深度
-                BlurRadius = 4,                   // 阴影模糊半径
-                Opacity = 0.7                     // 阴影透明度
+                Height = 1,      // 1像素高度
+                Width = 20,      // 整个Grid宽度
+                Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 255, 255)), // 白色线条
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
+                Margin = new Thickness(0),
             };
-            _dragPoint.Effect = shadowEffect;
             
-            // 创建一个透明的面板作为椭圆的容器，以支持负边距
-            Grid grid = new Grid
+            // 创建垂直线
+            System.Windows.Shapes.Rectangle verticalLine = new System.Windows.Shapes.Rectangle
             {
-                Width = 1,      // 最小宽度
-                Height = 1,     // 最小高度
-                Background = null
+                Width = 1,       // 1像素宽度
+                Height = 20,     // 整个Grid高度
+                Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 255, 255)), // 白色线条
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Stretch,
+                Margin = new Thickness(0),
             };
-            grid.Children.Add(_dragPoint);
             
-            // 创建一个透明窗口来托管红点
+            // 添加黑色线条边框，增强对比度
+            System.Windows.Shapes.Rectangle horizontalOutline1 = new System.Windows.Shapes.Rectangle
+            {
+                Height = 1, Width = 20, Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 0, 0)),
+                VerticalAlignment = System.Windows.VerticalAlignment.Center, Margin = new Thickness(0, -1, 0, 0)
+            };
+            
+            System.Windows.Shapes.Rectangle horizontalOutline2 = new System.Windows.Shapes.Rectangle
+            {
+                Height = 1, Width = 20, Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 0, 0)),
+                VerticalAlignment = System.Windows.VerticalAlignment.Center, Margin = new Thickness(0, 1, 0, 0)
+            };
+            
+            System.Windows.Shapes.Rectangle verticalOutline1 = new System.Windows.Shapes.Rectangle
+            {
+                Width = 1, Height = 20, Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 0, 0)),
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center, Margin = new Thickness(-1, 0, 0, 0)
+            };
+            
+            System.Windows.Shapes.Rectangle verticalOutline2 = new System.Windows.Shapes.Rectangle
+            {
+                Width = 1, Height = 20, Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 0, 0)),
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center, Margin = new Thickness(1, 0, 0, 0)
+            };
+            
+            // 添加所有元素到Grid
+            mainGrid.Children.Add(horizontalOutline1);
+            mainGrid.Children.Add(horizontalOutline2);
+            mainGrid.Children.Add(verticalOutline1);
+            mainGrid.Children.Add(verticalOutline2);
+            mainGrid.Children.Add(horizontalLine);
+            mainGrid.Children.Add(verticalLine);
+            mainGrid.Children.Add(_dragPoint);
+            
+            // 创建一个透明窗口来托管十字准星
             _dragWindow = new Window
             {
                 WindowStyle = WindowStyle.None,
@@ -1484,10 +1556,10 @@ public partial class KeyMappingView : Page
                 Topmost = true,
                 ShowInTaskbar = false,
                 WindowStartupLocation = WindowStartupLocation.Manual,
-                SizeToContent = SizeToContent.WidthAndHeight,
-                Content = grid,
-                Width = 1,      // 最小窗口尺寸
-                Height = 1      // 最小窗口尺寸
+                SizeToContent = SizeToContent.Manual, // 固定尺寸更精确
+                Content = mainGrid,
+                Width = 20,     // 与Grid尺寸一致
+                Height = 20     // 与Grid尺寸一致
             };
             
             // 初始位置设为屏幕外，避免闪烁
@@ -1496,6 +1568,8 @@ public partial class KeyMappingView : Page
             
             // 显示拖拽窗口
             _dragWindow.Show();
+            
+            _logger.Debug("创建十字准星拖拽指示器成功");
         }
         catch (Exception ex)
         {
@@ -1509,11 +1583,17 @@ public partial class KeyMappingView : Page
     {
         try
         {
-            // 直接更新 ViewModel 中的坐标属性
+            // 将从0开始的系统坐标转换为从1开始的用户坐标
+            int userX = x + 1; // 系统坐标0对应用户坐标1
+            int userY = y + 1; // 系统坐标0对应用户坐标1
+            
+            _logger.Debug($"坐标转换: 系统({x}, {y}) -> 用户({userX}, {userY})");
+            
+            // 直接更新 ViewModel 中的坐标属性，使用从1开始的用户坐标
             if (ViewModel != null)
             {
-                ViewModel.CurrentX = x;
-                ViewModel.CurrentY = y;
+                ViewModel.CurrentX = userX;
+                ViewModel.CurrentY = userY;
                 
                 // 强制更新UI (以防绑定延迟)
                 if (XCoordinateInputBox != null)
