@@ -1320,14 +1320,14 @@ namespace WpfApp.ViewModels
         }
 
         // 设置热键
-        public void SetHotkey(LyKeysCode keyCode, ModifierKeys modifiers)
+        public bool SetHotkey(LyKeysCode keyCode, ModifierKeys modifiers)
         {
             // 检查是否与当前按键序列冲突
             if (IsKeyInList(keyCode))
             {
                 _logger.Warning($"热键({keyCode})与当前按键序列冲突，无法设置");
                 _mainViewModel.UpdateStatusMessage("热键与按键序列冲突，请选择其他键", true);
-                return;
+                return false;
             }
 
             _hotkey = keyCode;
@@ -1350,11 +1350,13 @@ namespace WpfApp.ViewModels
             {
                 _logger.Debug("热键注册成功");
                 _mainViewModel.UpdateStatusMessage("热键设置成功", false);
+                return true;
             }
             else
             {
                 _logger.Error("热键注册失败");
                 _mainViewModel.UpdateStatusMessage("热键设置失败", true);
+                return false;
             }
         }
 

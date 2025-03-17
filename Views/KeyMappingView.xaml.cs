@@ -335,11 +335,32 @@ public partial class KeyMappingView : Page
         // 记录热键输入处理
         _logger.Debug($"处理热键输入 - keyCode: {keyCode}, 修饰键: {modifiers}");
 
-        // 使用统一的热键设置方法
-        ViewModel?.SetHotkey(keyCode, modifiers);
+        try
+        {
+            // 检查热键是否与按键列表冲突
+            if (ViewModel?.IsHotkeyConflict(keyCode) == true)
+            {
+                ShowError("热键与按键序列冲突，请选择其他键");
+                _logger.Warning($"热键({keyCode})与当前按键序列冲突，无法设置");
+                return;
+            }
 
-        // 显示成功提示
-        ShowMessage("已设置热键");
+            // 使用统一的热键设置方法
+            bool success = ViewModel?.SetHotkey(keyCode, modifiers) ?? false;
+            
+            // 根据设置结果决定是否显示成功消息（SetHotkey内部已经设置了状态消息，这里不需要再次设置）
+            if (!success)
+            {
+                _logger.Debug($"热键({keyCode})设置失败");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"设置热键时发生异常: {ex.Message}", ex);
+            ShowError($"设置热键失败: {ex.Message}");
+            return;
+        }
         
         // 添加失焦处理，与按键输入保持一致的行为
         // 强制清除焦点
@@ -425,11 +446,9 @@ public partial class KeyMappingView : Page
 
             if (TryConvertToLyKeysCode(key, out var lyKeysCode))
             {
+                // 只调用HandleHotkeyInput，由它处理是否显示成功消息
                 HandleHotkeyInput(textBox, lyKeysCode, Keyboard.Modifiers, true);
                 _logger.Debug($"热键已转换: {key} -> {lyKeysCode}");
-
-                // 显示成功提示
-                ShowMessage("已设置热键");
             }
             else
             {
