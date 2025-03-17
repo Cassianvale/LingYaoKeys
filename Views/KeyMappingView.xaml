@@ -293,6 +293,38 @@
                                 </DockPanel>
                             </Button>
 
+                            <!-- 默认间隔设置 -->
+                            <DockPanel DockPanel.Dock="Left" Margin="0,0,20,0">
+                                <Button x:Name="btnIntervalHelp"
+                                        DockPanel.Dock="Left"
+                                        Style="{StaticResource CircleHelpButtonStyle}"
+                                        Width="18" Height="18"
+                                        FontSize="11"
+                                        Margin="0,0,5,0"
+                                        Click="IntervalHelp_Click"
+                                        Content="?"
+                                        FontWeight="SemiBold">
+                                    <Button.ToolTip>
+                                        <ToolTip>
+                                            <TextBlock Text="点击查看按键间隔说明" />
+                                        </ToolTip>
+                                    </Button.ToolTip>
+                                </Button>
+                                
+                                <TextBox x:Name="txtKeyInterval"
+                                         Style="{StaticResource ModernTextBox}"
+                                         IsEnabled="{Binding IsNotExecuting}"
+                                         Width="70"
+                                         VerticalContentAlignment="Center"
+                                         TextAlignment="Center"
+                                         IsReadOnly="False"
+                                         ToolTip="新添加按键时使用的默认间隔值(ms)"
+                                         PreviewTextInput="NumberValidationTextBox"
+                                         GotFocus="NumberInput_GotFocus"
+                                         LostFocus="NumberInput_LostFocus"
+                                         Text="{Binding KeyInterval, Converter={StaticResource IntToStringConverter}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </DockPanel>
+
                             <TextBox x:Name="KeyInputBox"
                                      Style="{StaticResource ModernTextBox}"
                                      IsEnabled="{Binding IsNotExecuting}"
@@ -316,11 +348,12 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/> <!-- 切换按钮 -->
                                 <ColumnDefinition Width="Auto"/> <!-- 添加坐标按钮 -->
-                                <ColumnDefinition Width="Auto"/> <!-- 鼠标图标按钮 -->
-                                <ColumnDefinition Width="Auto"/> <!-- X输入框 -->
+                                <ColumnDefinition Width="Auto"/> <!-- 默认间隔设置 -->
+                                <ColumnDefinition Width="Auto"/> <!-- X坐标输入框 -->
                                 <ColumnDefinition Width="Auto"/> <!-- 逗号分隔符 -->
-                                <ColumnDefinition Width="Auto"/> <!-- Y输入框 -->
-                                <ColumnDefinition Width="*"/> <!-- 占位，确保控件居左 -->
+                                <ColumnDefinition Width="Auto"/> <!-- Y坐标输入框 -->
+                                <ColumnDefinition Width="40"/> <!-- 鼠标图标按钮 -->
+                                <ColumnDefinition Width="*"/> <!-- 列表框 -->
                             </Grid.ColumnDefinitions>
                             
                             <!-- 按键/坐标模式切换按钮 - 放置在最左侧 -->
@@ -361,19 +394,38 @@
                                 </DockPanel>
                             </Button>
                             
-                            <!-- 鼠标图标按钮 -->
-                            <Button x:Name="btnMouseIcon"
-                                    Style="{StaticResource CircleButtonStyle}"
-                                    Width="32" Height="32"
-                                    Grid.Column="2"
-                                    Margin="0,0,15,0"
-                                    ToolTip="鼠标位置">
-                                <Path Data="M874.048 533.333333C863.424 716.629333 716.629333 863.424 533.333333 874.048V917.333333a21.333333 21.333333 0 0 1-42.666666 0v-43.285333C307.370667 863.424 160.576 716.629333 149.952 533.333333H106.666667a21.333333 21.333333 0 0 1 0-42.666666h43.285333C160.576 307.370667 307.370667 160.576 490.666667 149.952V106.666667a21.333333 21.333333 0 0 1 42.666666 0v43.285333c183.296 10.624 330.090667 157.418667 340.714667 340.714667h42.816a21.333333 21.333333 0 1 1 0 42.666666H874.026667z m-42.752 0h-127.786667a21.333333 21.333333 0 0 1 0-42.666666h127.786667C820.778667 330.922667 693.056 203.221333 533.333333 192.704V320a21.333333 21.333333 0 0 1-42.666666 0V192.704C330.922667 203.221333 203.221333 330.944 192.704 490.666667H320a21.333333 21.333333 0 0 1 0 42.666666H192.704c10.517333 159.744 138.24 287.445333 297.962667 297.962667V704a21.333333 21.333333 0 0 1 42.666666 0v127.296c159.744-10.517333 287.445333-138.24 297.962667-297.962667zM512 554.666667a42.666667 42.666667 0 1 1 0-85.333334 42.666667 42.666667 0 0 1 0 85.333334z"
-                                      Fill="#707070"
-                                      Width="20" Height="20"
-                                      Stretch="Uniform" />
-                            </Button>
-                            
+                            <!-- 默认间隔设置 -->
+                            <DockPanel Grid.Column="2" Margin="0,0,20,0">
+                                <Button x:Name="btnIntervalHelpCoord"
+                                        DockPanel.Dock="Left"
+                                        Style="{StaticResource CircleHelpButtonStyle}"
+                                        Width="18" Height="18"
+                                        FontSize="11"
+                                        Margin="0,0,5,0"
+                                        Click="IntervalHelp_Click"
+                                        Content="?"
+                                        FontWeight="SemiBold">
+                                    <Button.ToolTip>
+                                        <ToolTip>
+                                            <TextBlock Text="点击查看按键间隔说明" />
+                                        </ToolTip>
+                                    </Button.ToolTip>
+                                </Button>
+                                
+                                <TextBox x:Name="txtKeyIntervalCoord"
+                                         Style="{StaticResource ModernTextBox}"
+                                         IsEnabled="{Binding IsNotExecuting}"
+                                         Width="70"
+                                         VerticalContentAlignment="Center"
+                                         TextAlignment="Center"
+                                         IsReadOnly="False"
+                                         ToolTip="新添加按键时使用的默认间隔值(ms)"
+                                         PreviewTextInput="NumberValidationTextBox"
+                                         GotFocus="NumberInput_GotFocus"
+                                         LostFocus="NumberInput_LostFocus"
+                                         Text="{Binding KeyInterval, Converter={StaticResource IntToStringConverter}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </DockPanel>
+
                             <!-- X坐标输入框 -->
                             <TextBox x:Name="XCoordinateInputBox"
                                      Grid.Column="3"
@@ -407,6 +459,20 @@
                                      PreviewTextInput="NumberValidationTextBox"
                                      GotFocus="NumberInput_GotFocus"
                                      LostFocus="NumberInput_LostFocus"/>
+
+                            <!-- 鼠标图标按钮 -->
+                            <Button x:Name="btnMouseIcon"
+                                    Style="{StaticResource CircleButtonStyle}"
+                                    Width="32" Height="32"
+                                    Grid.Column="6"
+                                    Margin="0,0,0,0"
+                                    ToolTip="鼠标位置">
+                                <Path Data="M874.048 533.333333C863.424 716.629333 716.629333 863.424 533.333333 874.048V917.333333a21.333333 21.333333 0 0 1-42.666666 0v-43.285333C307.370667 863.424 160.576 716.629333 149.952 533.333333H106.666667a21.333333 21.333333 0 0 1 0-42.666666h43.285333C160.576 307.370667 307.370667 160.576 490.666667 149.952V106.666667a21.333333 21.333333 0 0 1 42.666666 0v43.285333c183.296 10.624 330.090667 157.418667 340.714667 340.714667h42.816a21.333333 21.333333 0 1 1 0 42.666666H874.026667z m-42.752 0h-127.786667a21.333333 21.333333 0 0 1 0-42.666666h127.786667C820.778667 330.922667 693.056 203.221333 533.333333 192.704V320a21.333333 21.333333 0 0 1-42.666666 0V192.704C330.922667 203.221333 203.221333 330.944 192.704 490.666667H320a21.333333 21.333333 0 0 1 0 42.666666H192.704c10.517333 159.744 138.24 287.445333 297.962667 297.962667V704a21.333333 21.333333 0 0 1 42.666666 0v127.296c159.744-10.517333 287.445333-138.24 297.962667-297.962667zM512 554.666667a42.666667 42.666667 0 1 1 0-85.333334 42.666667 42.666667 0 0 1 0 85.333334z"
+                                      Fill="#707070"
+                                      Width="20" Height="20"
+                                      Stretch="Uniform" />
+                            </Button>
+
                         </Grid>
                     </Grid>
 
@@ -727,7 +793,7 @@
                             Padding="10"
                             Margin="0,0,0,10">
                         <StackPanel>
-                            <TextBlock Text="热键设置"
+                            <TextBlock Text="热键与模式"
                                        FontSize="12"
                                        FontWeight="SemiBold"
                                        Foreground="#505050"
@@ -743,6 +809,7 @@
                                 <TextBox x:Name="txtHotkey"
                                          Style="{StaticResource ModernTextBox}"
                                          IsEnabled="{Binding IsNotExecuting}"
+                                         Width="120"
                                          Tag="空"
                                          IsReadOnly="True"
                                          Text="{Binding HotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
@@ -758,26 +825,10 @@
                                          GotFocus="HotkeyInputBox_GotFocus"
                                          LostFocus="HotkeyInputBox_LostFocus" />
                             </DockPanel>
-                        </StackPanel>
-                    </Border>
 
-                    <!-- 按键模式和间隔设置组 -->
-                    <Border Background="#FFFFFF"
-                            BorderBrush="#E0E0E0"
-                            BorderThickness="1"
-                            CornerRadius="4"
-                            Padding="10"
-                            Margin="0,0,0,0">
-                        <StackPanel>
-                            <TextBlock Text="模式与间隔"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       Foreground="#505050"
-                                       Margin="0,0,0,8" />
-
-                            <!-- 按键模式和间隔设置 -->
+                            <!-- 热键模式 -->
                             <DockPanel Margin="0,0,0,8">
-                                <TextBlock Text="按键模式"
+                                <TextBlock Text="热键模式"
                                            DockPanel.Dock="Left"
                                            VerticalAlignment="Center"
                                            Width="50"
@@ -787,18 +838,18 @@
                                         Style="{StaticResource CircleHelpButtonStyle}"
                                         Width="18" Height="18"
                                         FontSize="11"
-                                        Margin="0,0,10,0"
+                                        Margin="0,0,5,0"
                                         Click="ModeHelp_Click"
                                         Content="?"
                                         FontWeight="SemiBold">
                                     <Button.ToolTip>
                                         <ToolTip>
-                                            <TextBlock Text="点击查看按键模式说明" />
+                                            <TextBlock Text="点击查看热键模式说明" />
                                         </ToolTip>
                                     </Button.ToolTip>
                                 </Button>
 
-                                <!-- 按键模式帮助提示浮窗 -->
+                                <!-- 热键模式帮助提示浮窗 -->
                                 <Popup x:Name="modeHelpPopup"
                                        PlacementTarget="{Binding ElementName=btnModeHelp}"
                                        Placement="Right"
@@ -809,7 +860,7 @@
                                             Width="280">
                                         <StackPanel>
                                             <TextBlock Style="{StaticResource HelpTextStyle}"
-                                                       Text="按键模式决定了按键的触发方式：" />
+                                                       Text="热键模式决定了按键的触发方式：" />
                                             <TextBlock Style="{StaticResource HelpTextStyle}"
                                                        Margin="0,8,0,0">
                                                 <Run Text="• 顺序模式" FontWeight="SemiBold" />
@@ -843,81 +894,44 @@
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
                             </DockPanel>
-
-                            <DockPanel Margin="0,0,0,0">
-                                <TextBlock Text="默认间隔"
-                                           DockPanel.Dock="Left"
-                                           VerticalAlignment="Center"
-                                           Width="50"
-                                           Margin="0,0,0,0" />
-                                <Button x:Name="btnIntervalHelp"
-                                        DockPanel.Dock="Left"
-                                        Style="{StaticResource CircleHelpButtonStyle}"
-                                        Width="18" Height="18"
-                                        FontSize="11"
-                                        Margin="0,0,10,0"
-                                        Click="IntervalHelp_Click"
-                                        Content="?"
-                                        FontWeight="SemiBold">
-                                    <Button.ToolTip>
-                                        <ToolTip>
-                                            <TextBlock Text="点击查看按键间隔说明" />
-                                        </ToolTip>
-                                    </Button.ToolTip>
-                                </Button>
-
-                                <!-- 帮助提示浮窗 -->
-                                <Popup x:Name="helpPopup"
-                                       PlacementTarget="{Binding ElementName=btnIntervalHelp}"
-                                       Placement="Right"
-                                       AllowsTransparency="True"
-                                       PopupAnimation="Fade"
-                                       StaysOpen="False">
-                                    <Border Style="{StaticResource HelpPopupStyle}"
-                                            Width="280">
-                                        <StackPanel>
-                                            <TextBlock Style="{StaticResource HelpTextStyle}"
-                                                       Text="按键间隔是指连续按键之间的时间间隔，单位为毫秒(ms)，1秒=1000毫秒。应用现在对每个按键使用独立的间隔设置。" />
-                                            <TextBlock Style="{StaticResource HelpTextStyle}"
-                                                       Margin="0,8,0,0">
-                                                <Run Text="• 此处设置仅用于新添加按键的默认间隔值" FontWeight="SemiBold" />
-                                                <LineBreak />
-                                                <Run Text="• 每个按键都有自己的间隔设置，可在列表中单独修改" />
-                                                <LineBreak />
-                                                <Run Text="• 间隔越短，按键速度越快" />
-                                                <LineBreak />
-                                                <Run Text="• 间隔越长，按键速度越慢" />
-                                                <LineBreak />
-                                                <Run Text="• 建议值范围：5-10ms" />
-                                                <LineBreak />
-                                                <Run Text="• 最小值：1ms" />
-                                            </TextBlock>
-                                            <TextBlock Style="{StaticResource HelpTextStyle}"
-                                                       Margin="0,8,0,0"
-                                                       Foreground="#F44336"
-                                                       Text="注意：设置过短的间隔可能导致按键不稳定或游戏无法正确识别" />
-                                        </StackPanel>
-                                    </Border>
-                                </Popup>
-
-                                <TextBox x:Name="txtKeyInterval"
-                                         Style="{StaticResource ModernTextBox}"
-                                         IsEnabled="{Binding IsNotExecuting}"
-                                         Width="120"
-                                         VerticalContentAlignment="Center"
-                                         TextAlignment="Center"
-                                         IsReadOnly="False"
-                                         ToolTip="新添加按键时使用的默认间隔值"
-                                         PreviewTextInput="NumberValidationTextBox"
-                                         GotFocus="NumberInput_GotFocus"
-                                         LostFocus="NumberInput_LostFocus"
-                                         Text="{Binding KeyInterval, Converter={StaticResource IntToStringConverter}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                         DockPanel.Dock="Left" />
-                            </DockPanel>
                         </StackPanel>
                     </Border>
                 </StackPanel>
             </Grid>
         </Grid>
+        
+        <!-- 帮助提示浮窗 - 放在主Grid内部 -->
+        <Popup x:Name="helpPopup"
+               PlacementTarget="{Binding ElementName=btnIntervalHelp}"
+               Placement="Bottom"
+               AllowsTransparency="True"
+               PopupAnimation="Fade"
+               StaysOpen="False">
+            <Border Style="{StaticResource HelpPopupStyle}"
+                    Width="280">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource HelpTextStyle}"
+                               Text="按键间隔是指连续按键之间的时间间隔，单位为毫秒(ms)，1秒=1000毫秒。应用现在对每个按键使用独立的间隔设置。" />
+                    <TextBlock Style="{StaticResource HelpTextStyle}"
+                               Margin="0,8,0,0">
+                        <Run Text="• 此处设置仅用于新添加按键的默认间隔值" FontWeight="SemiBold" />
+                        <LineBreak />
+                        <Run Text="• 每个按键都有自己的间隔设置，可在列表中单独修改" />
+                        <LineBreak />
+                        <Run Text="• 间隔越短，按键速度越快" />
+                        <LineBreak />
+                        <Run Text="• 间隔越长，按键速度越慢" />
+                        <LineBreak />
+                        <Run Text="• 建议值范围：5-10ms" />
+                        <LineBreak />
+                        <Run Text="• 最小值：1ms" />
+                    </TextBlock>
+                    <TextBlock Style="{StaticResource HelpTextStyle}"
+                               Margin="0,8,0,0"
+                               Foreground="#F44336"
+                               Text="注意：设置过短的间隔可能导致按键不稳定或游戏无法正确识别" />
+                </StackPanel>
+            </Border>
+        </Popup>
     </Grid>
 </Page>
