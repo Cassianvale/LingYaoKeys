@@ -12,12 +12,13 @@ using WpfApp.Services.Utils;
 using Forms = System.Windows.Forms;
 using Drawing = System.Drawing;
 
-namespace WpfApp;
+
+namespace WpfApp.Views;
 
 /// <summary>
 /// MainWindow.xaml 的交互逻辑
 /// </summary>
-public partial class MainWindow
+public partial class MainWindow : Window
 {
     private readonly SerilogManager _logger = SerilogManager.Instance;
     private readonly MainViewModel _viewModel;

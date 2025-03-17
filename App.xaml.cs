@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using WpfApp.Services.Core;
 using WpfApp.ViewModels;
+using WpfApp.Views;
 using MessageBox = System.Windows.MessageBox;
 using System.Windows.Media;
 using System.Windows.Interop;
@@ -410,7 +411,7 @@ public partial class App : Application
             // 7. 创建并显示主窗口
             splashWindow.UpdateProgress("正在启动主界面...", 90);
             _logger.Debug("创建主窗口...");
-            var mainWindow = new MainWindow();
+            var mainWindow = new Views.MainWindow();
             // 显式设置为应用程序的主窗口
             Current.MainWindow = mainWindow;
             _logger.Debug($"MainWindow是否设置成功: {Current.MainWindow != null}");
@@ -424,7 +425,7 @@ public partial class App : Application
             RegisterExitHandlers();
 
             // 预加载常用页面，提高性能
-            if (MainWindow.DataContext is MainViewModel mainViewModel)
+            if (mainWindow.DataContext is MainViewModel mainViewModel)
             {
                 mainViewModel.PreloadCommonPages();
             }
