@@ -217,10 +217,14 @@ public class HotkeyService
             // 如果在注册热键模式，不进行窗口状态检查
             if (!_isRegisteringHotkey && !CanTriggerHotkey()) return;
 
-            if (_keyList.Count == 0)
+            // 检查是否有可执行项（键盘按键或坐标）
+            bool hasKeyboardKeys = _keyList.Count > 0;
+            bool hasCoordinates = _keySettings.Any(k => k.Type == KeyItemType.Coordinates);
+            
+            if (!hasKeyboardKeys && !hasCoordinates)
             {
-                _logger.Warning("按键列表为空，无法启动序列");
-                _mainViewModel.UpdateStatusMessage("请至少选择一个按键", true);
+                _logger.Warning("按键和坐标列表均为空，无法启动序列");
+                _mainViewModel.UpdateStatusMessage("请至少添加一个按键或坐标", true);
                 return;
             }
 
@@ -229,9 +233,10 @@ public class HotkeyService
             
             _lyKeysService.IsEnabled = true;
             
+            int coordinatesCount = _keySettings.Count(k => k.Type == KeyItemType.Coordinates);
             _logger.Debug($"序列已启动 - 模式: {(_lyKeysService.IsHoldMode ? "按压" : "顺序")}, " +
-                          $"按键数: {_keyList.Count}, 使用独立按键间隔设置, " +
-                          $"目标窗口句柄: {_targetWindowHandle}");
+                          $"键盘按键数: {_keyList.Count}, 坐标点数: {coordinatesCount}, " +
+                          $"使用独立按键间隔设置, 目标窗口句柄: {_targetWindowHandle}");
 
             SequenceModeStarted?.Invoke();
         }
@@ -315,16 +320,12 @@ public class HotkeyService
                     return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);
                 }
 
-                // 如果是热键，并且不在注册模式，检查是否可以触发
-                if (isHotkey && !CanTriggerHotkey())
-                    return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);
-
-                // 处理热键
+                // 处理热键 - 修改这部分逻辑，避免重复调用CanTriggerHotkey
                 if (isHotkey)
                 {
                     if (_lyKeysService.IsHoldMode)
                     {
-                        // 按压模式处理逻辑 - 保持不变
+                        // 按压模式处理逻辑
                         switch ((int)wParam)
                         {
                             case WM_KEYDOWN:
@@ -332,8 +333,13 @@ public class HotkeyService
                                 if (!_isKeyHeld)
                                 {
                                     _isKeyHeld = true;
-                                    StartHotkeyPressed?.Invoke();
-                                    StartSequence();
+                                    
+                                    // 只在按键首次按下时检查一次触发条件
+                                    if (CanTriggerHotkey())
+                                    {
+                                        StartHotkeyPressed?.Invoke();
+                                        StartSequence();
+                                    }
                                 }
                                 return new IntPtr(1);
 
@@ -358,17 +364,22 @@ public class HotkeyService
                                 if (!_isKeyHeld)
                                 {
                                     _isKeyHeld = true;
-                                    if (_isSequenceRunning)
+                                    
+                                    // 只在按键首次按下时检查一次触发条件
+                                    if (CanTriggerHotkey())
                                     {
-                                        // 如果序列已在运行，则停止
-                                        StartHotkeyPressed?.Invoke();
-                                        StopSequence();
-                                    }
-                                    else
-                                    {
-                                        // 否则启动序列
-                                        StartHotkeyPressed?.Invoke();
-                                        StartSequence();
+                                        if (_isSequenceRunning)
+                                        {
+                                            // 如果序列已在运行，则停止
+                                            StartHotkeyPressed?.Invoke();
+                                            StopSequence();
+                                        }
+                                        else
+                                        {
+                                            // 否则启动序列
+                                            StartHotkeyPressed?.Invoke();
+                                            StartSequence();
+                                        }
                                     }
                                 }
                                 break;
@@ -728,10 +739,19 @@ public class HotkeyService
                 .Select(k => k.KeyCode.Value)
                 .ToList();
 
+            // 提取坐标类型的设置
+            var coordinates = keySettings
+                .Where(k => k.Type == KeyItemType.Coordinates)
+                .Select(k => (k.X, k.Y, k.Interval))
+                .ToList();
+                
+            // 传递给LyKeysService
+            _lyKeysService.SetKeyItemsListWithCoordinates(_keyList, coordinates);
+
             // 保存完整的按键设置，包括坐标类型
             _keySettings = keySettings.ToList();
 
-            _logger.Debug($"设置按键序列: 按键数={keySettings.Count}, 使用独立按键间隔");
+            _logger.Debug($"设置按键序列: 按键数={keySettings.Count}, 键盘按键={_keyList.Count}, 坐标点={coordinates.Count}, 使用独立按键间隔");
         }
         catch (Exception ex)
         {

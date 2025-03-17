@@ -493,18 +493,29 @@ public sealed class LyKeys : IDisposable
 
         try
         {
-            var status = GetDriverStatus();
-            if (status == DeviceStatus.Ready)
-            {
-                MouseMoveRELATIVE(dx, dy);
-                return true;
-            }
-
-            return false;
+            MouseMoveRELATIVE(dx, dy);
+            return true;
         }
         catch (Exception ex)
         {
             _logger.Error($"相对移动鼠标失败, dx: {dx}, dy: {dy}", ex);
+            
+            // 捕获异常时才进行完整状态检查
+            try
+            {
+                var status = GetDriverStatus();
+                if (status == DeviceStatus.Ready)
+                {
+                    try
+                    {
+                        MouseMoveRELATIVE(dx, dy);
+                        return true;
+                    }
+                    catch { /* 已重试，忽略第二次异常 */ }
+                }
+            }
+            catch { /* 忽略异常直接返回失败 */ }
+            
             return false;
         }
     }
@@ -520,18 +531,29 @@ public sealed class LyKeys : IDisposable
 
         try
         {
-            var status = GetDriverStatus();
-            if (status == DeviceStatus.Ready)
-            {
-                MouseMoveABSOLUTE(x, y);
-                return true;
-            }
-
-            return false;
+            MouseMoveABSOLUTE(x, y);
+            return true;
         }
         catch (Exception ex)
         {
             _logger.Error($"绝对移动鼠标失败, x: {x}, y: {y}", ex);
+            
+            // 捕获异常时才进行完整状态检查
+            try
+            {
+                var status = GetDriverStatus();
+                if (status == DeviceStatus.Ready)
+                {
+                    try
+                    {
+                        MouseMoveABSOLUTE(x, y);
+                        return true;
+                    }
+                    catch { /* 已重试，忽略第二次异常 */ }
+                }
+            }
+            catch { /* 忽略异常直接返回失败 */ }
+            
             return false;
         }
     }
@@ -546,10 +568,7 @@ public sealed class LyKeys : IDisposable
 
         try
         {
-            var status = GetDriverStatus();
-            if (status != DeviceStatus.Ready)
-                return false;
-
+            // 直接尝试执行鼠标操作，不先检查状态
             switch (button)
             {
                 case MouseButtonType.Left:
@@ -581,12 +600,61 @@ public sealed class LyKeys : IDisposable
                 default:
                     return false;
             }
-
+            
             return true;
         }
         catch (Exception ex)
         {
             _logger.Error($"鼠标按键操作失败, button: {button}, isDown: {isDown}", ex);
+            
+            // 捕获异常时才进行完整状态检查
+            try
+            {
+                var status = GetDriverStatus();
+                if (status == DeviceStatus.Ready)
+                {
+                    try
+                    {
+                        // 重试鼠标操作
+                        switch (button)
+                        {
+                            case MouseButtonType.Left:
+                                if (isDown) MouseLeftButtonDown();
+                                else MouseLeftButtonUp();
+                                break;
+                            case MouseButtonType.Right:
+                                if (isDown) MouseRightButtonDown();
+                                else MouseRightButtonUp();
+                                break;
+                            case MouseButtonType.Middle:
+                                if (isDown) MouseMiddleButtonDown();
+                                else MouseMiddleButtonUp();
+                                break;
+                            case MouseButtonType.XButton1:
+                                if (isDown) MouseXButton1Down();
+                                else MouseXButton1Up();
+                                break;
+                            case MouseButtonType.XButton2:
+                                if (isDown) MouseXButton2Down();
+                                else MouseXButton2Up();
+                                break;
+                            case MouseButtonType.WheelUp:
+                                if (isDown) MouseWheelUp(120);
+                                break;
+                            case MouseButtonType.WheelDown:
+                                if (isDown) MouseWheelDown(120);
+                                break;
+                            default:
+                                return false;
+                        }
+                        
+                        return true;
+                    }
+                    catch { /* 已重试，忽略第二次异常 */ }
+                }
+            }
+            catch { /* 忽略异常直接返回失败 */ }
+            
             return false;
         }
     }
@@ -624,19 +692,35 @@ public sealed class LyKeys : IDisposable
 
         try
         {
-            var status = GetDriverStatus();
-            if (status == DeviceStatus.Ready)
-            {
-                if (isUp) MouseWheelUp(delta);
-                else MouseWheelDown(delta);
-                return true;
-            }
-
-            return false;
+            if (isUp) 
+                MouseWheelUp(delta);
+            else 
+                MouseWheelDown(delta);
+            return true;
         }
         catch (Exception ex)
         {
             _logger.Error($"鼠标滚轮操作失败, isUp: {isUp}, delta: {delta}", ex);
+            
+            // 捕获异常时才进行完整状态检查
+            try
+            {
+                var status = GetDriverStatus();
+                if (status == DeviceStatus.Ready)
+                {
+                    try
+                    {
+                        if (isUp) 
+                            MouseWheelUp(delta);
+                        else 
+                            MouseWheelDown(delta);
+                        return true;
+                    }
+                    catch { /* 已重试，忽略第二次异常 */ }
+                }
+            }
+            catch { /* 忽略异常直接返回失败 */ }
+            
             return false;
         }
     }
