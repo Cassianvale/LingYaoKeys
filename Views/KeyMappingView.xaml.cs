@@ -1,18 +1,23 @@
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Navigation;
-using System.Windows.Input;
-using WpfApp.ViewModels;
-using System.Windows.Media;
-using WpfApp.Behaviors;
-using WpfApp.Services.Core;
-using WpfApp.Services.Utils;
-using WpfApp.Services.Models;
 using System;
 using System.Collections.Generic;
-using System.Windows.Shapes;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+using System.Text.RegularExpressions;
 using System.Windows.Threading;
+using System.Drawing;
+using System.Windows.Forms;
+using WpfApp.ViewModels;
+using WpfApp.Services.Core;
+using WpfApp.Services.Models;
+using WpfApp.Services.Utils;
+using WpfApp.Behaviors;
 
 // 提供按键映射视图
 namespace WpfApp.Views;
@@ -40,6 +45,12 @@ public partial class KeyMappingView : Page
             typeof(KeyMappingView),
             new PropertyMetadata(false));
 
+    // 鼠标拖拽相关成员变量
+    private bool _isDragging = false;
+    private Ellipse _dragPoint = null;
+    private Window _dragWindow = null;
+    private System.Windows.Point _startPoint;
+
     public KeyMappingView()
     {
         InitializeComponent();
@@ -58,6 +69,9 @@ public partial class KeyMappingView : Page
 
             soundSettingsPopup.Closed += (s, e) => { _logger.Debug("音量设置弹出窗口已关闭"); };
         }
+        
+        // 初始化鼠标拖拽按钮事件
+        InitMouseDragEvents();
     }
 
     private KeyMappingViewModel ViewModel => DataContext as KeyMappingViewModel;
@@ -1294,5 +1308,258 @@ public partial class KeyMappingView : Page
         _logger.Debug($"输入模式已切换为: {(isCoordinateMode ? "按键模式" : "坐标模式")}");
         
         // 提示信息不需要更新，因为每个模式下有自己的按钮，按钮在XAML中已经设置了固定的提示
+    }
+
+    // 初始化鼠标拖拽事件
+    private void InitMouseDragEvents()
+    {
+        try
+        {
+            if (btnMouseIcon != null)
+            {
+                // 注册鼠标按钮相关事件
+                btnMouseIcon.PreviewMouseDown += MouseIcon_PreviewMouseDown;
+                btnMouseIcon.PreviewMouseMove += MouseIcon_PreviewMouseMove;
+                btnMouseIcon.PreviewMouseUp += MouseIcon_PreviewMouseUp;
+                
+                // 设置普通点击事件，用于后续功能扩展
+                btnMouseIcon.Click += MouseIcon_Click;
+                
+                _logger.Debug("鼠标坐标按钮事件已初始化");
+            }
+            else
+            {
+                _logger.Warning("鼠标坐标按钮未找到，无法初始化拖拽事件");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("初始化鼠标拖拽事件失败", ex);
+        }
+    }
+    
+    // 鼠标按钮点击事件 - 预留给后续功能扩展
+    private void MouseIcon_Click(object sender, RoutedEventArgs e)
+    {
+        // 如果是拖拽操作，不触发点击事件处理
+        if (_isDragging) return;
+        
+        _logger.Debug("鼠标坐标按钮被点击");
+        // TODO: 这里预留给后续功能实现
+    }
+    
+    // 鼠标按钮按下事件 - 开始拖拽
+    private void MouseIcon_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        try
+        {
+            // 左键才能触发拖拽
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                // 标记开始拖拽
+                _isDragging = true;
+                
+                // 记录起始点
+                _startPoint = e.GetPosition(btnMouseIcon);
+                
+                // 创建拖拽时显示的红点
+                CreateDragPoint();
+                
+                // 捕获鼠标
+                btnMouseIcon.CaptureMouse();
+                
+                // 阻止事件传递，避免触发点击事件
+                e.Handled = true;
+                
+                _logger.Debug("开始鼠标坐标拖拽");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("鼠标按钮按下事件处理失败", ex);
+            CleanupDragOperation();
+        }
+    }
+    
+    // 鼠标移动事件 - 更新拖拽红点位置
+    private void MouseIcon_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        try
+        {
+            if (_isDragging && _dragPoint != null && _dragWindow != null)
+            {
+                // 获取鼠标的屏幕绝对位置
+                System.Drawing.Point cursorPos = System.Windows.Forms.Cursor.Position;
+                
+                // 直接设置窗口位置为鼠标位置，不使用任何偏移量
+                // 使红点完全覆盖鼠标当前位置，提供精确的视觉反馈
+                _dragWindow.Left = cursorPos.X;
+                _dragWindow.Top = cursorPos.Y;
+                
+                // 阻止事件传递
+                e.Handled = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("鼠标移动事件处理失败", ex);
+            CleanupDragOperation();
+        }
+    }
+    
+    // 鼠标释放事件 - 结束拖拽并获取坐标
+    private void MouseIcon_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        try
+        {
+            if (_isDragging)
+            {
+                // 使用System.Windows.Forms.Cursor获取精确的屏幕坐标
+                System.Drawing.Point cursorPos = System.Windows.Forms.Cursor.Position;
+                
+                // 将坐标填入输入框
+                UpdateCoordinateInputs(cursorPos.X, cursorPos.Y);
+                
+                _logger.Debug($"拖拽结束，获取坐标: X={cursorPos.X}, Y={cursorPos.Y}");
+                
+                // 清理拖拽资源
+                CleanupDragOperation();
+                
+                // 阻止事件传递
+                e.Handled = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("鼠标释放事件处理失败", ex);
+            CleanupDragOperation();
+        }
+    }
+    
+    // 创建拖拽时显示的红点
+    private void CreateDragPoint()
+    {
+        try
+        {
+            // 创建一个椭圆形作为拖拽指示器 - 增大尺寸并添加阴影
+            _dragPoint = new Ellipse
+            {
+                Width = 10,      // 增大红点尺寸，提高可见度
+                Height = 10,     // 增大红点尺寸，提高可见度
+                Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 0, 0)), // 鲜红色
+                Stroke = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 255, 255)), // 白色边框
+                StrokeThickness = 2,  // 增加边框粗细
+                Margin = new Thickness(-5, -5, 0, 0),  // 调整负边距以保持准确位置
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                VerticalAlignment = System.Windows.VerticalAlignment.Top
+            };
+            
+            // 添加阴影效果
+            System.Windows.Media.Effects.DropShadowEffect shadowEffect = new System.Windows.Media.Effects.DropShadowEffect
+            {
+                Color = System.Windows.Media.Color.FromRgb(0, 0, 0),  // 黑色阴影
+                Direction = 315,                  // 右下方向
+                ShadowDepth = 2,                  // 阴影深度
+                BlurRadius = 4,                   // 阴影模糊半径
+                Opacity = 0.7                     // 阴影透明度
+            };
+            _dragPoint.Effect = shadowEffect;
+            
+            // 创建一个透明的面板作为椭圆的容器，以支持负边距
+            Grid grid = new Grid
+            {
+                Width = 1,      // 最小宽度
+                Height = 1,     // 最小高度
+                Background = null
+            };
+            grid.Children.Add(_dragPoint);
+            
+            // 创建一个透明窗口来托管红点
+            _dragWindow = new Window
+            {
+                WindowStyle = WindowStyle.None,
+                ResizeMode = ResizeMode.NoResize,
+                AllowsTransparency = true,
+                Background = null,
+                Topmost = true,
+                ShowInTaskbar = false,
+                WindowStartupLocation = WindowStartupLocation.Manual,
+                SizeToContent = SizeToContent.WidthAndHeight,
+                Content = grid,
+                Width = 1,      // 最小窗口尺寸
+                Height = 1      // 最小窗口尺寸
+            };
+            
+            // 初始位置设为屏幕外，避免闪烁
+            _dragWindow.Left = -100;
+            _dragWindow.Top = -100;
+            
+            // 显示拖拽窗口
+            _dragWindow.Show();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("创建拖拽红点失败", ex);
+            CleanupDragOperation();
+        }
+    }
+    
+    // 更新坐标输入框
+    private void UpdateCoordinateInputs(int x, int y)
+    {
+        try
+        {
+            // 直接更新 ViewModel 中的坐标属性
+            if (ViewModel != null)
+            {
+                ViewModel.CurrentX = x;
+                ViewModel.CurrentY = y;
+                
+                // 强制更新UI (以防绑定延迟)
+                if (XCoordinateInputBox != null)
+                {
+                    XCoordinateInputBox.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateTarget();
+                }
+                
+                if (YCoordinateInputBox != null)
+                {
+                    YCoordinateInputBox.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateTarget();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("更新坐标输入框失败", ex);
+        }
+    }
+    
+    // 清理拖拽操作相关资源
+    private void CleanupDragOperation()
+    {
+        try
+        {
+            // 释放鼠标捕获
+            if (btnMouseIcon != null && btnMouseIcon.IsMouseCaptured)
+            {
+                btnMouseIcon.ReleaseMouseCapture();
+            }
+            
+            // 关闭并清理拖拽窗口
+            if (_dragWindow != null)
+            {
+                _dragWindow.Close();
+                _dragWindow = null;
+            }
+            
+            // 清理红点
+            _dragPoint = null;
+            
+            // 重置拖拽状态
+            _isDragging = false;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("清理拖拽操作资源失败", ex);
+        }
     }
 }
