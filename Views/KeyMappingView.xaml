@@ -5,6 +5,8 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
       xmlns:behaviors="clr-namespace:WpfApp.Behaviors"
+      xmlns:viewModels="clr-namespace:WpfApp.ViewModels"
+      xmlns:svgc="http://sharpvectors.codeplex.com/svgc/"
       mc:Ignorable="d"
       Title="按键映射"
       PreviewMouseDown="Page_PreviewMouseDown">
@@ -258,16 +260,23 @@
                                    d:Visibility="Visible">
                             <!-- 按键/坐标模式切换按钮 - 移到最前面 -->
                             <Button x:Name="btnToggleCoordinateMode"
-                                    Style="{StaticResource CircleButtonStyle}"
+                                    Style="{StaticResource SVGCircleButtonStyle}"
                                     Width="32" Height="32"
                                     DockPanel.Dock="Left"
                                     Margin="0,0,10,0"
                                     Click="ToggleCoordinateMode_Click"
                                     ToolTip="切换到鼠标坐标模式">
-                                <Path Data="M960 640a64 64 0 0 1-64 64H448v197.504a64 64 0 0 1-13.184 38.912l-5.568 6.336a64 64 0 0 1-84.48 5.312l-6.016-5.312-261.504-261.504a64 64 0 0 1 37.76-108.8L122.56 576H896a64 64 0 0 1 64 64z m5.504-256a64 64 0 0 1-56.576 63.552L901.504 448H128a64 64 0 0 1 0-128h448V122.432a64 64 0 0 1 13.184-38.912l5.568-6.336a64 64 0 0 1 84.48-5.312l6.016 5.312 261.504 261.504a64 64 0 0 1 18.752 45.248z"
-                                      Fill="#707070"
-                                      Width="16" Height="16"
-                                      Stretch="Uniform" />
+                                <svgc:SvgViewbox Source="pack://application:,,,/Resource/svg/边牧.svg"
+                                                Width="20"
+                                                Height="20"
+                                                Stretch="Uniform">
+                                    <svgc:SvgViewbox.Resources>
+                                        <Style TargetType="Path">
+                                            <Setter Property="Fill" 
+                                                    Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                        </Style>
+                                    </svgc:SvgViewbox.Resources>
+                                </svgc:SvgViewbox>
                             </Button>
                             
                             <Button Style="{StaticResource RoundedShadowButtonSmall}"
@@ -358,16 +367,23 @@
                             
                             <!-- 按键/坐标模式切换按钮 - 放置在最左侧 -->
                             <Button x:Name="btnToggleKeyMode"
-                                    Style="{StaticResource CircleButtonStyle}"
+                                    Style="{StaticResource SVGCircleButtonStyle}"
                                     Width="32" Height="32"
                                     Grid.Column="0"
                                     Margin="0,0,10,0"
                                     Click="ToggleCoordinateMode_Click"
                                     ToolTip="切换到按键模式">
-                                <Path Data="M960 640a64 64 0 0 1-64 64H448v197.504a64 64 0 0 1-13.184 38.912l-5.568 6.336a64 64 0 0 1-84.48 5.312l-6.016-5.312-261.504-261.504a64 64 0 0 1 37.76-108.8L122.56 576H896a64 64 0 0 1 64 64z m5.504-256a64 64 0 0 1-56.576 63.552L901.504 448H128a64 64 0 0 1 0-128h448V122.432a64 64 0 0 1 13.184-38.912l5.568-6.336a64 64 0 0 1 84.48-5.312l6.016 5.312 261.504 261.504a64 64 0 0 1 18.752 45.248z"
-                                      Fill="#707070"
-                                      Width="16" Height="16"
-                                      Stretch="Uniform" />
+                                <svgc:SvgViewbox Source="pack://application:,,,/Resource/svg/奶牛猫.svg"
+                                                Width="20"
+                                                Height="20"
+                                                Stretch="Uniform">
+                                    <svgc:SvgViewbox.Resources>
+                                        <Style TargetType="Path">
+                                            <Setter Property="Fill" 
+                                                    Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                        </Style>
+                                    </svgc:SvgViewbox.Resources>
+                                </svgc:SvgViewbox>
                             </Button>
                             
                             <!-- 添加坐标按钮 -->
@@ -466,8 +482,8 @@
                                     Width="32" Height="32"
                                     Grid.Column="6"
                                     Margin="0,0,0,0"
-                                    ToolTip="鼠标位置">
-                                <Path Data="M874.048 533.333333C863.424 716.629333 716.629333 863.424 533.333333 874.048V917.333333a21.333333 21.333333 0 0 1-42.666666 0v-43.285333C307.370667 863.424 160.576 716.629333 149.952 533.333333H106.666667a21.333333 21.333333 0 0 1 0-42.666666h43.285333C160.576 307.370667 307.370667 160.576 490.666667 149.952V106.666667a21.333333 21.333333 0 0 1 42.666666 0v43.285333c183.296 10.624 330.090667 157.418667 340.714667 340.714667h42.816a21.333333 21.333333 0 1 1 0 42.666666H874.026667z m-42.752 0h-127.786667a21.333333 21.333333 0 0 1 0-42.666666h127.786667C820.778667 330.922667 693.056 203.221333 533.333333 192.704V320a21.333333 21.333333 0 0 1-42.666666 0V192.704C330.922667 203.221333 203.221333 330.944 192.704 490.666667H320a21.333333 21.333333 0 0 1 0 42.666666H192.704c10.517333 159.744 138.24 287.445333 297.962667 297.962667V704a21.333333 21.333333 0 0 1 42.666666 0v127.296c159.744-10.517333 287.445333-138.24 297.962667-297.962667zM512 554.666667a42.666667 42.666667 0 1 1 0-85.333334 42.666667 42.666667 0 0 1 0 85.333334z"
+                                    ToolTip="拖拽可以进行坐标定位，点击可以进入编辑坐标模式">
+                                <Path Data="M232.709086 206.759841c-2.60747-35.250013 23.854905-65.939497 59.104918-68.546967a64 64 0 0 1 40.722649 10.911364L820.601501 481.195232c29.223558 19.883232 36.796185 59.691514 16.912954 88.916203a64 64 0 0 1-41.781687 27.021845L661.499479 620.842384l86.876115 150.473748c17.496159 30.305201 7.391788 68.970808-22.513307 86.888548l-0.912106 0.536865-73.900927 42.666667c-30.610366 17.673607-69.751806 7.184954-87.424283-23.425413l-86.878375-150.473748-87.64694 104.393748c-22.500874 26.800318-62.292203 30.517687-89.352477 8.536724l-0.816036-0.674755a64 64 0 0 1-22.672671-44.293086l-43.548256-588.711841z m88.360124 37.772715l36.418684 492.312301 73.491779-87.531656a64 64 0 0 1 16.24272-13.820609l0.771956-0.452098c30.611497-17.673607 69.752936-7.184954 87.425413 23.425413l91.436644 158.375276 36.951029-21.333333-91.436645-158.375276a64 64 0 0 1-7.436998-19.988344l-0.161624-0.879329c-6.148521-34.808088 17.084751-68.008971 51.891708-74.156362l112.550711-19.880972-408.145377-277.695011z"
                                       Fill="#707070"
                                       Width="20" Height="20"
                                       Stretch="Uniform" />
@@ -777,7 +793,7 @@
                                      Focusable="False"
                                      IsReadOnly="True"
                                      Text="{Binding SelectedWindowTitle, Mode=OneWay}"
-                                     Tag="空"
+                                     Tag="{x:Static viewModels:KeyMappingViewModel.EMPTY_WINDOW_PLACEHOLDER}"
                                      ToolTip="{Binding SelectedWindowClassName}"
                                      behaviors:AutoScrollBehavior.IsEnabled="True"
                                      behaviors:AutoScrollBehavior.ScrollDelay="1000"
@@ -810,7 +826,7 @@
                                          Style="{StaticResource ModernTextBox}"
                                          IsEnabled="{Binding IsNotExecuting}"
                                          Width="120"
-                                         Tag="空"
+                                         Tag="{x:Static viewModels:KeyMappingViewModel.EMPTY_WINDOW_PLACEHOLDER}"
                                          IsReadOnly="True"
                                          Text="{Binding HotkeyText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                                          IsUndoEnabled="False"

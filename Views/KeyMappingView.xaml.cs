@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Navigation;
@@ -18,6 +21,17 @@ using WpfApp.Services.Core;
 using WpfApp.Services.Models;
 using WpfApp.Services.Utils;
 using WpfApp.Behaviors;
+using System.Collections.Specialized;
+using System.Collections.ObjectModel;
+using System.Windows.Media.Animation;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+using System.Windows.Interop;
+using System.Diagnostics;
+using System.IO;
+using System.Threading.Tasks;
+using IO = System.IO; // 使用IO作为System.IO的别名，避免与Shapes.Path冲突
+using Path = System.Windows.Shapes.Path; // 明确指定Path是指Windows.Shapes.Path
 
 // 提供按键映射视图
 namespace WpfApp.Views;
@@ -50,6 +64,434 @@ public partial class KeyMappingView : Page
     private Ellipse _dragPoint = null;
     private Window _dragWindow = null;
     private System.Windows.Point _startPoint;
+    // 添加拖拽距离阈值常量
+    private const double DRAG_THRESHOLD = 5.0;
+    // 添加标记是否超过阈值的字段
+    private bool _isDragStarted = false;
+    private bool _hasLoggedWarning = false;
+    
+    // 添加坐标点管理相关成员变量
+    private bool _isCoordinateMarkersVisible = false;
+    private readonly Dictionary<KeyItem, CoordinateMarker> _coordinateMarkers = new();
+    private KeyItem _draggingKeyItem = null;
+    
+    // 添加编辑模式状态标志
+    private bool _isEditMode = false;
+    
+    // 添加Win32 API相关代码 - 放在类的开始部分
+    private static class Win32
+    {
+        // 扩展窗口样式常量
+        public const int GWL_EXSTYLE = -20;
+        public const int WS_EX_TOOLWINDOW = 0x00000080;
+        public const int WS_EX_APPWINDOW = 0x00040000;
+        
+        // 导入Win32 API
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern int GetWindowLong(System.IntPtr hwnd, int index);
+        
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern int SetWindowLong(System.IntPtr hwnd, int index, int newStyle);
+        
+        // 设置窗口为工具窗口，不在Alt+Tab列表中显示
+        public static void HideFromAltTab(Window window)
+        {
+            try
+            {
+                // 等待窗口初始化完成
+                window.SourceInitialized += (s, e) =>
+                {
+                    // 获取窗口句柄
+                    System.IntPtr handle = new System.Windows.Interop.WindowInteropHelper(window).Handle;
+                    
+                    // 获取当前扩展样式
+                    int exStyle = GetWindowLong(handle, GWL_EXSTYLE);
+                    
+                    // 添加工具窗口样式，移除应用窗口样式
+                    exStyle |= WS_EX_TOOLWINDOW;
+                    exStyle &= ~WS_EX_APPWINDOW;
+                    
+                    // 设置新样式
+                    SetWindowLong(handle, GWL_EXSTYLE, exStyle);
+                };
+            }
+            catch (Exception ex)
+            {
+                SerilogManager.Instance.Error("设置窗口样式时发生异常", ex);
+            }
+        }
+    }
+    
+    private class CoordinateMarker
+    {
+        public Window MarkerWindow { get; private set; }
+        public Window LabelWindow { get; private set; }
+        public KeyItem KeyItem { get; private set; }
+        public int Index { get; set; }
+        public bool IsDragging { get; set; }
+        
+        public CoordinateMarker(KeyItem keyItem, int index)
+        {
+            KeyItem = keyItem;
+            Index = index;
+            CreateMarkerWindow();
+            CreateLabelWindow();
+        }
+        
+        private void CreateMarkerWindow()
+        {
+            // 创建红点UI
+            Grid mainGrid = new Grid
+            {
+                Width = 16,
+                Height = 16,
+                Background = null // 透明背景
+            };
+            
+            // 创建红点
+            Ellipse point = new Ellipse
+            {
+                Width = 10,
+                Height = 10,
+                Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 0, 0)), // 红色
+                Stroke = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 255, 255)), // 白色边框
+                StrokeThickness = 1,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center
+            };
+            
+            mainGrid.Children.Add(point);
+            
+            // 创建红点窗口
+            MarkerWindow = new Window
+            {
+                WindowStyle = WindowStyle.None,
+                ResizeMode = ResizeMode.NoResize,
+                AllowsTransparency = true,
+                Background = null,
+                Topmost = true,
+                ShowInTaskbar = false,
+                WindowStartupLocation = WindowStartupLocation.Manual,
+                SizeToContent = SizeToContent.Manual,
+                Content = mainGrid,
+                Width = 16,
+                Height = 16
+            };
+            
+            // 设置为工具窗口，不在Alt+Tab列表中显示
+            Win32.HideFromAltTab(MarkerWindow);
+        }
+        
+        private void CreateLabelWindow()
+        {
+            // 创建缩放变换
+            ScaleTransform scaleTransform = new ScaleTransform(0.8, 0.8);
+            
+            // 创建标签UI
+            Border border = new Border
+            {
+                Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(230, 30, 30, 30)),
+                BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(80, 80, 80)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(8, 4, 8, 4), // 增加内边距，使文本显示更美观
+                Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    Color = Colors.Black,
+                    Direction = 315,
+                    ShadowDepth = 3,
+                    Opacity = 0.7,
+                    BlurRadius = 5
+                },
+                // 将变换应用到Border上，而不是Window
+                RenderTransformOrigin = new System.Windows.Point(0.5, 0.5),
+                RenderTransform = scaleTransform,
+                Opacity = 0.9
+            };
+            
+            TextBlock label = new TextBlock
+            {
+                Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 255, 255)),
+                FontSize = 12,
+                FontWeight = FontWeights.SemiBold,
+                TextAlignment = TextAlignment.Center
+            };
+            
+            // 设置标签文本 - 格式为 "序号-(X,Y)"
+            UpdateLabel(label);
+            
+            border.Child = label;
+            
+            // 创建标签窗口
+            LabelWindow = new Window
+            {
+                WindowStyle = WindowStyle.None,
+                ResizeMode = ResizeMode.NoResize,
+                AllowsTransparency = true,
+                Background = null,
+                Topmost = true,
+                ShowInTaskbar = false,
+                WindowStartupLocation = WindowStartupLocation.Manual,
+                SizeToContent = SizeToContent.WidthAndHeight,
+                Content = border
+            };
+            
+            // 设置为工具窗口，不在Alt+Tab列表中显示
+            Win32.HideFromAltTab(LabelWindow);
+            
+            // 设置标签窗口初始不可见，等待位置计算完成后再显示
+            LabelWindow.Visibility = Visibility.Collapsed;
+            
+            // 添加显示时的动画效果
+            LabelWindow.IsVisibleChanged += (sender, e) =>
+            {
+                if (LabelWindow.IsVisible)
+                {
+                    // 创建缩放动画
+                    DoubleAnimation scaleAnimation = new DoubleAnimation
+                    {
+                        From = 0.8,
+                        To = 1.0,
+                        Duration = TimeSpan.FromMilliseconds(150),
+                        EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    
+                    // 创建透明度动画
+                    DoubleAnimation opacityAnimation = new DoubleAnimation
+                    {
+                        From = 0.7,
+                        To = 0.95,
+                        Duration = TimeSpan.FromMilliseconds(200),
+                        EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    
+                    // 应用动画到Border而不是Window
+                    scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnimation);
+                    scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnimation);
+                    border.BeginAnimation(UIElement.OpacityProperty, opacityAnimation);
+                }
+            };
+        }
+        
+        public void UpdateLabel()
+        {
+            if (LabelWindow.Content is Border border && border.Child is TextBlock label)
+            {
+                // 更新标签文本
+                UpdateLabel(label);
+                
+                // 确保标签窗口尺寸更新
+                LabelWindow.UpdateLayout();
+                
+                // 重新计算位置，以适应新的尺寸
+                UpdatePosition();
+            }
+        }
+        
+        private void UpdateLabel(TextBlock label)
+        {
+            // 设置标签文本
+            // 格式为 "序号-(X,Y)"
+            label.Text = $"{Index + 1}-({KeyItem.X},{KeyItem.Y})";
+        }
+        
+        public void UpdatePosition()
+        {
+            try
+            {
+                if (KeyItem.Type != KeyItemType.Coordinates)
+                    return;
+                    
+                // 使用用户坐标（从1开始）转换为系统坐标（从0开始）
+                int x = KeyItem.X - 1; // 用户坐标从1开始，系统坐标从0开始
+                int y = KeyItem.Y - 1;
+                
+                // 确保MarkerWindow尺寸已更新
+                MarkerWindow.UpdateLayout();
+                
+                // 获取DPI感知的PresentationSource以进行转换
+                PresentationSource source = PresentationSource.FromVisual(MarkerWindow);
+                
+                // 需要考虑DPI缩放的窗口位置
+                double dpiAwareX = x;
+                double dpiAwareY = y;
+                
+                // 应用DPI转换 - 从物理坐标转换为WPF逻辑坐标
+                bool hasDpiTransform = false;
+                
+                if (source != null && source.CompositionTarget != null)
+                {
+                    hasDpiTransform = true;
+                    Matrix transformMatrix = source.CompositionTarget.TransformFromDevice;
+                    
+                    // 将物理坐标点转换为WPF逻辑坐标
+                    System.Windows.Point physicalPoint = new System.Windows.Point(x, y);
+                    System.Windows.Point logicalPoint = transformMatrix.Transform(physicalPoint);
+                    
+                    dpiAwareX = logicalPoint.X;
+                    dpiAwareY = logicalPoint.Y;
+                    
+                    // 记录坐标转换信息
+                    SerilogManager.Instance.Debug($"坐标标记位置 - 原始: ({x},{y}), DPI转换后: ({dpiAwareX:F1},{dpiAwareY:F1})");
+                }
+                
+                // 更新红点位置 - 居中显示，使用DPI感知坐标
+                MarkerWindow.Left = dpiAwareX - MarkerWindow.Width / 2;
+                MarkerWindow.Top = dpiAwareY - MarkerWindow.Height / 2;
+                
+                // 确保标签窗口尺寸已更新
+                LabelWindow.UpdateLayout();
+                
+                // 获取当前屏幕工作区域
+                System.Windows.Forms.Screen currentScreen = System.Windows.Forms.Screen.FromPoint(
+                    new System.Drawing.Point(x, y));
+                System.Drawing.Rectangle workingArea = currentScreen.WorkingArea;
+                
+                // 计算标签尺寸和位置
+                double labelWidth = LabelWindow.ActualWidth;
+                double labelHeight = LabelWindow.ActualHeight;
+                
+                // 记录原始尺寸信息用于调试
+                SerilogManager.Instance.Debug($"标签窗口尺寸: 宽={labelWidth:F1}, 高={labelHeight:F1}, 坐标点: X={x}, Y={y}");
+                
+                // DPI缩放转换 - 将系统坐标的工作区域转换为WPF坐标
+                Rect dpiAwareWorkingArea = new Rect(
+                    workingArea.Left, 
+                    workingArea.Top, 
+                    workingArea.Width, 
+                    workingArea.Height);
+                
+                if (source != null && source.CompositionTarget != null)
+                {
+                    Matrix transformMatrix = source.CompositionTarget.TransformFromDevice;
+                    
+                    // 转换工作区域的四个点
+                    System.Windows.Point topLeft = transformMatrix.Transform(new System.Windows.Point(workingArea.Left, workingArea.Top));
+                    System.Windows.Point bottomRight = transformMatrix.Transform(new System.Windows.Point(workingArea.Right, workingArea.Bottom));
+                    
+                    // 创建DPI感知的工作区域矩形
+                    dpiAwareWorkingArea = new Rect(topLeft, bottomRight);
+                }
+                
+                // 默认位置 - 优先考虑红点右侧，使用DPI感知坐标
+                double labelLeft = dpiAwareX + 10;
+                double labelTop = dpiAwareY - labelHeight / 2;
+                
+                // 记录初始位置信息
+                SerilogManager.Instance.Debug($"默认标签位置: 左={labelLeft:F1}, 上={labelTop:F1}");
+                
+                // 智能边界检测 - 首先检查右边界
+                if (labelLeft + labelWidth > dpiAwareWorkingArea.Right - 10)
+                {
+                    // 如果右侧放不下，尝试放在左侧
+                    labelLeft = dpiAwareX - 10 - labelWidth;
+                    SerilogManager.Instance.Debug($"右侧超出边界，调整到左侧: 左={labelLeft:F1}");
+                }
+                
+                // 检查左边界
+                if (labelLeft < dpiAwareWorkingArea.Left + 10)
+                {
+                    // 如果左侧也放不下，放在上方或下方
+                    // 默认放在上方
+                    labelLeft = dpiAwareX - labelWidth / 2;
+                    labelTop = dpiAwareY - 10 - labelHeight;
+                    
+                    SerilogManager.Instance.Debug($"左侧超出边界，调整到上方: 左={labelLeft:F1}, 上={labelTop:F1}");
+                    
+                    // 如果上方放不下，放在下方
+                    if (labelTop < dpiAwareWorkingArea.Top + 10)
+                    {
+                        labelTop = dpiAwareY + 10;
+                        SerilogManager.Instance.Debug($"上方超出边界，调整到下方: 上={labelTop:F1}");
+                    }
+                }
+                
+                // 检查上边界
+                if (labelTop < dpiAwareWorkingArea.Top + 10)
+                {
+                    // 如果已经进行了左右调整，则调整到下方
+                    labelTop = dpiAwareY + 10;
+                    SerilogManager.Instance.Debug($"上方超出边界，调整到下方: 上={labelTop:F1}");
+                }
+                
+                // 检查下边界
+                if (labelTop + labelHeight > dpiAwareWorkingArea.Bottom - 10)
+                {
+                    // 如果下方放不下，强制放在上方
+                    labelTop = dpiAwareY - 10 - labelHeight;
+                    SerilogManager.Instance.Debug($"下方超出边界，调整到上方: 上={labelTop:F1}");
+                    
+                    // 如果实在放不下，至少确保尽可能显示在屏幕内
+                    if (labelTop < dpiAwareWorkingArea.Top + 10)
+                    {
+                        labelTop = Math.Max(dpiAwareWorkingArea.Top + 5, dpiAwareY - labelHeight / 2);
+                        SerilogManager.Instance.Debug($"上下均超出边界，强制调整到最合适位置: 上={labelTop:F1}");
+                    }
+                }
+                
+                // 记录最终位置
+                SerilogManager.Instance.Debug($"最终标签位置: 左={labelLeft:F1}, 上={labelTop:F1}, DPI转换={hasDpiTransform}");
+                
+                // 应用最终位置
+                LabelWindow.Left = labelLeft;
+                LabelWindow.Top = labelTop;
+            }
+            catch (Exception ex)
+            {
+                SerilogManager.Instance.Error("更新坐标标签位置时发生异常", ex);
+            }
+        }
+        
+        public void Show()
+        {
+            // 首先显示窗口
+            MarkerWindow.Show();
+            LabelWindow.Show();
+            
+            // 确保窗口内容已更新
+            MarkerWindow.UpdateLayout();
+            LabelWindow.UpdateLayout();
+            
+            // 计算并应用正确位置
+            UpdatePosition();
+            
+            // 添加简单的出现动画效果
+            if (LabelWindow.RenderTransform is ScaleTransform scaleTransform)
+            {
+                // 从缩小状态开始
+                scaleTransform.ScaleX = 0.7;
+                scaleTransform.ScaleY = 0.7;
+                
+                // 创建动画
+                DoubleAnimation scaleAnimation = new DoubleAnimation
+                {
+                    From = 0.7,
+                    To = 1.0,
+                    Duration = TimeSpan.FromMilliseconds(150),
+                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+                };
+                
+                // 应用动画
+                scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnimation);
+                scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnimation);
+            }
+            
+            // 最后确保标签窗口可见
+            LabelWindow.Visibility = Visibility.Visible;
+        }
+        
+        public void Hide()
+        {
+            MarkerWindow.Hide();
+            LabelWindow.Hide();
+        }
+        
+        public void Close()
+        {
+            MarkerWindow.Close();
+            LabelWindow.Close();
+        }
+    }
 
     public KeyMappingView()
     {
@@ -72,6 +514,34 @@ public partial class KeyMappingView : Page
         
         // 初始化鼠标拖拽按钮事件
         InitMouseDragEvents();
+        
+        // 添加页面卸载事件，确保正确清理资源
+        Unloaded += KeyMappingView_Unloaded;
+    }
+
+    // 处理页面卸载事件
+    private void KeyMappingView_Unloaded(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            _logger.Debug("KeyMappingView 正在卸载，清理资源");
+            
+            // 清理所有坐标点
+            ClearAllCoordinateMarkers();
+            
+            // 清理拖拽资源
+            CleanupDragOperation();
+            
+            // 取消事件订阅
+            if (ViewModel?.KeyList is ObservableCollection<KeyItem> keyList)
+            {
+                keyList.CollectionChanged -= KeyList_CollectionChanged;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("KeyMappingView 卸载时发生异常", ex);
+        }
     }
 
     private KeyMappingViewModel ViewModel => DataContext as KeyMappingViewModel;
@@ -79,10 +549,241 @@ public partial class KeyMappingView : Page
     // 添加 DataContext 变化事件处理
     private void KeyMappingView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        if (e.NewValue is KeyMappingViewModel viewModel)
+        try
         {
-            _hotkeyService = viewModel.GetHotkeyService();
-            _logger.Debug("已获取HotkeyService实例");
+            // 取消旧ViewModel的事件订阅
+            if (e.OldValue is KeyMappingViewModel oldViewModel)
+            {
+                // 取消KeyList的变化通知订阅
+                if (oldViewModel.KeyList != null)
+                {
+                    oldViewModel.KeyList.CollectionChanged -= KeyList_CollectionChanged;
+                    _logger.Debug("已取消旧ViewModel的KeyList变化事件订阅");
+                }
+                
+                // 取消坐标索引更新事件订阅
+                oldViewModel.CoordinateIndicesNeedUpdate -= ViewModel_CoordinateIndicesNeedUpdate;
+            }
+            
+            // 订阅新ViewModel的事件
+            if (e.NewValue is KeyMappingViewModel newViewModel)
+            {
+                // 获取HotkeyService实例
+                _hotkeyService = newViewModel.GetHotkeyService();
+                
+                // 订阅KeyList的变化通知
+                if (newViewModel.KeyList != null)
+                {
+                    newViewModel.KeyList.CollectionChanged += KeyList_CollectionChanged;
+                    _logger.Debug("已订阅新ViewModel的KeyList变化事件");
+                }
+                
+                // 订阅坐标索引更新事件
+                newViewModel.CoordinateIndicesNeedUpdate += ViewModel_CoordinateIndicesNeedUpdate;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("处理DataContext变化事件时发生异常", ex);
+        }
+    }
+    
+    // 处理坐标索引更新事件
+    private void ViewModel_CoordinateIndicesNeedUpdate(object sender, EventArgs e)
+    {
+        try
+        {
+            _logger.Debug("收到坐标索引更新事件");
+            
+            // 调用更新所有坐标标记索引的方法
+            UpdateAllCoordinateMarkerIndices();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("处理坐标索引更新事件时发生异常", ex);
+        }
+    }
+    
+    // 处理KeyList集合变化事件
+    private void KeyList_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+    {
+        try
+        {
+            // 如果坐标点不可见且不在编辑模式下，无需更新
+            if (!_isCoordinateMarkersVisible && !_isEditMode)
+                return;
+                
+            _logger.Debug("KeyList集合发生变化，更新坐标点");
+            
+            // 根据变化类型处理
+            switch (e.Action)
+            {
+                case NotifyCollectionChangedAction.Add:
+                    // 添加新坐标点
+                    if (e.NewItems != null)
+                    {
+                        // 获取KeyList
+                        var keyList = ViewModel?.KeyList;
+                        if (keyList == null)
+                            return;
+                            
+                        // 筛选出所有坐标类型的按键以计算正确的索引
+                        var coordinateItems = keyList.Where(item => item.Type == KeyItemType.Coordinates).ToList();
+                            
+                        foreach (KeyItem newItem in e.NewItems)
+                        {
+                            // 只处理坐标类型的按键
+                            if (newItem.Type != KeyItemType.Coordinates)
+                                continue;
+                                
+                            // 查找项在坐标类型集合中的索引
+                            int index = coordinateItems.IndexOf(newItem);
+                            if (index < 0)
+                                continue;
+                                
+                            // 更新KeyItem的坐标索引属性
+                            newItem.CoordinateIndex = index;
+                                
+                            // 创建新标记
+                            var marker = new CoordinateMarker(newItem, index);
+                            
+                            // 添加到集合
+                            _coordinateMarkers[newItem] = marker;
+                            
+                            // 添加拖拽事件
+                            AttachDragEvents(marker);
+                            
+                            // 显示标记
+                            marker.Show();
+                            
+                            _logger.Debug($"添加新坐标点: {index + 1}-({newItem.X},{newItem.Y})");
+                        }
+                    }
+                    break;
+                    
+                case NotifyCollectionChangedAction.Remove:
+                    // 移除坐标点
+                    if (e.OldItems != null)
+                    {
+                        foreach (KeyItem oldItem in e.OldItems)
+                        {
+                            // 只处理存在于集合中的项目
+                            if (_coordinateMarkers.TryGetValue(oldItem, out var marker))
+                            {
+                                // 移除拖拽事件
+                                DetachDragEvents(marker);
+                                
+                                // 关闭窗口
+                                marker.Close();
+                                
+                                // 从集合中移除
+                                _coordinateMarkers.Remove(oldItem);
+                                
+                                _logger.Debug($"移除坐标点: {marker.Index + 1}-({oldItem.X},{oldItem.Y})");
+                            }
+                        }
+                        
+                        // 在删除后，需要更新所有坐标的索引
+                        UpdateAllCoordinateMarkerIndices();
+                    }
+                    break;
+                    
+                case NotifyCollectionChangedAction.Replace:
+                    // 替换坐标点 - 简单处理，移除旧的，添加新的
+                    if (e.OldItems != null)
+                    {
+                        foreach (KeyItem oldItem in e.OldItems)
+                        {
+                            if (_coordinateMarkers.TryGetValue(oldItem, out var marker))
+                            {
+                                DetachDragEvents(marker);
+                                marker.Close();
+                                _coordinateMarkers.Remove(oldItem);
+                            }
+                        }
+                    }
+                    
+                    if (e.NewItems != null)
+                    {
+                        var keyList = ViewModel?.KeyList;
+                        if (keyList == null)
+                            return;
+                            
+                        // 筛选出所有坐标类型的按键以计算正确的索引
+                        var coordinateItems = keyList.Where(item => item.Type == KeyItemType.Coordinates).ToList();
+                            
+                        foreach (KeyItem newItem in e.NewItems)
+                        {
+                            if (newItem.Type != KeyItemType.Coordinates)
+                                continue;
+                                
+                            // 查找项在坐标类型集合中的索引
+                            int index = coordinateItems.IndexOf(newItem);
+                            if (index < 0)
+                                continue;
+                                
+                            // 更新KeyItem的坐标索引属性
+                            newItem.CoordinateIndex = index;
+                                
+                            var marker = new CoordinateMarker(newItem, index);
+                            _coordinateMarkers[newItem] = marker;
+                            AttachDragEvents(marker);
+                            marker.Show();
+                        }
+                    }
+                    break;
+                    
+                case NotifyCollectionChangedAction.Move:
+                    // 移动坐标点 - 需要更新索引
+                    UpdateAllCoordinateMarkerIndices();
+                    break;
+                    
+                case NotifyCollectionChangedAction.Reset:
+                    // 重置集合 - 清除所有坐标点并重新显示
+                    ShowAllCoordinateMarkers();
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("处理KeyList集合变化事件时发生异常", ex);
+        }
+    }
+    
+    // 更新所有坐标点的索引
+    private void UpdateAllCoordinateMarkerIndices()
+    {
+        try
+        {
+            var keyList = ViewModel?.KeyList;
+            if (keyList == null)
+                return;
+                
+            // 首先筛选出所有坐标类型的按键
+            var coordinateItems = keyList.Where(item => item.Type == KeyItemType.Coordinates).ToList();
+            
+            // 为所有坐标点更新索引并刷新标签
+            for (int i = 0; i < coordinateItems.Count; i++)
+            {
+                var keyItem = coordinateItems[i];
+                
+                // 更新KeyItem的坐标索引属性
+                keyItem.CoordinateIndex = i;
+                
+                if (_coordinateMarkers.TryGetValue(keyItem, out var marker))
+                {
+                    // 更新索引 - 使用在坐标类型集合中的索引，而不是在整个keyList中的索引
+                    marker.Index = i;
+                    // 刷新标签
+                    marker.UpdateLabel();
+                }
+            }
+            
+            _logger.Debug("已更新所有坐标点索引（仅计算坐标类型按键的序号）");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("更新坐标点索引时发生异常", ex);
         }
     }
 
@@ -527,6 +1228,28 @@ public partial class KeyMappingView : Page
                 
                 // 确保绑定更新
                 textBox.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateSource();
+                
+                // 当ViewModel中的CurrentX和CurrentY都有值时，更新坐标列表到执行层
+                if (ViewModel?.CurrentX.HasValue == true && ViewModel?.CurrentY.HasValue == true)
+                {
+                    // 添加延迟执行，确保绑定已完成
+                    Dispatcher.BeginInvoke(new Action(() => {
+                        // 查找是否有选中的坐标项需要更新
+                        if (ViewModel.SelectedKeyItem?.Type == KeyItemType.Coordinates)
+                        {
+                            // 更新选中的坐标项
+                            ViewModel.SelectedKeyItem.X = ViewModel.CurrentX.Value;
+                            ViewModel.SelectedKeyItem.Y = ViewModel.CurrentY.Value;
+                            
+                            // 保存配置并更新执行层
+                            ViewModel.SaveConfig();
+                            ViewModel.SyncKeyListToHotkeyService();
+                            
+                            _logger.Debug($"通过输入框更新坐标至 ({ViewModel.CurrentX.Value}, {ViewModel.CurrentY.Value}) 并同步到执行层");
+                        }
+                    }), System.Windows.Threading.DispatcherPriority.Background);
+                }
+                
                 return;
             }
 
@@ -1255,6 +1978,8 @@ public partial class KeyMappingView : Page
     {
         try
         {
+            bool wasInEditMode = _isEditMode;
+            
             // 等待绑定的Command执行完成，使用Dispatcher延迟执行
             Dispatcher.BeginInvoke(new Action(() =>
             {
@@ -1283,6 +2008,13 @@ public partial class KeyMappingView : Page
                 
                 // 记录日志
                 _logger.Debug("添加坐标后已清空坐标输入框和ViewModel属性");
+                
+                // 在编辑模式下，确保新添加的坐标点也能显示出来
+                if (wasInEditMode && _isEditMode)
+                {
+                    _logger.Debug("编辑模式下添加坐标后刷新显示");
+                    ShowAllCoordinateMarkers();
+                }
                 
             }), System.Windows.Threading.DispatcherPriority.Background);
         }
@@ -1322,9 +2054,6 @@ public partial class KeyMappingView : Page
                 btnMouseIcon.PreviewMouseMove += MouseIcon_PreviewMouseMove;
                 btnMouseIcon.PreviewMouseUp += MouseIcon_PreviewMouseUp;
                 
-                // 设置普通点击事件，用于后续功能扩展
-                btnMouseIcon.Click += MouseIcon_Click;
-                
                 _logger.Debug("鼠标坐标按钮事件已初始化");
             }
             else
@@ -1338,14 +2067,301 @@ public partial class KeyMappingView : Page
         }
     }
     
-    // 鼠标按钮点击事件 - 预留给后续功能扩展
-    private void MouseIcon_Click(object sender, RoutedEventArgs e)
+    // 切换坐标点显示状态
+    private void ToggleCoordinateMarkers()
     {
-        // 如果是拖拽操作，不触发点击事件处理
-        if (_isDragging) return;
+        try
+        {
+            // 如果正在编辑模式，不做任何操作（编辑模式下由ToggleEditMode控制坐标标记）
+            if (_isEditMode)
+                return;
+                
+            // 切换坐标标记的可见性状态
+            _isCoordinateMarkersVisible = !_isCoordinateMarkersVisible;
+            
+            if (_isCoordinateMarkersVisible)
+            {
+                _logger.Debug("显示所有坐标标记");
+                ShowAllCoordinateMarkers();
+            }
+            else
+            {
+                _logger.Debug("隐藏所有坐标标记");
+                HideAllCoordinateMarkers();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("切换坐标标记可见性时出错", ex);
+        }
+    }
+    
+    // 显示所有坐标点
+    private void ShowAllCoordinateMarkers()
+    {
+        try
+        {
+            // 清理旧的坐标点
+            ClearAllCoordinateMarkers();
+            
+            // 获取KeyList
+            var keyList = ViewModel?.KeyList;
+            if (keyList == null || keyList.Count == 0)
+            {
+                _logger.Debug("没有可显示的坐标点");
+                return;
+            }
+            
+            // 筛选出所有坐标类型的按键
+            var coordinateItems = keyList.Where(item => item.Type == KeyItemType.Coordinates).ToList();
+            
+            // 创建并显示所有坐标点
+            for (int i = 0; i < coordinateItems.Count; i++)
+            {
+                var keyItem = coordinateItems[i];
+                
+                // 更新KeyItem的坐标索引属性
+                keyItem.CoordinateIndex = i;
+                
+                // 创建坐标标记 - 使用在坐标类型集合中的索引
+                var marker = new CoordinateMarker(keyItem, i);
+                
+                // 添加到集合中
+                _coordinateMarkers[keyItem] = marker;
+                
+                // 添加拖拽事件处理
+                AttachDragEvents(marker);
+                
+                // 显示坐标点
+                marker.Show();
+                
+                _logger.Debug($"显示坐标点: {i + 1}-({keyItem.X},{keyItem.Y})");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("显示所有坐标点时发生异常", ex);
+            // 确保清理所有资源
+            ClearAllCoordinateMarkers();
+            throw;
+        }
+    }
+    
+    // 隐藏所有坐标点
+    private void HideAllCoordinateMarkers()
+    {
+        try
+        {
+            _logger.Debug("隐藏所有坐标点");
+            
+            // 隐藏所有坐标点
+            foreach (var marker in _coordinateMarkers.Values)
+            {
+                marker.Hide();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("隐藏所有坐标点时发生异常", ex);
+        }
+    }
+    
+    // 清理所有坐标点
+    private void ClearAllCoordinateMarkers()
+    {
+        try
+        {
+            _logger.Debug("清理所有坐标点");
+            
+            // 关闭所有坐标点窗口
+            foreach (var marker in _coordinateMarkers.Values)
+            {
+                DetachDragEvents(marker);
+                marker.Close();
+            }
+            
+            // 清空集合
+            _coordinateMarkers.Clear();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("清理所有坐标点时发生异常", ex);
+        }
+    }
+    
+    // 添加拖拽事件处理
+    private void AttachDragEvents(CoordinateMarker marker)
+    {
+        if (marker == null || marker.MarkerWindow == null || marker.MarkerWindow.Content == null)
+            return;
+            
+        var grid = marker.MarkerWindow.Content as Grid;
+        if (grid == null)
+            return;
+            
+        // 添加鼠标按下事件
+        grid.MouseLeftButtonDown += (s, e) => Marker_MouseLeftButtonDown(marker, e);
         
-        _logger.Debug("鼠标坐标按钮被点击");
-        // TODO: 这里预留给后续功能实现
+        // 添加鼠标移动事件
+        grid.MouseMove += (s, e) => Marker_MouseMove(marker, e);
+        
+        // 添加鼠标释放事件
+        grid.MouseLeftButtonUp += (s, e) => Marker_MouseLeftButtonUp(marker, e);
+    }
+    
+    // 移除拖拽事件处理
+    private void DetachDragEvents(CoordinateMarker marker)
+    {
+        if (marker == null || marker.MarkerWindow == null || marker.MarkerWindow.Content == null)
+            return;
+            
+        var grid = marker.MarkerWindow.Content as Grid;
+        if (grid == null)
+            return;
+            
+        // 移除所有事件处理器
+        grid.MouseLeftButtonDown -= (s, e) => Marker_MouseLeftButtonDown(marker, e);
+        grid.MouseMove -= (s, e) => Marker_MouseMove(marker, e);
+        grid.MouseLeftButtonUp -= (s, e) => Marker_MouseLeftButtonUp(marker, e);
+    }
+    
+    // 坐标点鼠标按下事件
+    private void Marker_MouseLeftButtonDown(CoordinateMarker marker, MouseButtonEventArgs e)
+    {
+        try
+        {
+            if (marker == null || marker.KeyItem == null)
+                return;
+                
+            // 记录拖拽状态
+            marker.IsDragging = true;
+            _draggingKeyItem = marker.KeyItem;
+            
+            // 捕获鼠标
+            var grid = marker.MarkerWindow.Content as Grid;
+            if (grid != null)
+                grid.CaptureMouse();
+                
+            // 记录起始位置
+            _startPoint = e.GetPosition(null);
+            
+            _logger.Debug($"开始拖拽坐标点: {marker.Index + 1}-({marker.KeyItem.X},{marker.KeyItem.Y})");
+            e.Handled = true;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("处理坐标点鼠标按下事件时发生异常", ex);
+        }
+    }
+    
+    /// <summary>
+    /// 获取原始屏幕坐标(不进行DPI转换)
+    /// </summary>
+    /// <returns>包含原始X,Y坐标的元组</returns>
+    private (int X, int Y) GetRawScreenPosition()
+    {
+        try
+        {
+            // 获取鼠标的屏幕绝对位置（Windows Forms坐标系）
+            System.Drawing.Point cursorPos = System.Windows.Forms.Cursor.Position;
+            
+            // 直接返回原始物理坐标
+            return (cursorPos.X, cursorPos.Y);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("获取原始屏幕坐标时发生异常", ex);
+            
+            // 出错时返回(0,0)，调用方需要处理这种异常情况
+            return (0, 0);
+        }
+    }
+    
+    // 坐标点鼠标移动事件
+    private void Marker_MouseMove(CoordinateMarker marker, System.Windows.Input.MouseEventArgs e)
+    {
+        try
+        {
+            // 只有在拖拽状态下才处理移动
+            if (!marker.IsDragging || e.LeftButton != MouseButtonState.Pressed)
+                return;
+                
+            // 使用DPI感知坐标获取方法 - 用于UI位置计算
+            var (dpiX, dpiY) = GetDpiAwareScreenPosition(marker.MarkerWindow);
+            
+            // 使用原始坐标 - 用于数据存储
+            var (rawX, rawY) = GetRawScreenPosition();
+            
+            // 转换为用户坐标(从1开始)
+            int userX = rawX + 1;
+            int userY = rawY + 1;
+            
+            // 更新KeyItem中的坐标 - 使用原始坐标
+            marker.KeyItem.X = userX;
+            marker.KeyItem.Y = userY;
+            
+            // 更新坐标点位置 - UpdatePosition方法会处理DPI感知定位
+            marker.UpdatePosition();
+            
+            // 更新标签显示
+            marker.UpdateLabel();
+            
+            // 记录拖拽过程
+            _logger.Debug($"拖拽坐标点: {marker.Index + 1} 到 ({userX},{userY}) [原始坐标: {rawX},{rawY}]");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("处理坐标点鼠标移动事件时发生异常", ex);
+        }
+    }
+    
+    // 坐标点鼠标释放事件
+    private void Marker_MouseLeftButtonUp(CoordinateMarker marker, MouseButtonEventArgs e)
+    {
+        try
+        {
+            if (!marker.IsDragging)
+                return;
+                
+            // 释放鼠标捕获
+            var grid = marker.MarkerWindow.Content as Grid;
+            if (grid != null && grid.IsMouseCaptured)
+                grid.ReleaseMouseCapture();
+                
+            // 重置拖拽状态
+            marker.IsDragging = false;
+            _draggingKeyItem = null;
+            
+            // 使用原始坐标获取方法获取最终位置 - 用于数据存储
+            var (rawX, rawY) = GetRawScreenPosition();
+            
+            // 转换为用户坐标(从1开始)
+            int userX = rawX + 1;
+            int userY = rawY + 1;
+            
+            // 最终更新KeyItem中的坐标
+            marker.KeyItem.X = userX;
+            marker.KeyItem.Y = userY;
+            
+            // 更新坐标点位置
+            marker.UpdatePosition();
+            
+            // 更新标签显示
+            marker.UpdateLabel();
+            
+            // 通知ViewModel保存配置
+            ViewModel?.SaveConfig();
+            
+            // 更新热键服务中的按键列表，确保坐标更改立即生效
+            ViewModel?.SyncKeyListToHotkeyService();
+            
+            _logger.Debug($"完成拖拽坐标点: {marker.Index + 1} 到最终位置 ({userX},{userY}) [原始坐标: {rawX},{rawY}]");
+            e.Handled = true;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("处理坐标点鼠标释放事件时发生异常", ex);
+        }
     }
     
     // 鼠标按钮按下事件 - 开始拖拽
@@ -1353,116 +2369,155 @@ public partial class KeyMappingView : Page
     {
         try
         {
-            // 左键才能触发拖拽
+            // 如果处于编辑模式，阻止拖拽操作
+            if (_isEditMode)
+            {
+                // 只允许点击事件，不启动拖拽操作
+                e.Handled = true;
+                return;
+            }
+            
+            // 只处理左键按下
             if (e.LeftButton == MouseButtonState.Pressed)
             {
-                // 标记开始拖拽
+                _logger.Debug("鼠标图标按钮左键按下");
+                
+                // 记录起始点位置
+                _startPoint = e.GetPosition(null);
+                
+                // 标记为可能的拖拽操作，但尚未确认
                 _isDragging = true;
-                
-                // 记录起始点
-                _startPoint = e.GetPosition(btnMouseIcon);
-                
-                // 创建拖拽时显示的红点
-                CreateDragPoint();
-                
+                _isDragStarted = false;
+
                 // 捕获鼠标
                 btnMouseIcon.CaptureMouse();
                 
                 // 阻止事件传递，避免触发点击事件
                 e.Handled = true;
-                
-                _logger.Debug("开始鼠标坐标拖拽");
             }
         }
         catch (Exception ex)
         {
-            _logger.Error("鼠标按钮按下事件处理失败", ex);
+            _logger.Error("处理鼠标按钮按下事件时发生异常", ex);
             CleanupDragOperation();
         }
     }
     
-    // 鼠标移动事件 - 更新拖拽红点位置
+    // 鼠标移动事件 - 拖拽过程
     private void MouseIcon_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
     {
         try
         {
-            if (_isDragging && _dragPoint != null && _dragWindow != null)
+            // 如果处于编辑模式，阻止拖拽操作
+            if (_isEditMode)
             {
-                // 获取鼠标的屏幕绝对位置
-                System.Drawing.Point cursorPos = System.Windows.Forms.Cursor.Position;
+                return;
+            }
+            
+            // 只有当鼠标左键按下且已经开始拖拽时才处理移动事件
+            if (e.LeftButton == MouseButtonState.Pressed && _isDragging)
+            {
+                // 获取当前位置
+                System.Windows.Point currentPosition = e.GetPosition(null);
                 
-                // 为了解决DPI缩放问题，需要将Windows Forms坐标转换为WPF坐标
-                // 获取PresentationSource以进行坐标转换
-                PresentationSource source = PresentationSource.FromVisual(_dragWindow);
-                if (source != null && source.CompositionTarget != null)
+                // 计算移动距离
+                Vector moveDistance = currentPosition - _startPoint;
+                double distance = Math.Sqrt(moveDistance.X * moveDistance.X + moveDistance.Y * moveDistance.Y);
+                
+                // 只有当移动距离超过阈值才认为是拖拽操作
+                if (!_isDragStarted && distance > DRAG_THRESHOLD)
                 {
-                    // 获取设备到逻辑单位的转换矩阵
-                    Matrix transformMatrix = source.CompositionTarget.TransformFromDevice;
+                    _isDragStarted = true;
+                    _logger.Debug($"鼠标拖拽开始，距离：{distance:F2}");
                     
-                    // 将设备坐标点转换为WPF逻辑坐标
-                    System.Windows.Point devicePoint = new System.Windows.Point(cursorPos.X, cursorPos.Y);
-                    System.Windows.Point wpfPoint = transformMatrix.Transform(devicePoint);
-                    
-                    // 应用转换后的坐标，加上准星中心点的偏移（十字准星尺寸为20x20）
-                    _dragWindow.Left = wpfPoint.X - 10; // 居中显示，偏移一半宽度
-                    _dragWindow.Top = wpfPoint.Y - 10;  // 居中显示，偏移一半高度
-                    
-                    _logger.Debug($"光标位置: 设备({cursorPos.X}, {cursorPos.Y}) -> WPF({wpfPoint.X}, {wpfPoint.Y})");
-                }
-                else
-                {
-                    // 如果无法获取转换矩阵，则使用原始方法设置位置（回退方案）
-                    _dragWindow.Left = cursorPos.X - 10; // 偏移10像素使十字准星居中
-                    _dragWindow.Top = cursorPos.Y - 10;  // 偏移10像素使十字准星居中
-                    
-                    _logger.Warning("无法获取坐标转换信息，使用原始位置计算方法");
+                    // 确认是拖拽操作后再创建拖拽指示器
+                    CreateDragPoint();
                 }
                 
-                // 阻止事件传递
-                e.Handled = true;
+                // 如果确认是拖拽操作，更新拖拽点位置
+                if (_isDragStarted && _dragWindow != null)
+                {
+                    // 使用DPI感知坐标获取方法 - 用于UI定位
+                    var (dpiX, dpiY) = GetDpiAwareScreenPosition(_dragWindow);
+                    
+                    // 应用坐标，并考虑十字准星尺寸居中偏移
+                    _dragWindow.Left = dpiX - 10; // 居中显示，偏移准星尺寸的一半
+                    _dragWindow.Top = dpiY - 10;  // 居中显示，偏移准星尺寸的一半
+                    
+                    // 确保拖拽窗口可见
+                    if (!_dragWindow.IsVisible)
+                    {
+                        _dragWindow.Show();
+                    }
+                }
             }
         }
         catch (Exception ex)
         {
-            _logger.Error("鼠标移动事件处理失败", ex);
+            _logger.Error("处理鼠标移动事件时发生异常", ex);
             CleanupDragOperation();
         }
     }
     
-    // 鼠标释放事件 - 结束拖拽并获取坐标
+    // 鼠标释放事件 - 结束拖拽并获取坐标或切换编辑模式
     private void MouseIcon_PreviewMouseUp(object sender, MouseButtonEventArgs e)
     {
         try
         {
-            if (_isDragging)
+            // 只处理左键释放
+            if (e.LeftButton == MouseButtonState.Released)
             {
-                // 获取鼠标的屏幕绝对位置
-                System.Drawing.Point cursorPos = System.Windows.Forms.Cursor.Position;
-                int sysX = cursorPos.X;
-                int sysY = cursorPos.Y;
-                
-                // 记录原始系统坐标，用于日志比较
-                _logger.Debug($"原始系统坐标: ({sysX}, {sysY})");
-                
-                // 由于我们需要的是原始屏幕坐标而不是WPF坐标，所以直接使用Windows Forms提供的坐标
-                // 在UpdateCoordinateInputs方法中会将系统坐标转换为从1开始的用户坐标
-                
-                // 将坐标填入输入框
-                UpdateCoordinateInputs(sysX, sysY);
-                
-                // 使用从1开始的坐标系显示日志
-                _logger.Debug($"拖拽结束，获取坐标: X={sysX+1}, Y={sysY+1}");
-                
-                // 清理拖拽资源
-                CleanupDragOperation();
-                
-                // 阻止事件传递
-                e.Handled = true;
+                // 如果处于拖拽状态
+                if (_isDragging)
+                {
+                    // 释放鼠标捕获
+                    btnMouseIcon.ReleaseMouseCapture();
+                    
+                    // 如果确认是拖拽操作，则更新坐标
+                    if (_isDragStarted)
+                    {
+                        // 获取原始物理坐标 - 用于数据存储
+                        var (rawX, rawY) = GetRawScreenPosition();
+                        
+                        // 获取DPI感知坐标 - 仅用于日志对比
+                        var (dpiX, dpiY) = GetDpiAwareScreenPosition(btnMouseIcon);
+                        
+                        // 记录详细的坐标获取日志，只在松开鼠标时记录一次
+                        _logger.Debug($"鼠标拖拽结束，获取坐标位置 - 原始坐标: X={rawX}, Y={rawY}, DPI转换坐标: X={dpiX}, Y={dpiY}");
+                        
+                        // 更新坐标输入框 - 传入原始物理坐标
+                        UpdateCoordinateInputs(rawX, rawY);
+                        
+                        // 阻止Click事件触发
+                        e.Handled = true;
+                    }
+                    else
+                    {
+                        _logger.Debug("鼠标拖拽未超过阈值，视为点击操作");
+                        // 切换编辑模式和图标样式
+                        ToggleEditMode();
+                        
+                        // 阻止Click事件触发，因为我们已经手动处理了点击功能
+                        e.Handled = true;
+                    }
+                    
+                    // 清理拖拽操作相关资源
+                    CleanupDragOperation();
+                }
+                else
+                {
+                    // 如果不是从拖拽状态释放，则是纯点击事件
+                    // 切换编辑模式和图标样式
+                    ToggleEditMode();
+                    
+                    // 阻止后续Click事件处理
+                    e.Handled = true;
+                }
             }
         }
         catch (Exception ex)
         {
-            _logger.Error("鼠标释放事件处理失败", ex);
+            _logger.Error("鼠标释放事件处理异常", ex);
             CleanupDragOperation();
         }
     }
@@ -1472,81 +2527,54 @@ public partial class KeyMappingView : Page
     {
         try
         {
-            // 创建更精确的指示器 - 使用十字准星图案
+            // 如果拖拽点已存在，直接返回
+            if (_dragWindow != null)
+                return;
+            
+            // 创建拖拽时的十字准星UI
             Grid mainGrid = new Grid
             {
-                Width = 20,       // 增加布局区域大小
-                Height = 20,      // 增加布局区域大小
+                Width = 20,
+                Height = 20,
                 Background = null // 透明背景
             };
             
-            // 创建中心红点
-            _dragPoint = new Ellipse
-            {
-                Width = 6,       // 减小红点尺寸，更精确
-                Height = 6,      // 减小红点尺寸，更精确
-                Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 0, 0)), // 鲜红色
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                VerticalAlignment = System.Windows.VerticalAlignment.Center
-            };
-            
-            // 创建水平线
+            // 添加水平线
             System.Windows.Shapes.Rectangle horizontalLine = new System.Windows.Shapes.Rectangle
             {
-                Height = 1,      // 1像素高度
-                Width = 20,      // 整个Grid宽度
-                Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 255, 255)), // 白色线条
-                VerticalAlignment = System.Windows.VerticalAlignment.Center,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
-                Margin = new Thickness(0),
+                Width = 20,
+                Height = 1,
+                Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 0, 0)), // 红色
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
             };
             
-            // 创建垂直线
+            // 添加垂直线
             System.Windows.Shapes.Rectangle verticalLine = new System.Windows.Shapes.Rectangle
             {
-                Width = 1,       // 1像素宽度
-                Height = 20,     // 整个Grid高度
-                Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 255, 255)), // 白色线条
+                Width = 1,
+                Height = 20,
+                Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 0, 0)), // 红色
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                VerticalAlignment = System.Windows.VerticalAlignment.Stretch,
-                Margin = new Thickness(0),
+                VerticalAlignment = VerticalAlignment.Center
             };
             
-            // 添加黑色线条边框，增强对比度
-            System.Windows.Shapes.Rectangle horizontalOutline1 = new System.Windows.Shapes.Rectangle
+            // 添加中心点（半径5像素的圆）
+            Ellipse centerPoint = new Ellipse
             {
-                Height = 1, Width = 20, Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 0, 0)),
-                VerticalAlignment = System.Windows.VerticalAlignment.Center, Margin = new Thickness(0, -1, 0, 0)
+                Width = 5,
+                Height = 5,
+                Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 0, 0)), // 红色
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
             };
             
-            System.Windows.Shapes.Rectangle horizontalOutline2 = new System.Windows.Shapes.Rectangle
-            {
-                Height = 1, Width = 20, Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 0, 0)),
-                VerticalAlignment = System.Windows.VerticalAlignment.Center, Margin = new Thickness(0, 1, 0, 0)
-            };
-            
-            System.Windows.Shapes.Rectangle verticalOutline1 = new System.Windows.Shapes.Rectangle
-            {
-                Width = 1, Height = 20, Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 0, 0)),
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center, Margin = new Thickness(-1, 0, 0, 0)
-            };
-            
-            System.Windows.Shapes.Rectangle verticalOutline2 = new System.Windows.Shapes.Rectangle
-            {
-                Width = 1, Height = 20, Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 0, 0)),
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center, Margin = new Thickness(1, 0, 0, 0)
-            };
-            
-            // 添加所有元素到Grid
-            mainGrid.Children.Add(horizontalOutline1);
-            mainGrid.Children.Add(horizontalOutline2);
-            mainGrid.Children.Add(verticalOutline1);
-            mainGrid.Children.Add(verticalOutline2);
+            // 将元素添加到Grid
             mainGrid.Children.Add(horizontalLine);
             mainGrid.Children.Add(verticalLine);
-            mainGrid.Children.Add(_dragPoint);
+            mainGrid.Children.Add(centerPoint);
             
-            // 创建一个透明窗口来托管十字准星
+            // 创建窗口
             _dragWindow = new Window
             {
                 WindowStyle = WindowStyle.None,
@@ -1561,6 +2589,9 @@ public partial class KeyMappingView : Page
                 Width = 20,     // 与Grid尺寸一致
                 Height = 20     // 与Grid尺寸一致
             };
+            
+            // 设置为工具窗口，不在Alt+Tab列表中显示
+            Win32.HideFromAltTab(_dragWindow);
             
             // 初始位置设为屏幕外，避免闪烁
             _dragWindow.Left = -100;
@@ -1583,33 +2614,35 @@ public partial class KeyMappingView : Page
     {
         try
         {
-            // 将从0开始的系统坐标转换为从1开始的用户坐标
-            int userX = x + 1; // 系统坐标0对应用户坐标1
-            int userY = y + 1; // 系统坐标0对应用户坐标1
-            
-            _logger.Debug($"坐标转换: 系统({x}, {y}) -> 用户({userX}, {userY})");
-            
-            // 直接更新 ViewModel 中的坐标属性，使用从1开始的用户坐标
             if (ViewModel != null)
             {
+                // 计算用户坐标（从1开始）
+                int userX = x + 1;
+                int userY = y + 1;
+                
+                // 将原始物理坐标设置到ViewModel
                 ViewModel.CurrentX = userX;
                 ViewModel.CurrentY = userY;
                 
-                // 强制更新UI (以防绑定延迟)
-                if (XCoordinateInputBox != null)
-                {
-                    XCoordinateInputBox.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateTarget();
-                }
+                _logger.Debug($"最终坐标值 - 用户坐标: X={userX}, Y={userY}, 原始物理坐标: X={x}, Y={y}");
                 
-                if (YCoordinateInputBox != null)
-                {
-                    YCoordinateInputBox.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateTarget();
-                }
+                // 使用Dispatcher.BeginInvoke确保在UI线程上更新，并降低优先级
+                Dispatcher.BeginInvoke(new Action(() => {
+                    if (XCoordinateInputBox != null)
+                    {
+                        XCoordinateInputBox.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateTarget();
+                    }
+                    
+                    if (YCoordinateInputBox != null)
+                    {
+                        YCoordinateInputBox.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateTarget();
+                    }
+                }), System.Windows.Threading.DispatcherPriority.Background);
             }
         }
         catch (Exception ex)
         {
-            _logger.Error("更新坐标输入框失败", ex);
+            _logger.Error("更新坐标输入框时发生异常", ex);
         }
     }
     
@@ -1624,7 +2657,7 @@ public partial class KeyMappingView : Page
                 btnMouseIcon.ReleaseMouseCapture();
             }
             
-            // 关闭并清理拖拽窗口
+            // 关闭拖拽窗口
             if (_dragWindow != null)
             {
                 _dragWindow.Close();
@@ -1636,10 +2669,162 @@ public partial class KeyMappingView : Page
             
             // 重置拖拽状态
             _isDragging = false;
+            _isDragStarted = false;
+            // 重置警告日志状态
+            _hasLoggedWarning = false;
         }
         catch (Exception ex)
         {
-            _logger.Error("清理拖拽操作资源失败", ex);
+            _logger.Error("清理拖拽操作时发生异常", ex);
+        }
+    }
+    
+    /// <summary>
+    /// 获取考虑DPI缩放的屏幕坐标
+    /// </summary>
+    /// <param name="referenceVisual">用于DPI转换的参考视觉元素</param>
+    /// <returns>包含经过DPI转换的X,Y坐标的元组</returns>
+    private (int X, int Y) GetDpiAwareScreenPosition(Visual referenceVisual)
+    {
+        try
+        {
+            // 获取鼠标的屏幕绝对位置（Windows Forms坐标系）
+            System.Drawing.Point cursorPos = System.Windows.Forms.Cursor.Position;
+            
+            // 为了解决DPI缩放问题，需要将Windows Forms坐标转换为WPF坐标
+            // 获取PresentationSource以进行坐标转换
+            PresentationSource source = PresentationSource.FromVisual(referenceVisual);
+            if (source != null && source.CompositionTarget != null)
+            {
+                // 获取设备到逻辑单位的转换矩阵
+                Matrix transformMatrix = source.CompositionTarget.TransformFromDevice;
+                
+                // 将设备坐标点转换为WPF逻辑坐标
+                System.Windows.Point devicePoint = new System.Windows.Point(cursorPos.X, cursorPos.Y);
+                System.Windows.Point wpfPoint = transformMatrix.Transform(devicePoint);
+                
+                // 记录转换前后坐标差异
+                double dpiScaleX = transformMatrix.M11;
+                double dpiScaleY = transformMatrix.M22;
+                _logger.Debug($"DPI坐标转换: 原始=({cursorPos.X},{cursorPos.Y}), 转换后=({wpfPoint.X:F1},{wpfPoint.Y:F1}), 缩放比例: {dpiScaleX:F2}x{dpiScaleY:F2}");
+                
+                // 返回转换后的整数坐标
+                return ((int)wpfPoint.X, (int)wpfPoint.Y);
+            }
+            else
+            {
+                // 如果无法获取转换矩阵，则使用原始坐标
+                if (!_hasLoggedWarning)
+                {
+                    _logger.Warning("无法获取坐标转换信息，使用原始位置计算方法");
+                    _hasLoggedWarning = true;
+                }
+                
+                // 返回原始整数坐标
+                return (cursorPos.X, cursorPos.Y);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("获取DPI感知屏幕坐标时发生异常", ex);
+            
+            // 出错时返回(0,0)，调用方需要处理这种异常情况
+            return (0, 0);
+        }
+    }
+
+    // 添加切换编辑模式的方法
+    private void ToggleEditMode()
+    {
+        try
+        {
+            // 切换编辑模式状态
+            _isEditMode = !_isEditMode;
+            
+            if (_isEditMode)
+            {
+                // 进入编辑模式
+                _logger.Debug("进入坐标点编辑模式");
+                
+                // 切换为退出图标
+                ChangeMouseIconToExit();
+                
+                // 显示所有坐标标记
+                ShowAllCoordinateMarkers();
+            }
+            else
+            {
+                // 退出编辑模式
+                _logger.Debug("退出坐标点编辑模式");
+                
+                // 恢复原始图标
+                RestoreOriginalMouseIcon();
+                
+                // 隐藏所有坐标标记如果之前是隐藏状态
+                if (!_isCoordinateMarkersVisible)
+                {
+                    HideAllCoordinateMarkers();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("切换编辑模式异常", ex);
+            // 确保出错时恢复正常状态
+            _isEditMode = false;
+            RestoreOriginalMouseIcon();
+        }
+    }
+    
+    // 切换为退出图标
+    private void ChangeMouseIconToExit()
+    {
+        try
+        {
+            // 查找按钮中的Path元素
+            if (btnMouseIcon.Content is Path path)
+            {
+                // 保存原始路径数据供恢复使用
+                path.Tag = path.Data;
+                
+                // 设置为退出图标（X形状）
+                path.Data = Geometry.Parse("M512 456.310154L325.15799 269.469166c-16.662774-16.662774-43.677083-16.662774-60.339857 0s-16.662774 43.677083 0 60.339857L451.656143 516.650011 264.818154 703.490999c-16.662774 16.662774-16.662774 43.677083 0 60.339857s43.677083 16.662774 60.339857 0l186.840988-186.840988 186.840988 186.840988c16.662774 16.662774 43.677083 16.662774 60.339857 0s16.662774-43.677083 0-60.339857L572.340834 516.650011l186.840988-186.840988c16.662774-16.662774 16.662774-43.677083 0-60.339857s-43.677083-16.662774-60.339857 0L512 456.310154z");
+                
+                // 更改颜色为红色，表示退出
+                path.Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(232,75,108));
+                
+                // 更新工具提示
+                btnMouseIcon.ToolTip = "退出编辑模式";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("更改为退出图标时出错", ex);
+        }
+    }
+    
+    // 恢复原始图标
+    private void RestoreOriginalMouseIcon()
+    {
+        try
+        {
+            // 查找按钮中的Path元素
+            if (btnMouseIcon.Content is Path path && path.Tag is Geometry originalData)
+            {
+                // 恢复原始路径数据
+                path.Data = originalData;
+                path.Tag = null;
+                
+                // 恢复原始颜色
+                path.Fill = new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#707070"));
+                
+                // 恢复原始工具提示
+                btnMouseIcon.ToolTip = "鼠标位置";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("恢复原始图标时出错", ex);
         }
     }
 }

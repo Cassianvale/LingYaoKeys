@@ -10,6 +10,8 @@ using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows;
 using System.Windows.Threading;
+using System.Collections.Specialized;
+using System.Reflection;
 
 // 列表框拖放行为
 namespace WpfApp.Behaviors;
@@ -262,13 +264,52 @@ public class ListBoxDragDropBehavior : Behavior<System.Windows.Controls.ListBox>
                 DragDropProperties.SetIsDragTarget(listBoxItem, false);
     }
 
-    // 优化：使用Move方法替代临时变量交换
+    // 优化：使用Move方法确保触发NotifyCollectionChangedAction.Move事件
     private void MoveItem(ObservableCollection<KeyItem> items, int sourceIndex, int targetIndex)
     {
-        // 直接交换两个位置的元素，而不是先删除再插入
-        var temp = items[targetIndex];
-        items[targetIndex] = items[sourceIndex];
-        items[sourceIndex] = temp;
+        if (sourceIndex == targetIndex) return;
+        
+        // 获取源项和目标项
+        KeyItem sourceItem = items[sourceIndex];
+        KeyItem targetItem = items[targetIndex];
+        
+        // 临时存储索引值（如果是坐标类型）
+        int? sourceCoordinateIndex = null;
+        int? targetCoordinateIndex = null;
+        
+        // 如果是坐标类型，记录原始索引值
+        if (sourceItem.Type == KeyItemType.Coordinates)
+            sourceCoordinateIndex = sourceItem.CoordinateIndex;
+            
+        if (targetItem.Type == KeyItemType.Coordinates)
+            targetCoordinateIndex = targetItem.CoordinateIndex;
+            
+        // 执行交换操作
+        if (sourceIndex < targetIndex)
+        {
+            // 源索引小于目标索引，先移动源项到目标位置后面，再移动目标项到源位置
+            items.Move(sourceIndex, targetIndex);
+            items.Move(targetIndex - 1, sourceIndex);
+        }
+        else // sourceIndex > targetIndex
+        {
+            // 源索引大于目标索引，先移动源项到目标位置，再移动原目标位置的项到源位置
+            items.Move(sourceIndex, targetIndex);
+            items.Move(targetIndex + 1, sourceIndex);
+        }
+        
+        // 如果是坐标类型，交换索引值
+        if (sourceCoordinateIndex.HasValue && targetCoordinateIndex.HasValue)
+        {
+            sourceItem.CoordinateIndex = targetCoordinateIndex.Value;
+            targetItem.CoordinateIndex = sourceCoordinateIndex.Value;
+        }
+        
+        // 通过ViewModel通知需要更新坐标索引
+        if (AssociatedObject?.DataContext is KeyMappingViewModel viewModel)
+        {
+            viewModel.TriggerCoordinateIndicesUpdate();
+        }
     }
 
     // 添加成功动画效果 - 闪烁提示不改变最终背景

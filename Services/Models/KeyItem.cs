@@ -29,6 +29,7 @@ public class KeyItem : INotifyPropertyChanged
     private int _x;
     private int _y;
     private KeyItemType _type = KeyItemType.Keyboard;
+    private int _coordinateIndex = 0;
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler<bool>? SelectionChanged;
@@ -123,6 +124,24 @@ public class KeyItem : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// 坐标索引（仅当Type为Coordinates时有效）
+    /// 用于在UI中显示坐标的序号
+    /// </summary>
+    public int CoordinateIndex
+    {
+        get => _coordinateIndex;
+        set
+        {
+            if (_coordinateIndex != value)
+            {
+                _coordinateIndex = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(DisplayName));
+            }
+        }
+    }
+
     public bool IsSelected
     {
         get => _isSelected;
@@ -161,7 +180,7 @@ public class KeyItem : INotifyPropertyChanged
             return _type switch
             {
                 KeyItemType.Keyboard => _lyKeysService.GetKeyDescription(_keyCode),
-                KeyItemType.Coordinates => $"坐标 ({_x}, {_y})",
+                KeyItemType.Coordinates => $"坐标 {_coordinateIndex + 1}-({_x}, {_y})",
                 _ => "未知类型"
             };
         }

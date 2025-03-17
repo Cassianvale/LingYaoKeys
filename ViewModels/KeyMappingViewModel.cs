@@ -55,6 +55,9 @@ namespace WpfApp.ViewModels
 {
     public class KeyMappingViewModel : ViewModelBase
     {
+        // 添加窗口为空的占位符常量，改为公共静态常量以便在XAML中访问
+        public const string EMPTY_WINDOW_PLACEHOLDER = "空";
+        
         private readonly LyKeysService _lyKeysService;
         private readonly ConfigService _configService;
         private LyKeysCode? _currentKey;
@@ -83,7 +86,7 @@ namespace WpfApp.ViewModels
         private FloatingStatusWindow _floatingWindow;
         private FloatingStatusViewModel _floatingViewModel;
         private KeyItem? _selectedKeyItem;
-        private string _selectedWindowTitle = "空";
+        private string _selectedWindowTitle = EMPTY_WINDOW_PLACEHOLDER;
         private IntPtr _selectedWindowHandle = IntPtr.Zero;
         private string _selectedWindowClassName = string.Empty;
         private string _selectedWindowProcessName = string.Empty;
@@ -105,6 +108,19 @@ namespace WpfApp.ViewModels
 
         // 添加窗口句柄变化事件
         public event Action<IntPtr>? WindowHandleChanged;
+
+        // 创建坐标索引更新事件
+        public event EventHandler? CoordinateIndicesNeedUpdate;
+
+        /// <summary>
+        /// 触发坐标索引更新事件，通知视图层更新
+        /// </summary>
+        public void TriggerCoordinateIndicesUpdate()
+        {
+            _logger.Debug("触发坐标索引更新事件");
+            // 触发事件通知订阅者更新坐标索引
+            CoordinateIndicesNeedUpdate?.Invoke(this, EventArgs.Empty);
+        }
 
         /// <summary>
         /// 获取当前是否处于初始化状态
@@ -187,7 +203,7 @@ namespace WpfApp.ViewModels
 
                 // 清除窗口信息
                 _selectedWindowHandle = IntPtr.Zero;
-                _selectedWindowTitle = "空";
+                _selectedWindowTitle = EMPTY_WINDOW_PLACEHOLDER;
                 _selectedWindowClassName = string.Empty;
                 _selectedWindowProcessName = string.Empty;
 
@@ -1140,6 +1156,9 @@ namespace WpfApp.ViewModels
                         KeyList.Add(keyItem);
                     }
 
+                    // 在所有项目加载完成后，为坐标类型的项目设置索引
+                    UpdateCoordinateIndices();
+
                     // 立即同步选中的按键到服务
                     var selectedKeys = KeyList.Where(k => k.IsSelected).ToList();
                     if (selectedKeys.Any())
@@ -1466,7 +1485,14 @@ namespace WpfApp.ViewModels
             {
                 // 从列表中移除
                 KeyList.Remove(keyItem);
-                _logger.Debug($"删除按键: {keyItem.KeyCode}");
+                
+                // 如果删除的是坐标类型项，更新所有坐标索引
+                if (keyItem.Type == KeyItemType.Coordinates)
+                {
+                    UpdateCoordinateIndices();
+                }
+                
+                _logger.Debug($"删除按键: {(keyItem.Type == KeyItemType.Keyboard ? keyItem.KeyCode.ToString() : $"坐标({keyItem.X},{keyItem.Y})")}");
 
                 // 如果是当前选中的项，清除选中状态
                 if (SelectedKeyItem == keyItem) SelectedKeyItem = null;
@@ -2376,6 +2402,9 @@ namespace WpfApp.ViewModels
                 // 添加到列表
                 KeyList.Add(newCoordinate);
                 
+                // 更新坐标索引
+                UpdateCoordinateIndices();
+                
                 // 更新HotkeyService的按键列表
                 UpdateHotkeyServiceKeyList();
                 
@@ -2411,6 +2440,30 @@ namespace WpfApp.ViewModels
         {
             get => _currentY;
             set => SetProperty(ref _currentY, value);
+        }
+
+        // 添加这个新方法，用于更新所有坐标类型项目的索引
+        private void UpdateCoordinateIndices()
+        {
+            try
+            {
+                // 筛选出所有坐标类型的项目
+                var coordinateItems = _keyList.Where(item => item.Type == KeyItemType.Coordinates).ToList();
+                
+                // 为所有坐标设置索引
+                for (int i = 0; i < coordinateItems.Count; i++)
+                {
+                    coordinateItems[i].CoordinateIndex = i;
+                    _logger.Debug($"设置坐标索引: 项目={i}, 坐标=({coordinateItems[i].X},{coordinateItems[i].Y})");
+                }
+                
+                // 通知视图更新坐标索引
+                CoordinateIndicesNeedUpdate?.Invoke(this, EventArgs.Empty);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("更新坐标索引时发生异常", ex);
+            }
         }
     }
 }
