@@ -13,7 +13,7 @@
         <OutputType>WinExe</OutputType>
 
         <TargetFramework>net8.0-windows</TargetFramework>
-        <AssemblyName>LingYaoKeys</AssemblyName>
+        <AssemblyName>灵曜按键</AssemblyName>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <UseWPF>true</UseWPF>
