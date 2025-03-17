@@ -1,170 +1,170 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <!-- 项目信息配置 -->
-    <Version>1.0.0</Version>
-    <Product>LingYaoKeys</Product>
-    <Authors>慕长秋</Authors>
-    <PackageLicenseExpression>GPL-3.0</PackageLicenseExpression>
-    <Copyright>Copyright © 2025 Cassianvale</Copyright>
-    <Description>灵曜按键 (LingYao Keys)</Description>
+    <PropertyGroup>
+        <!-- 项目信息配置 -->
+        <Version>1.0.0</Version>
+        <Product>LingYaoKeys</Product>
+        <Authors>慕长秋</Authors>
+        <PackageLicenseExpression>GPL-3.0</PackageLicenseExpression>
+        <Copyright>Copyright © 2025 Cassianvale</Copyright>
+        <Description>灵曜按键 (LingYao Keys)</Description>
 
-    <!-- 输出类型为WinExe -->
-    <OutputType>WinExe</OutputType>
+        <!-- 输出类型为WinExe -->
+        <OutputType>WinExe</OutputType>
 
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <AssemblyName>LingYaoKeys</AssemblyName>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UseWPF>true</UseWPF>
-    <UseWindowsForms>true</UseWindowsForms>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Platforms>x86;x64</Platforms>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <ConsoleOutputRedirection>true</ConsoleOutputRedirection>
-    <ApplicationIcon>Resource\icon\app.ico</ApplicationIcon>
-    
-    <!-- 高 DPI 设置 -->
-    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
-    
-    <!-- 发布相关配置 -->
-    <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>false</SelfContained>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <PublishReadyToRun>false</PublishReadyToRun>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <DebugType>none</DebugType>
-    
-    <!-- 优化输出配置 -->
-    <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
-    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
-    
-    <!-- 发布输出路径配置 -->
-    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-    <OutputPath>bin\$(Configuration)\publish</OutputPath>
-    
-    <!-- 发布优化配置 -->
-    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
-    <UseAppHost>true</UseAppHost>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <AssemblyName>灵曜按键</AssemblyName>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <UseWPF>true</UseWPF>
+        <UseWindowsForms>true</UseWindowsForms>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
+        <Platforms>x86;x64</Platforms>
+        <PlatformTarget>AnyCPU</PlatformTarget>
+        <ConsoleOutputRedirection>true</ConsoleOutputRedirection>
+        <ApplicationIcon>Resource\icon\app.ico</ApplicationIcon>
 
-  </PropertyGroup>
+        <!-- 高 DPI 设置 -->
+        <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
 
-  <!-- 发布配置 -->
-  <PropertyGroup Condition="'$(Configuration)'=='Release'">
-    <DebugSymbols>false</DebugSymbols>
-    <DebugType>none</DebugType>
-    <Optimize>true</Optimize>
-    <!-- 新增：Release模式下的优化配置 -->
-    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
-    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-  </PropertyGroup>
+        <!-- 发布相关配置 -->
+        <PublishSingleFile>true</PublishSingleFile>
+        <SelfContained>false</SelfContained>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        <PublishReadyToRun>false</PublishReadyToRun>
+        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+        <DebugType>none</DebugType>
 
-  <!-- 资源文件配置 -->
-  <ItemGroup>
-    <!-- 所有资源文件配置为Resource -->
-    <Resource Include="Resource\img\**" />
-    <Resource Include="Resource\icon\**" />
-    <Resource Include="Resource\svg\**" />
-    
-    <!-- 驱动文件配置为嵌入式资源 -->
-    <EmbeddedResource Include="Resource\lykeysdll\lykeysdll.dll">
-      <LogicalName>WpfApp.Resource.lykeysdll.lykeysdll.dll</LogicalName>
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resource\lykeysdll\lykeys.sys">
-      <LogicalName>WpfApp.Resource.lykeysdll.lykeys.sys</LogicalName>
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resource\lykeysdll\lykeys.cat">
-      <LogicalName>WpfApp.Resource.lykeysdll.lykeys.cat</LogicalName>
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </EmbeddedResource>
+        <!-- 优化输出配置 -->
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+        <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+        <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
 
-    <!-- 音频文件配置为嵌入式资源 -->
-    <EmbeddedResource Include="Resource\sound\**">
-      <LogicalName>WpfApp.Resource.sound.%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Remove="Resource\lykeysdll\csharp_example\**" />
-  </ItemGroup>
+        <!-- 发布输出路径配置 -->
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+        <OutputPath>bin\$(Configuration)\publish</OutputPath>
 
-  <!-- 新增：配置程序集依赖项 -->
-  <ItemGroup>
-    <PackageReference Include="Markdig" Version="0.39.1" PrivateAssets="all" />
-    <PackageReference Include="MaterialDesignColors" Version="5.2.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" PrivateAssets="all" />
-    <PackageReference Include="NAudio" Version="2.2.1" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" PrivateAssets="all" />
-    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" PrivateAssets="all" />
-    <PackageReference Include="SharpVectors" Version="1.8.4" />
-  </ItemGroup>
+        <!-- 发布优化配置 -->
+        <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+        <UseAppHost>true</UseAppHost>
 
-  <ItemGroup>
-    <EmbeddedResource Include="README.md">
-      <LogicalName>WpfApp.README.md</LogicalName>
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </EmbeddedResource>
-  </ItemGroup>
+    </PropertyGroup>
 
-  <!-- 新增：发布后清理临时文件 -->
-  <Target Name="CleanupTempFiles" AfterTargets="Publish">
+    <!-- 发布配置 -->
+    <PropertyGroup Condition="'$(Configuration)'=='Release'">
+        <DebugSymbols>false</DebugSymbols>
+        <DebugType>none</DebugType>
+        <Optimize>true</Optimize>
+        <!-- 新增：Release模式下的优化配置 -->
+        <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+        <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    </PropertyGroup>
+
+    <!-- 资源文件配置 -->
     <ItemGroup>
-      <FilesToDelete Include="$(PublishDir)*.pdb" />
-      <FilesToDelete Include="$(PublishDir)*.xml" />
-      <FilesToDelete Include="$(PublishDir)*.deps.json" />
-      <FilesToDelete Include="$(PublishDir)*.dll" />
-      <FilesToDelete Include="$(PublishDir)*.runtimeconfig.json" />
-      <FilesToDelete Include="$(PublishDir)runtimes\**\*.*" />
-      <DirectoriesToDelete Include="$(PublishDir)runtimes" />
+        <!-- 所有资源文件配置为Resource -->
+        <Resource Include="Resource\img\**"/>
+        <Resource Include="Resource\icon\**"/>
+        <Resource Include="Resource\svg\**"/>
+
+        <!-- 驱动文件配置为嵌入式资源 -->
+        <EmbeddedResource Include="Resource\lykeysdll\lykeysdll.dll">
+            <LogicalName>WpfApp.Resource.lykeysdll.lykeysdll.dll</LogicalName>
+            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </EmbeddedResource>
+        <EmbeddedResource Include="Resource\lykeysdll\lykeys.sys">
+            <LogicalName>WpfApp.Resource.lykeysdll.lykeys.sys</LogicalName>
+            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </EmbeddedResource>
+        <EmbeddedResource Include="Resource\lykeysdll\lykeys.cat">
+            <LogicalName>WpfApp.Resource.lykeysdll.lykeys.cat</LogicalName>
+            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </EmbeddedResource>
+
+        <!-- 音频文件配置为嵌入式资源 -->
+        <EmbeddedResource Include="Resource\sound\**">
+            <LogicalName>WpfApp.Resource.sound.%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </EmbeddedResource>
+        <EmbeddedResource Remove="Resource\lykeysdll\csharp_example\**"/>
     </ItemGroup>
-    <Delete Files="@(FilesToDelete)" />
-    <RemoveDir Directories="@(DirectoriesToDelete)" />
-  </Target>
 
-  <ItemGroup>
-    <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
-  </ItemGroup>
+    <!-- 新增：配置程序集依赖项 -->
+    <ItemGroup>
+        <PackageReference Include="Markdig" Version="0.39.1" PrivateAssets="all"/>
+        <PackageReference Include="MaterialDesignColors" Version="5.2.0"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0"/>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" PrivateAssets="all"/>
+        <PackageReference Include="NAudio" Version="2.2.1" PrivateAssets="all"/>
+        <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" PrivateAssets="all"/>
+        <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" PrivateAssets="all"/>
+        <PackageReference Include="SharpVectors" Version="1.8.4"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Costura.Fody" Version="6.0.0">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Fody" Version="6.9.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>compile; runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
+    <ItemGroup>
+        <EmbeddedResource Include="README.md">
+            <LogicalName>WpfApp.README.md</LogicalName>
+            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </EmbeddedResource>
+    </ItemGroup>
 
-  <!-- Costura.Fody 配置 -->
-  <ItemGroup>
-    <Content Include="FodyWeavers.xml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
+    <!-- 新增：发布后清理临时文件 -->
+    <Target Name="CleanupTempFiles" AfterTargets="Publish">
+        <ItemGroup>
+            <FilesToDelete Include="$(PublishDir)*.pdb"/>
+            <FilesToDelete Include="$(PublishDir)*.xml"/>
+            <FilesToDelete Include="$(PublishDir)*.deps.json"/>
+            <FilesToDelete Include="$(PublishDir)*.dll"/>
+            <FilesToDelete Include="$(PublishDir)*.runtimeconfig.json"/>
+            <FilesToDelete Include="$(PublishDir)runtimes\**\*.*"/>
+            <DirectoriesToDelete Include="$(PublishDir)runtimes"/>
+        </ItemGroup>
+        <Delete Files="@(FilesToDelete)"/>
+        <RemoveDir Directories="@(DirectoriesToDelete)"/>
+    </Target>
 
-  <ItemGroup>
-    <PackageReference Include="Serilog" Version="4.2.0" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
-    <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
-    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
-    <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
-    <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="System.Drawing.Common" Version="9.0.0"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <Compile Remove="Resource\lykeysdll\csharp_example\**" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Costura.Fody" Version="6.0.0">
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="Fody" Version="6.9.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>compile; runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
 
-  <ItemGroup>
-    <Page Remove="Resource\lykeysdll\csharp_example\**" />
-  </ItemGroup>
+    <!-- Costura.Fody 配置 -->
+    <ItemGroup>
+        <Content Include="FodyWeavers.xml">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Remove="Resource\lykeysdll\csharp_example\**" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Serilog" Version="4.2.0"/>
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0"/>
+        <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0"/>
+        <PackageReference Include="Serilog.Sinks.File" Version="6.0.0"/>
+        <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0"/>
+        <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Remove="Resource\lykeysdll\csharp_example\**"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Page Remove="Resource\lykeysdll\csharp_example\**"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Remove="Resource\lykeysdll\csharp_example\**"/>
+    </ItemGroup>
 
 </Project>

@@ -1,45 +1,61 @@
 ﻿<Application x:Class="WpfApp.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:converters="clr-namespace:WpfApp.Converters">
+             xmlns:converters="clr-namespace:WpfApp.Converters"
+             xmlns:system="clr-namespace:System;assembly=mscorlib"
+             xmlns:svgc="http://sharpvectors.codeplex.com/svgc/">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Styles/TrayContextMenuStyle.xaml"/>
-                <ResourceDictionary Source="Styles/NavigationStyles.xaml"/>
-                <ResourceDictionary Source="Styles/ButtonStyles.xaml"/>
-                <ResourceDictionary Source="Styles/ControlStyles.xaml"/>
-                <ResourceDictionary Source="Styles/SwitchStyles.xaml"/>
-                <ResourceDictionary Source="Styles/AnimationStyles.xaml"/>
+                <ResourceDictionary Source="Styles/TrayContextMenuStyle.xaml" />
+                <ResourceDictionary Source="Styles/NavigationStyles.xaml" />
+                <ResourceDictionary Source="Styles/ButtonStyles.xaml" />
+                <ResourceDictionary Source="Styles/ControlStyles.xaml" />
+                <ResourceDictionary Source="Styles/SwitchStyles.xaml" />
+                <ResourceDictionary Source="Styles/AnimationStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!-- 转换器 -->
-            <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
-            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
-            <converters:IntToStringConverter x:Key="IntToStringConverter"/>
-            <converters:ViewModelToHotkeyStatusConverter x:Key="ViewModelToHotkeyStatusConverter"/>
-            <converters:StatusToColorConverter x:Key="StatusToColorConverter"/>
-            <converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
-            
+            <converters:BoolToColorConverter x:Key="BoolToColorConverter" />
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+            <converters:IntToStringConverter x:Key="IntToStringConverter" />
+            <converters:ViewModelToHotkeyStatusConverter x:Key="ViewModelToHotkeyStatusConverter" />
+            <converters:StatusToColorConverter x:Key="StatusToColorConverter" />
+            <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
+            <converters:RatioConverter x:Key="RatioConverter" />
+
             <!-- 颜色资源 -->
-            <SolidColorBrush x:Key="PrimaryBrush" Color="#2196F3"/>
-            <SolidColorBrush x:Key="ErrorBrush" Color="#F44336"/>
-            <SolidColorBrush x:Key="TextForegroundBrush" Color="#333333"/>
+            <SolidColorBrush x:Key="PrimaryBrush" Color="#2196F3" />
+            <SolidColorBrush x:Key="ErrorBrush" Color="#F44336" />
+            <SolidColorBrush x:Key="TextForegroundBrush" Color="#333333" />
             
+            <!-- 动画缓动函数 -->
+            <CubicEase x:Key="EaseOutFunction" EasingMode="EaseOut" />
+            <CubicEase x:Key="EaseInOutFunction" EasingMode="EaseInOut" />
+            <CubicEase x:Key="EaseInFunction" EasingMode="EaseIn" />
+
             <!-- 阴影效果 -->
             <DropShadowEffect x:Key="DefaultShadowEffect"
-                            BlurRadius="10"
-                            Direction="270"
-                            ShadowDepth="2"
-                            Opacity="0.2"
-                            Color="#000000"/>
+                              BlurRadius="10"
+                              Direction="270"
+                              ShadowDepth="2"
+                              Opacity="0.2"
+                              Color="#000000" />
 
-            <!-- 全局样式设置 -->
-            <Style TargetType="{x:Type FrameworkElement}">
-                <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
-                <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
-                <Setter Property="UseLayoutRounding" Value="True"/>
+            <!-- 全局样式设置 - 改进后的单一定义 -->
+            <Style x:Key="HighQualityRenderingStyle" TargetType="{x:Type FrameworkElement}">
+                <Setter Property="RenderOptions.BitmapScalingMode" Value="HighQuality" />
+                <Setter Property="RenderOptions.EdgeMode" Value="Aliased" />
+                <Setter Property="UseLayoutRounding" Value="True" />
+                <Setter Property="SnapsToDevicePixels" Value="True" />
+                <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
+                <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
             </Style>
+            
+            <!-- 全局样式应用 -->
+            <Style TargetType="{x:Type FrameworkElement}" BasedOn="{StaticResource HighQualityRenderingStyle}" />
+            <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource HighQualityRenderingStyle}" />
+            <Style TargetType="{x:Type Control}" BasedOn="{StaticResource HighQualityRenderingStyle}" />
 
             <!-- 全局阴影效果 -->
             <DropShadowEffect x:Key="DropShadowEffect"
@@ -47,7 +63,14 @@
                               ShadowDepth="0"
                               BlurRadius="10"
                               Opacity="0.3"
-                              Color="Black"/>
+                              Color="Black" />
+
+            <!-- 渐变画刷缓存设置（作为常量值存储，不再附加到类型） -->
+            <system:Double x:Key="GradientCacheMinThreshold">0.5</system:Double>
+            <system:Double x:Key="GradientCacheMaxThreshold">2.0</system:Double>
+            
+            <!-- 缓存模式常量 -->
+            <CachingHint x:Key="DefaultCachingHint">Cache</CachingHint>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

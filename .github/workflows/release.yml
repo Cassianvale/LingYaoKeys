@@ -23,7 +23,7 @@ jobs:
       Project_Path: WpfApp.csproj
       Configuration: Release
       OSS_BUCKET: lykeys-remote
-      EXE_FILE: LingYaoKeys.exe
+      EXE_FILE: 灵曜按键.exe
       ZIP_FILE: LingYaoKeys_v${{ github.event.inputs.version }}_windows_x64.zip
 
     steps:

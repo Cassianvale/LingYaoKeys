@@ -2,13 +2,13 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Style x:Key="RoundedShadowButton" TargetType="Button">
-        <Setter Property="FontSize" Value="14"/>
-        <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="Background" Value="#E3F2FD"/> <!-- 浅蓝色背景 -->
-        <Setter Property="Foreground" Value="#2C3E50"/>
-        <Setter Property="Padding" Value="15,8"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Background" Value="#E3F2FD" /> <!-- 浅蓝色背景 -->
+        <Setter Property="Foreground" Value="#2C3E50" />
+        <Setter Property="Padding" Value="15,8" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -17,78 +17,76 @@
                         <Border x:Name="shadowBorder"
                                 Background="#22000000"
                                 CornerRadius="6"
-                                Margin="2,2,0,0">
-                        </Border>
-                        
+                                Margin="2,2,0,0" />
+
                         <!-- 主按钮 -->
                         <Border x:Name="mainBorder"
                                 Background="{TemplateBinding Background}"
                                 CornerRadius="6"
                                 Margin="0,0,2,2">
-                            <ContentPresenter HorizontalAlignment="Center" 
-                                            VerticalAlignment="Center"/>
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
                         </Border>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <!-- 鼠标悬停效果 -->
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#BBDEFB"/>
-                            <Setter TargetName="shadowBorder" Property="Opacity" Value="0.3"/>
+                            <Setter Property="Background" Value="#BBDEFB" />
+                            <Setter TargetName="shadowBorder" Property="Opacity" Value="0.3" />
                         </Trigger>
                         <!-- 按下效果 -->
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Background" Value="#90CAF9"/>
-                            <Setter TargetName="mainBorder" Property="Margin" Value="2,2,0,0"/>
-                            <Setter TargetName="shadowBorder" Property="Margin" Value="0"/>
+                            <Setter Property="Background" Value="#90CAF9" />
+                            <Setter TargetName="mainBorder" Property="Margin" Value="2,2,0,0" />
+                            <Setter TargetName="shadowBorder" Property="Margin" Value="0" />
                         </Trigger>
                         <!-- 禁用效果 -->
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Background" Value="#ECEFF1"/>
-                            <Setter Property="Foreground" Value="#B0BEC5"/>
-                            <Setter TargetName="shadowBorder" Property="Opacity" Value="0.1"/>
+                            <Setter Property="Background" Value="#ECEFF1" />
+                            <Setter Property="Foreground" Value="#B0BEC5" />
+                            <Setter TargetName="shadowBorder" Property="Opacity" Value="0.1" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
-    
+
     <!-- 大号按钮样式 -->
-    <Style x:Key="RoundedShadowButtonLarge" 
-           BasedOn="{StaticResource RoundedShadowButton}" 
+    <Style x:Key="RoundedShadowButtonLarge"
+           BasedOn="{StaticResource RoundedShadowButton}"
            TargetType="Button">
-        <Setter Property="FontSize" Value="18"/>
-        <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="Padding" Value="20,10"/>
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="Padding" Value="20,10" />
     </Style>
 
     <!-- 中号按钮样式 -->
-    <Style x:Key="RoundedShadowButtonMedium" 
-           BasedOn="{StaticResource RoundedShadowButton}" 
+    <Style x:Key="RoundedShadowButtonMedium"
+           BasedOn="{StaticResource RoundedShadowButton}"
            TargetType="Button">
-        <Setter Property="FontSize" Value="16"/>
-        <Setter Property="FontWeight" Value="DemiBold"/>
-        <Setter Property="Padding" Value="18,9"/>
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="DemiBold" />
+        <Setter Property="Padding" Value="18,9" />
     </Style>
 
     <!-- 小号按钮样式 -->
-    <Style x:Key="RoundedShadowButtonSmall" 
-           BasedOn="{StaticResource RoundedShadowButton}" 
+    <Style x:Key="RoundedShadowButtonSmall"
+           BasedOn="{StaticResource RoundedShadowButton}"
            TargetType="Button">
-        <Setter Property="FontSize" Value="12"/>
-        <Setter Property="FontWeight" Value="Regular"/>
-        <Setter Property="Padding" Value="12,6"/>
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="Regular" />
+        <Setter Property="Padding" Value="12,6" />
     </Style>
-    
+
     <!-- 主要按钮样式 -->
     <Style x:Key="PrimaryButtonStyle" TargetType="Button">
-        <Setter Property="FontSize" Value="14"/>
-        <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="Background" Value="#2196F3"/> <!-- Material Design Blue -->
-        <Setter Property="Foreground" Value="White"/>
-        <Setter Property="Padding" Value="15,8"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Background" Value="#2196F3" /> <!-- Material Design Blue -->
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Padding" Value="15,8" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -97,71 +95,70 @@
                         <Border x:Name="shadowBorder"
                                 Background="#22000000"
                                 CornerRadius="6"
-                                Margin="2,2,0,0">
-                        </Border>
-                        
+                                Margin="2,2,0,0" />
+
                         <!-- 主按钮 -->
                         <Border x:Name="mainBorder"
                                 Background="{TemplateBinding Background}"
                                 CornerRadius="6"
                                 Margin="0,0,2,2">
-                            <ContentPresenter HorizontalAlignment="Center" 
-                                            VerticalAlignment="Center"/>
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
                         </Border>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <!-- 鼠标悬停效果 -->
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#1976D2"/>
-                            <Setter TargetName="shadowBorder" Property="Opacity" Value="0.3"/>
+                            <Setter Property="Background" Value="#1976D2" />
+                            <Setter TargetName="shadowBorder" Property="Opacity" Value="0.3" />
                         </Trigger>
                         <!-- 按下效果 -->
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Background" Value="#1565C0"/>
-                            <Setter TargetName="mainBorder" Property="Margin" Value="2,2,0,0"/>
-                            <Setter TargetName="shadowBorder" Property="Margin" Value="0"/>
+                            <Setter Property="Background" Value="#1565C0" />
+                            <Setter TargetName="mainBorder" Property="Margin" Value="2,2,0,0" />
+                            <Setter TargetName="shadowBorder" Property="Margin" Value="0" />
                         </Trigger>
                         <!-- 禁用效果 -->
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Background" Value="#BDBDBD"/>
-                            <Setter Property="Foreground" Value="#757575"/>
-                            <Setter TargetName="shadowBorder" Property="Opacity" Value="0.1"/>
+                            <Setter Property="Background" Value="#BDBDBD" />
+                            <Setter Property="Foreground" Value="#757575" />
+                            <Setter TargetName="shadowBorder" Property="Opacity" Value="0.1" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
-    
+
     <!-- 图标按钮样式 -->
     <Style x:Key="IconButtonStyle" TargetType="Button">
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderBrush" Value="Transparent"/>
-        <Setter Property="Foreground" Value="#666666"/>
-        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="#666666" />
+        <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="border" 
+                    <Border x:Name="border"
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="4">
                         <ContentPresenter x:Name="contentPresenter"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center"/>
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#F5F5F5"/>
-                            <Setter Property="Foreground" Value="#333333"/>
+                            <Setter Property="Background" Value="#F5F5F5" />
+                            <Setter Property="Foreground" Value="#333333" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Background" Value="#EEEEEE"/>
-                            <Setter Property="Foreground" Value="#000000"/>
+                            <Setter Property="Background" Value="#EEEEEE" />
+                            <Setter Property="Foreground" Value="#000000" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Opacity" Value="0.5"/>
+                            <Setter Property="Opacity" Value="0.5" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -171,39 +168,39 @@
 
     <!-- 圆形帮助按钮样式 -->
     <Style x:Key="CircleHelpButtonStyle" TargetType="Button">
-        <Setter Property="Background" Value="#E3F2FD"/>
-        <Setter Property="BorderBrush" Value="#90CAF9"/>
-        <Setter Property="Foreground" Value="#1976D2"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="Width" Value="20"/>
-        <Setter Property="Height" Value="20"/>
+        <Setter Property="Background" Value="#E3F2FD" />
+        <Setter Property="BorderBrush" Value="#90CAF9" />
+        <Setter Property="Foreground" Value="#1976D2" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Width" Value="20" />
+        <Setter Property="Height" Value="20" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Grid>
                         <Ellipse x:Name="border"
-                                Fill="{TemplateBinding Background}"
-                                Stroke="{TemplateBinding BorderBrush}"
-                                StrokeThickness="{TemplateBinding BorderThickness}"/>
+                                 Fill="{TemplateBinding Background}"
+                                 Stroke="{TemplateBinding BorderBrush}"
+                                 StrokeThickness="{TemplateBinding BorderThickness}" />
                         <ContentPresenter x:Name="contentPresenter"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center"
-                                        Margin="0,0,0,1"/>
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,0,1" />
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#BBDEFB"/>
-                            <Setter Property="BorderBrush" Value="#64B5F6"/>
-                            <Setter Property="Foreground" Value="#1565C0"/>
+                            <Setter Property="Background" Value="#BBDEFB" />
+                            <Setter Property="BorderBrush" Value="#64B5F6" />
+                            <Setter Property="Foreground" Value="#1565C0" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Background" Value="#90CAF9"/>
-                            <Setter Property="BorderBrush" Value="#42A5F5"/>
-                            <Setter Property="Foreground" Value="#0D47A1"/>
+                            <Setter Property="Background" Value="#90CAF9" />
+                            <Setter Property="BorderBrush" Value="#42A5F5" />
+                            <Setter Property="Foreground" Value="#0D47A1" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Opacity" Value="0.5"/>
+                            <Setter Property="Opacity" Value="0.5" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -213,32 +210,32 @@
 
     <!-- 圆形按钮样式 -->
     <Style x:Key="CircleButtonStyle" TargetType="Button">
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderBrush" Value="Transparent"/>
-        <Setter Property="Foreground" Value="#666666"/>
-        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="#666666" />
+        <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="border" 
+                    <Border x:Name="border"
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="0"
                             CornerRadius="16">
-                        <ContentPresenter HorizontalAlignment="Center" 
-                                        VerticalAlignment="Center"/>
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#F5F5F5"/>
-                            <Setter Property="Foreground" Value="#333333"/>
+                            <Setter Property="Background" Value="#F5F5F5" />
+                            <Setter Property="Foreground" Value="#333333" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Background" Value="#EEEEEE"/>
-                            <Setter Property="Foreground" Value="#000000"/>
+                            <Setter Property="Background" Value="#EEEEEE" />
+                            <Setter Property="Foreground" Value="#000000" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Opacity" Value="0.5"/>
+                            <Setter Property="Opacity" Value="0.5" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -246,4 +243,46 @@
         </Setter>
     </Style>
 
-</ResourceDictionary> 
+    <!-- SVG兼容的圆形按钮样式 -->
+    <Style x:Key="SVGCircleButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="#666666" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="RenderOptions.BitmapScalingMode" Value="HighQuality" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="0"
+                                CornerRadius="16">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              RenderOptions.BitmapScalingMode="HighQuality"
+                                              UseLayoutRounding="True" />
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#F5F5F5" />
+                            <Setter Property="Foreground" Value="#333333" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="#EEEEEE" />
+                            <Setter Property="Foreground" Value="#000000" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

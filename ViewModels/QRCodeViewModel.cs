@@ -3,30 +3,26 @@ using System.Windows;
 using WpfApp.Services.Utils;
 using WpfApp.Services;
 
-namespace WpfApp.ViewModels
+namespace WpfApp.ViewModels;
+
+public class QRCodeViewModel : ViewModelBase
 {
-    public class QRCodeViewModel : ViewModelBase
+    private readonly SerilogManager _logger = SerilogManager.Instance;
+    private ICommand? _goBackCommand;
+
+    public ICommand GoBackCommand => _goBackCommand ??= new RelayCommand(GoBack);
+
+    private void GoBack()
     {
-        private readonly SerilogManager _logger = SerilogManager.Instance;
-        private ICommand? _goBackCommand;
-
-        public ICommand GoBackCommand => _goBackCommand ??= new RelayCommand(GoBack);
-
-        private void GoBack()
+        try
         {
-            try
-            {
-                var mainWindow = System.Windows.Application.Current.MainWindow;
-                if (mainWindow?.DataContext is MainViewModel mainViewModel)
-                {
-                    mainViewModel.NavigateCommand.Execute("About");
-                }
-                _logger.Debug("返回About页面");
-            }
-            catch (System.Exception ex)
-            {
-                _logger.Error("返回About页面失败", ex);
-            }
+            var mainWindow = System.Windows.Application.Current.MainWindow;
+            if (mainWindow?.DataContext is MainViewModel mainViewModel) mainViewModel.NavigateCommand.Execute("About");
+            _logger.Debug("返回About页面");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("返回About页面失败", ex);
         }
     }
-} 
+}

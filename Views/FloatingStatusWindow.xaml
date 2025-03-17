@@ -3,13 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:vm="clr-namespace:WpfApp.ViewModels"
         xmlns:converters="clr-namespace:WpfApp.Converters"
         xmlns:behaviors="clr-namespace:WpfApp.Behaviors"
         mc:Ignorable="d"
-        Title="浮动状态窗口" 
-        Height="40" 
-        Width="100"
+        Title="浮动状态窗口"
+        Height="40"
+        Width="80"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -21,18 +20,89 @@
         MouseRightButtonDown="Window_MouseRightButtonDown"
         ResizeMode="NoResize"
         Closing="FloatingStatusWindow_Closing"
-        behaviors:FocusManagerBehavior.AutoClearFocusOnClick="False">
-    
+        behaviors:FocusManagerBehavior.AutoClearFocusOnClick="False"
+        d:Background="Transparent"
+        Loaded="Window_Loaded">
+
     <Window.Resources>
-        <converters:StatusToColorConverter x:Key="StatusToColorConverter"/>
+        <converters:StatusToColorConverter x:Key="StatusToColorConverter" />
+        
+        <!-- 设计时预览颜色 - 与代码中的BackgroundColors匹配 -->
+        <SolidColorBrush x:Key="DesignTimeActiveColor" Color="#4CAF50" Opacity="0.8"/>
+        <SolidColorBrush x:Key="DesignTimeInactiveColor" Color="#78909C" Opacity="0.8"/>
+        <SolidColorBrush x:Key="DesignTimeStoppedColor" Color="#F44336" Opacity="0.8"/>
+        
+        <!-- 预览用的渐变边框 - 设计时使用 - 高对比度版本 -->
+        <LinearGradientBrush x:Key="DesignTimeActiveBorderBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#009688" Offset="0.0"/> <!-- 深青绿色 -->
+            <GradientStop Color="#4CAF50" Offset="0.5"/> <!-- 中绿色 -->
+            <GradientStop Color="#8BC34A" Offset="1.0"/> <!-- 青黄绿色 -->
+        </LinearGradientBrush>
+        
+        <!-- 旋转变换 -->
+        <RotateTransform x:Key="BorderRotateTransform" CenterX="0.5" CenterY="0.5" Angle="0"/>
     </Window.Resources>
     
-    <Border Background="{Binding StatusText, Converter={StaticResource StatusToColorConverter}}"
-            CornerRadius="4">
-        <TextBlock Text="{Binding StatusText}"
-                   Foreground="White"
-                   FontWeight="Medium"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"/>
+    <!-- 设计时数据上下文 -->
+    <d:Window.DataContext>
+        <d:DesignData>
+            <d:DesignData.DataContext>
+                <x:Array Type="System:String" 
+                         xmlns:System="clr-namespace:System;assembly=mscorlib">
+                    <System:String>运行中</System:String>
+                </x:Array>
+            </d:DesignData.DataContext>
+        </d:DesignData>
+    </d:Window.DataContext>
+
+    <!-- 外层边框 - 渐变边框 -->
+    <Border x:Name="BorderContainer"
+            CornerRadius="8" 
+            BorderThickness="5"
+            RenderTransformOrigin="0.5,0.5"
+            CacheMode="BitmapCache"
+            RenderOptions.CacheInvalidationThresholdMinimum="0.5"
+            RenderOptions.CacheInvalidationThresholdMaximum="2.0"
+            RenderOptions.CachingHint="Cache"
+            d:BorderBrush="{StaticResource DesignTimeActiveBorderBrush}">
+        <!-- 动态生成的BorderBrush将在代码中设置 -->
+        
+        <!-- 添加旋转变换，用于边框渐变动画 -->
+        <Border.Triggers>
+            <EventTrigger RoutedEvent="Border.Loaded">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <DoubleAnimation 
+                            Storyboard.TargetProperty="(Border.BorderBrush).(LinearGradientBrush.RelativeTransform).(RotateTransform.Angle)"
+                            From="0" To="360" Duration="0:0:1.5" 
+                            RepeatBehavior="Forever" />
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+        </Border.Triggers>
+        
+        <!-- 添加轻微阴影效果 -->
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="5" ShadowDepth="0" Opacity="0.3" Color="#000000"/>
+        </Border.Effect>
+        
+        <!-- 内层内容 - 保持原有背景和文本 -->
+        <Border Background="{Binding StatusText, Converter={StaticResource StatusToColorConverter}}"
+                d:Background="{StaticResource DesignTimeActiveColor}"
+                CornerRadius="5"
+                CacheMode="BitmapCache"
+                RenderOptions.CachingHint="Cache"
+                Margin="0">
+            <TextBlock Text="{Binding StatusText}"
+                       d:Text="运行中"
+                       Foreground="White"
+                       FontWeight="Medium"
+                       CacheMode="BitmapCache"
+                       RenderOptions.ClearTypeHint="Enabled" 
+                       TextOptions.TextRenderingMode="ClearType"
+                       TextOptions.TextFormattingMode="Display"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+        </Border>
     </Border>
-</Window> 
+</Window>

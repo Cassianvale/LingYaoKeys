@@ -1,14 +1,13 @@
 using System.Windows.Controls;
 using WpfApp.ViewModels;
 
-namespace WpfApp.Views
+namespace WpfApp.Views;
+
+public partial class SettingsView : Page
 {
-    public partial class SettingsView : Page
+    public SettingsView()
     {
-        public SettingsView()
-        {
-            InitializeComponent();
-            DataContext = new SettingsViewModel();
-        }
+        InitializeComponent();
+        DataContext = new SettingsViewModel();
     }
-} 
+}

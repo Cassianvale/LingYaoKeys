@@ -1,7 +1,7 @@
 {
   "UI": {
     "MainWindow": {
-      "Width": 970.0,
+      "Width": 880.0,
       "Height": 650.0
     },
     "FloatingWindow": {
@@ -38,33 +38,29 @@
     {
       "Code": 70,
       "IsSelected": true,
-      "IsKeyBurst": true
+      "KeyInterval": 10
     },
     {
       "Code": 49,
       "IsSelected": false,
-      "IsKeyBurst": false
+      "KeyInterval": 10
     },
     {
       "Code": 50,
       "IsSelected": false,
-      "IsKeyBurst": false
-    }
-  ],
-  "KeyBurst": [
-    {
-      "Code": 70,
-      "RapidFireDelay": 10,
-      "PressTime": 5
+      "KeyInterval": 10
     }
   ],
   "keyMode": 0,
   "interval": 10,
   "soundEnabled": true,
-  "IsGameMode": true,
+  "IsReduceKeyStuck": true,
+  "SoundVolume": 0.8,
   "KeyPressInterval": 5,
-  "IsRapidFire": false,
-  "IsRapidFireEnabled": false,
+  "FloatingWindowLeft": 1849.6,
+  "FloatingWindowTop": 1024.8,
+  "AutoSwitchToEnglishIME": false,
+  "isHotkeyControlEnabled": false,
   "TargetWindowClassName": null,
   "TargetWindowProcessName": null,
   "TargetWindowTitle": null

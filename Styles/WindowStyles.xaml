@@ -3,10 +3,10 @@
 
     <!-- 窗口阴影效果 -->
     <DropShadowEffect x:Key="WindowShadow"
-                      BlurRadius="15"
+                      BlurRadius="10"
                       Direction="0"
                       ShadowDepth="0"
                       Opacity="0.2"
-                      Color="#000000"/>
+                      Color="#000000" />
 
-</ResourceDictionary> 
+</ResourceDictionary>
