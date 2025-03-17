@@ -150,8 +150,8 @@ public class AppConfig
     // 是否启用声音
     public bool? soundEnabled { get; set; }
     
-    // 是否开启游戏模式
-    public bool? IsGameMode { get; set; }
+    // 是否开启降低卡位模式
+    public bool? IsReduceKeyStuck { get; set; }
     
     // 音量设置，范围0.0-1.0，默认0.8(80%)
     public double? SoundVolume { get; set; } = 0.8;

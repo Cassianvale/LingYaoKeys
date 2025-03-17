@@ -74,7 +74,7 @@ namespace WpfApp.ViewModels
         private bool _isSoundEnabled = true;
         private readonly AudioService _audioService;
         private double _soundVolume = 0.8; // 默认音量80%
-        private bool _isGameMode = true; // 默认开启
+        private bool _isReduceKeyStuck = true; // 默认开启
         private bool _isInitializing = true; // 添加一个标志来标识是否在初始化
         private bool _isExecuting = false; // 添加执行状态标志
         private bool _isFloatingWindowEnabled;
@@ -430,20 +430,20 @@ namespace WpfApp.ViewModels
         // 是否可以调整音量（基于音频设备是否可用）
         public bool CanAdjustVolume => _audioService.AudioDeviceAvailable;
 
-        // 判断是否为游戏模式，为true时按下抬起间隔为5ms，为false时间隔为0ms
-        public bool IsGameMode
+        // 判断是否为为降低卡位模式，为true时按下抬起间隔为5ms，为false时间隔为0ms
+        public bool IsReduceKeyStuck
         {
-            get => _isGameMode;
+            get => _isReduceKeyStuck;
             set
             {
-                if (SetProperty(ref _isGameMode, value))
+                if (SetProperty(ref _isReduceKeyStuck, value))
                 {
-                    // 根据游戏模式设置按键间隔
+                    // 根据降低卡位模式设置按键间隔
                     var newInterval = value ? LyKeysService.DEFAULT_KEY_PRESS_INTERVAL : 0;
                     _lyKeysService.KeyPressInterval = newInterval;
 
                     if (!_isInitializing) SaveConfig();
-                    _logger.Debug($"游戏模式已更改为: {value}, 期望按键间隔: {newInterval}ms, " +
+                    _logger.Debug($"降低卡位模式已更改为: {value}, 期望按键间隔: {newInterval}ms, " +
                                   $"实际按键间隔: {_lyKeysService.KeyPressInterval}ms, 默认按键间隔值: {LyKeysService.DEFAULT_KEY_PRESS_INTERVAL}ms");
                 }
             }
@@ -982,7 +982,7 @@ namespace WpfApp.ViewModels
                 }
 
                 // 同步其他设置
-                _lyKeysService.KeyPressInterval = IsGameMode ? LyKeysService.DEFAULT_KEY_PRESS_INTERVAL : 0;
+                _lyKeysService.KeyPressInterval = IsReduceKeyStuck ? LyKeysService.DEFAULT_KEY_PRESS_INTERVAL : 0;
                 _lyKeysService.IsEnabled = IsHotkeyEnabled;
                 _audioService.Volume = SoundVolume;
                 _lyKeysService.KeyInterval = KeyInterval;
@@ -1156,8 +1156,8 @@ namespace WpfApp.ViewModels
                 IsSequenceMode = config.keyMode == 0;   
                 // 加载音量设置
                 IsSoundEnabled = config.soundEnabled ?? true;
-                // 加载游戏模式
-                IsGameMode = config.IsGameMode ?? true;
+                // 加载降低卡位模式
+                IsReduceKeyStuck = config.IsReduceKeyStuck ?? true;
                 // 加载浮窗状态
                 IsFloatingWindowEnabled = config.UI.FloatingWindow.IsEnabled;
                 // 加载自动切换输入法状态
@@ -1173,7 +1173,7 @@ namespace WpfApp.ViewModels
                     _logger.Debug($"已加载音量设置: {_soundVolume:P0}");
                 }
 
-                _logger.Debug($"配置加载完成 - 模式: {(IsSequenceMode ? "顺序模式" : "按压模式")}, 游戏模式: {IsGameMode}");
+                _logger.Debug($"配置加载完成 - 模式: {(IsSequenceMode ? "顺序模式" : "按压模式")}, 降低卡位模式: {IsReduceKeyStuck}");
 
                 _isInitializing = false;
             }
@@ -1197,7 +1197,7 @@ namespace WpfApp.ViewModels
             
             // 功能开关
             IsSoundEnabled = true;                // 默认开启声音
-            IsGameMode = true;                    // 默认开启游戏模式
+            IsReduceKeyStuck = true;                    // 默认开启降低卡位模式
             AutoSwitchToEnglishIME = true;        // 默认开启自动切换输入法
             IsFloatingWindowEnabled = true;       // 默认开启浮窗
             IsHotkeyControlEnabled = true;        // 默认启用热键总开关
@@ -1209,7 +1209,7 @@ namespace WpfApp.ViewModels
             
             // 设置按键按下时长
             if (_lyKeysService != null)
-                _lyKeysService.KeyPressInterval = IsGameMode ? LyKeysService.DEFAULT_KEY_PRESS_INTERVAL : 0;
+                _lyKeysService.KeyPressInterval = IsReduceKeyStuck ? LyKeysService.DEFAULT_KEY_PRESS_INTERVAL : 0;
             
             // 重置当前状态
             IsHotkeyEnabled = false;              // 默认未启动按键
@@ -1612,9 +1612,9 @@ namespace WpfApp.ViewModels
                     configChanged = true;
                 }
 
-                if (config.IsGameMode != IsGameMode)
+                if (config.IsReduceKeyStuck != IsReduceKeyStuck)
                 {
-                    config.IsGameMode = IsGameMode;
+                    config.IsReduceKeyStuck = IsReduceKeyStuck;
                     configChanged = true;
                 }
 

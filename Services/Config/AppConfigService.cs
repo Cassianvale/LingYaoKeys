@@ -167,7 +167,7 @@ public class AppConfigService
             keyMode = 0,
             interval = 5,
             soundEnabled = true,
-            IsGameMode = true,
+            IsReduceKeyStuck = true,
             KeyPressInterval = 5,
             isHotkeyControlEnabled = true, // 热键总开关默认启用
             TargetWindowClassName = null,

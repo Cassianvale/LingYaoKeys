@@ -54,7 +54,7 @@
   "keyMode": 0,
   "interval": 10,
   "soundEnabled": true,
-  "IsGameMode": true,
+  "IsReduceKeyStuck": true,
   "SoundVolume": 0.8,
   "KeyPressInterval": 5,
   "FloatingWindowLeft": 1849.6,

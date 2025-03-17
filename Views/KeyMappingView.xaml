@@ -168,9 +168,9 @@
                             </Border>
                         </Popup>
 
-                        <!-- 游戏模式 -->
+                        <!-- 降低卡位 -->
                         <DockPanel Margin="0,0,20,10">
-                            <TextBlock Text="游戏模式"
+                            <TextBlock Text="降低卡位"
                                        VerticalAlignment="Center"
                                        Margin="0,0,0,0" />
                             <CheckBox Style="{StaticResource ModernSwitch}"
@@ -178,7 +178,8 @@
                                       VerticalContentAlignment="Center"
                                       HorizontalAlignment="Left"
                                       Padding="0,0,0,0"
-                                      IsChecked="{Binding IsGameMode, Mode=TwoWay}" />
+                                      IsChecked="{Binding IsReduceKeyStuck, Mode=TwoWay}"
+                                      ToolTip="启用后，会增加按键按下时长，以降低按键卡位的概率，缓解角色无法移动的情况" />
                         </DockPanel>
 
                         <!-- 状态浮窗 -->
