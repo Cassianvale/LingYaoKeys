@@ -32,7 +32,7 @@
 
 ### 🎮 基础功能
 
-- [x] 支持全局热键，**支持侧键滚轮触发**
+- [x] **支持全局热键，支持侧键滚轮触发，按键独立间隔**
 - [x] 支持窗口句柄嗅探
 - [x] 支持顺序/按压模式触发按键
 - [x] 支持开启/停止语音提醒
@@ -40,6 +40,7 @@
 - [x] 支持自定义开启/停止音频
 - [x] 支持按键列表拖拽排序
 - [x] 支持浮窗置顶显示按键启动状态
+- [x] 支持坐标编辑模式
 
 ### 🚀 驱动特性
 
@@ -80,9 +81,9 @@
 
 ## 🖼️ 项目展示
 
-<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/home.png" width="500px"/>  
+<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/screenshots.gif" width="700px"/>  
 <img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/about.png" width="500px"/>  
-<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/keys.png" width="700px"/>  
+
 
 ## 🎙 关于与建议
 
