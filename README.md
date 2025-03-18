@@ -106,8 +106,7 @@
 - `Resource\lykeysdll\lykeysdll.dll`: 核心驱动动态链接库(*必须)
 - `Resource\lykeysdll\lykeys.sys`: 内核级驱动文件(*必须)
 - `Resource\lykeysdll\lykeys.cat`: 驱动签名文件
--
-`Resource\lykeysdll\README.md`: [驱动接口&调试说明](https://github.com/Cassianvale/LingYaoKeys/blob/main/Resource/lykeysdll/README.md)
+- `Resource\lykeysdll\README.md`: [驱动接口&调试说明](https://github.com/Cassianvale/LingYaoKeys/blob/main/Resource/lykeysdll/README.md)
 - `Resource\lykeysdll\csharp_example\*`: C#示例代码
 - `Resource\lykeysdll\python_example\*`: Python示例代码
 
@@ -118,7 +117,7 @@
     - 请勿修改驱动文件，否则会导致签名失效
 
 2. **系统要求**
-    - 支持 Windows 7/10/11 (x86/x64)
+    - 支持 Windows 10/11 (x86/x64)，Windows 7 未经过测试
     - 需要管理员权限运行
 
 3. **使用限制**
