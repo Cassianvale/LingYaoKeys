@@ -62,32 +62,6 @@ You can download the latest version from:
 > Note: Always download the latest version from the GitHub Releases page to ensure you have the latest features and
 > security updates.
 
-## 🔧 Driver Usage Instructions
-
-### Driver File Description
-
-- `Resource\lykeysdll\lykeysdll.dll`: Core driver DLL (*Required)
-- `Resource\lykeysdll\lykeys.sys`: Kernel-level driver file (*Required)
-- `Resource\lykeysdll\lykeys.cat`: Driver signature file
--
-`Resource\lykeysdll\README.md`: [Driver Interface & Debug Guide](https://github.com/Cassianvale/LingYaoKeys/blob/main/Resource/lykeysdll/README.md)
-- `Resource\lykeysdll\csharp_example\*`: C# Example Code
-- `Resource\lykeysdll\python_example\*`: Python Example Code
-
-### ⚠️ Important Notes
-
-1. **Driver Signature**
-    - Driver has genuine digital signature
-    - Do NOT modify driver files to avoid signature invalidation
-
-2. **System Requirements**
-    - Supports Windows 10/11 (x86/x64), Windows 7 has not been tested
-    - Requires Administrator privileges
-
-3. **Usage Restrictions**
-    - For personal study and research only
-    - Reverse engineering or modification prohibited
-
 ## 📖 Usage Instructions
 
 > [!IMPORTANT]
