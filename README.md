@@ -74,15 +74,14 @@
 - _**降低卡位功能关闭**_：解除按键速度限制平均速度320+，适用于一般场景
 - _**自定义音频**_：打开 `C:\Users\用户\.lykeys\sound`，保持文件名替换 `start.mp3`/`stop.mp3` 即可
 
-## 📃常见问题
-
-因为本项目使用的微软最新的`.Net Core 8.0`，有部分用户可能需要下载内核  
-<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/download_core.png" heigh="400px"/>
-
 ## 🖼️ 项目展示
 
 <img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/screenshots.gif" width="700px"/>  
 
+## 📃常见问题
+
+因为本项目使用的微软最新的`.Net Core 8.0`，有部分用户可能需要下载内核  
+<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/download_core.png" heigh="400px"/>
 
 ## 🎙 关于与建议
 
