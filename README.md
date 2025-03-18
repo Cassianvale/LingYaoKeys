@@ -82,7 +82,6 @@
 ## 🖼️ 项目展示
 
 <img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/screenshots.gif" width="700px"/>  
-<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/about.png" width="500px"/>  
 
 
 ## 🎙 关于与建议
