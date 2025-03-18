@@ -32,7 +32,7 @@
 
 ### 🎮 Basic Features
 
-- [x] Global hotkey support, **including side buttons and scroll wheel triggers**
+- [x] **Global hotkey support, including side buttons and scroll wheel triggers with independent key intervals**
 - [x] Window handle detection support
 - [x] Sequential/Press mode key trigger support
 - [x] Voice notification on/off support
@@ -40,6 +40,7 @@
 - [x] Custom start/stop audio support
 - [x] Drag-and-drop key list sorting support
 - [x] Floating window display for key activation status
+- [x] Coordinate editing mode support
 
 ### 🚀 Driver Features
 
@@ -80,7 +81,7 @@ You can download the latest version from:
     - Do NOT modify driver files to avoid signature invalidation
 
 2. **System Requirements**
-    - Supports Windows 7/10/11 (x86/x64)
+    - Supports Windows 10/11 (x86/x64), Windows 7 has not been tested
     - Requires Administrator privileges
 
 3. **Usage Restrictions**
@@ -101,16 +102,14 @@ You can download the latest version from:
 - _**Game Mode OFF**_: Unlimited key speed with average of 320+, suitable for general use
 - _**Custom Audio**_: Open `C:\Users\username\.lykeys\sound` and replace `start.mp3`/`stop.mp3` files
 
+## 🖼️ Project Showcase
+
+<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/screenshots.gif" width="700px"/>
+
 ## 📃 Common Issues
 
 Since this project uses Microsoft's latest `.Net Core 8.0`, some users may need to download the runtime
 <img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/download_core.png" heigh="400px"/>
-
-## 🖼️ Project Showcase
-
-<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/home.png" width="500px"/>
-<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/about.png" width="500px"/>
-<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/keys.png" width="700px"/>
 
 ## 🎙 About & Suggestions
 
@@ -129,6 +128,32 @@ Since this project uses Microsoft's latest `.Net Core 8.0`, some users may need 
 ### Build & Package
 
 - `dotnet publish -c Release`
+
+## 🔧 Driver Usage Instructions
+
+### Driver File Description
+
+- `Resource\lykeysdll\lykeysdll.dll`: Core driver DLL (*Required)
+- `Resource\lykeysdll\lykeys.sys`: Kernel-level driver file (*Required)
+- `Resource\lykeysdll\lykeys.cat`: Driver signature file
+-
+`Resource\lykeysdll\README.md`: [Driver Interface & Debug Guide](https://github.com/Cassianvale/LingYaoKeys/blob/main/Resource/lykeysdll/README.md)
+- `Resource\lykeysdll\csharp_example\*`: C# Example Code
+- `Resource\lykeysdll\python_example\*`: Python Example Code
+
+### ⚠️ Important Notes
+
+1. **Driver Signature**
+    - Driver has genuine digital signature
+    - Do NOT modify driver files to avoid signature invalidation
+
+2. **System Requirements**
+    - Supports Windows 10/11 (x86/x64), Windows 7 has not been tested
+    - Requires Administrator privileges
+
+3. **Usage Restrictions**
+    - For personal study and research only
+    - Reverse engineering or modification prohibited
 
 ## ☕️ Buy me a coffee
 
