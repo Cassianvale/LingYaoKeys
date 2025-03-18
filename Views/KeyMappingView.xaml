@@ -373,7 +373,7 @@
                                     Margin="0,0,10,0"
                                     Click="ToggleCoordinateMode_Click"
                                     ToolTip="切换到按键模式">
-                                <svgc:SvgViewbox Source="pack://application:,,,/Resource/svg/奶牛猫.svg"
+                                <svgc:SvgViewbox Source="pack://application:,,,/Resource/svg/三花猫.svg"
                                                 Width="20"
                                                 Height="20"
                                                 Stretch="Uniform">
