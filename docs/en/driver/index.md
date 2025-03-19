@@ -1,36 +1,69 @@
-# Driver Overview
+# Driver Documentation
 
-## Introduction
+## Driver Overview
 
-LingYaoKeys uses a kernel-level driver to implement key mapping and simulation functions. This driver is based on DeviceIoControl and provides robust anti-hook and memory protection mechanisms.
+> [!WARNING]
+> Windows 7 is not tested and may cause unpredictable issues
 
-## Core Features
+LingYao Keys uses kernel-level driver to implement key simulation functionality, communicating with the driver through DeviceIoControl. The driver supports 32-bit/64-bit systems and is compatible with Windows 10/11.
 
-- **Kernel-level Implementation**: Direct access to hardware for reliable key simulation
-- **Anti-Hook Protection**: Prevents third-party software from intercepting key events
-- **Memory Protection**: Safeguards against memory tampering
-- **Offline Operation**: Functions without internet connection
-- **Device Support**: Compatible with keyboard, mouse, and joystick input
-- **Performance Optimization**: Multi-threaded processing for minimal latency
-- **Customization**: Support for custom scan codes and hardware features
+### Driver Features
+- Based on DeviceIoControl implementation
+- Supports offline operation
+- Comprehensive anti-Hook protection
+- Supports hot-plugging
+- Supports multiple devices
 
-## Architecture
+### System Requirements
+- Windows 10/11
+- 32-bit/64-bit systems
+- Administrator privileges
+- Disable Secure Boot (for test driver mode)
 
-The driver architecture consists of:
+### Driver Files
+- `lykeysdll.dll`: Core driver dynamic link library
+- `lykeys.sys`: Kernel-level driver file
+- `lykeys.cat`: Driver signature file
+- `README.md`: Driver interface documentation
 
-1. **User Mode Component**: Interfaces with the application
-2. **Kernel Mode Component**: Handles low-level hardware operations
-3. **Communication Layer**: Manages data transfer between user and kernel modes
-4. **Security Layer**: Implements protection mechanisms
+## Quick Start
 
-## Installation
+### Installing the Driver
+1. Run the program as administrator
+2. The program will automatically install the driver
+3. If installation fails, check system settings
 
-The driver is automatically installed when you first run LingYaoKeys. Administrator privileges are required for installation. If you encounter any issues during installation, please refer to the [FAQ](/en/faq) section.
+### Uninstalling the Driver
+1. The driver will automatically uninstall when the program exits normally
+2. If uninstallation fails, use command line:
+   ```cmd
+   sc stop lykeys
+   sc delete lykeys
+   ```
 
-## Technical Details
+3. Quick command:
+   ```cmd
+   @echo off && sc query lykeys > nul 2>&1 && (echo Service exists, stopping... && sc stop lykeys > nul 2>&1 && timeout /t 2 /nobreak > nul && sc delete lykeys > nul 2>&1 && echo Service deleted successfully && exit) || (echo Service does not exist && exit)
+   ```
 
-For developers interested in the technical aspects of the driver, please refer to the [API Documentation](/en/driver/api) and [Status Codes](/en/driver/status-codes) sections.
+### Testing the Driver
+1. Run the example program
+2. Test basic functionality
+3. Check driver status
 
-## Usage Examples
+## Notes
 
-For practical examples of how to use the driver functionality, see the [Examples](/en/driver/examples) section. 
+### Security Tips
+- Do not modify driver files
+- Keep driver signatures intact
+- Follow the project for latest driver versions
+
+### Performance Optimization
+- Set reasonable key intervals
+- Avoid frequent operations
+- Monitor system resources
+
+### Troubleshooting
+- Check driver status
+- View error logs
+- Update system patches 

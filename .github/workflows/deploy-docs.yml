@@ -1,4 +1,4 @@
-name: 部署文档
+name: deploy-docs
 
 on:
   # 在推送到main分支时触发

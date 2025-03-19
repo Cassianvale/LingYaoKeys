@@ -10,7 +10,7 @@ on:
       releaseNotes:
         description: '版本更新内容 (支持 Markdown 格式)'
         required: false
-        type: text
+        type: string
 
 permissions:
   contents: write

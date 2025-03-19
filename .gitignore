@@ -400,3 +400,6 @@ appsettings.Production.json
 !lykeys.sys
 !lykeysdll.dll
 !lykeys.cat
+
+# 文档文件
+cache/

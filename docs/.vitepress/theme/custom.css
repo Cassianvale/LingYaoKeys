@@ -83,7 +83,7 @@
   font-size: 0.85em;
 } */
 
-/* 确保表头也能换行 */
+/* 表头内容允许换行 */
 .driver-api-table th,
 .keyboard-api-table th,
 .mouse-api-table th,
