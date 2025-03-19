@@ -82,7 +82,36 @@ public class LyKeysAdvanced
 
 ## Python Examples
 
+### Running Example Code
+- 1. Start VSCode as administrator
+- 2. Open the `Python` example library `cd Resource\lykeysdll\python_example`
+- 3. Create a `python3.10` environment, install win32gui library using `pip` or `conda`
+
+::: code-group
+```python[pip]
+pip install pywin32
+
+```
+
+```python[uv]
+uv pip install pywin32
+```
+:::
+
+- 4. Run the example code
+**`gui.py` can be run in two modes:**
+
+::: code-group
+```python[Normal]
+python gui.py
+```
+```python[Debug]
+python gui.py --debug
+```
+:::
+
 ### Basic Usage
+
 ```python
 import ctypes
 import time

@@ -82,7 +82,38 @@ public class LyKeysAdvanced
 
 ## Python 示例
 
+### 运行示例代码
+- 1. 以管理员方式启动VSCode
+- 2. 打开 `Python` 示例库 `cd Resource\lykeysdll\python_example`
+- 3. 创建`python3.10`环境，使用`pip`或`conda`安装win32gui库
+
+::: code-group
+```python[pip]
+pip install pywin32
+
+```
+
+```python[uv]
+uv pip install pywin32
+```
+:::
+
+- 4. 运行示例代码
+**`gui.py` 分为两种模式运行：**
+
+::: code-group
+```python[Normal]
+python gui.py
+```
+```python[Debug]
+python gui.py --debug
+```
+:::
+
+
+
 ### 基本使用
+
 ```python
 import ctypes
 import time
@@ -152,19 +183,3 @@ def main():
 if __name__ == "__main__":
     main()
 ```
-
-## 注意事项
-
-### 性能优化
-- 使用高精度计时器
-- 合理设置延迟
-
-### 错误处理
-- 检查返回值
-- 捕获异常
-- 记录日志
-
-### 线程安全
-- 避免多线程同时调用
-- 使用同步机制
-- 注意资源释放 

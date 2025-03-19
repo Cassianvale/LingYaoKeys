@@ -3,7 +3,7 @@
 ## Debugging Tools
 
 ### WinDbg
-1. Installation steps:
+1. Installation Steps:
    ```powershell
    # Install WinDbg using winget
    winget install Microsoft.WinDbg
@@ -13,11 +13,11 @@
    ```
    1. Right-click "This PC" -> Properties
    2. Advanced system settings -> Advanced -> Startup and Recovery -> Settings
-   3. Select "Complete memory dump" under "Write debugging information"
+   3. Under "Write debugging information" select "Complete memory dump"
    4. Ensure "Automatically restart" is checked
    ```
 
-3. Analyze with WinDbg:
+3. Using WinDbg for analysis:
    ```
    1. Open WinDbg
    2. File -> Open Crash Dump
@@ -36,25 +36,25 @@
 1. Usage steps:
    ```
    1. Download and install BlueScreenView
-   2. Run to automatically display all blue screen records
+   2. When run, it automatically displays all blue screen records
    3. View:
       - Blue screen code
       - Occurrence time
-      - Driver causing crash
+      - Driver causing the crash
       - Call stack information
    ```
 
 2. Analysis information:
    ```
-   Required information
+   Information needed
    {
        1. Basic information:
-       - Blue screen code (e.g., 0x0000007E)
+       - Blue screen code (e.g.: 0x0000007E)
        - Occurrence time
        - System version
        2. Detailed information:
-       - Driver name causing crash
-       - Call stack at crash
+       - Name of driver causing the crash
+       - Call stack at time of crash
        - Related memory addresses
        3. Environment information:
        - System configuration
@@ -93,7 +93,7 @@
    bcdedit /dbgsettings local
    ```
 
-2. Add detailed logging:
+2. Add detailed logs:
    ```c
    KdPrint(("Driver State: %d, IRQL: %d\n", state, KeGetCurrentIrql()));
    KdPrint(("Callback Address: 0x%p\n", callback));
@@ -118,7 +118,7 @@
 ### Driver Signature Issues
 1. Test mode settings:
    ```cmd
-   # Disable forced driver signing & test mode & restart
+   # Disable forced driver signing & enable test mode & restart
    bcdedit /set nointegritychecks on
    bcdedit /set testsigning on
    shutdown -r -t 0
@@ -134,17 +134,17 @@
 ### Logging
 1. Add detailed logs:
    ```c
-   // Log key operations
+   // Record key operations
    KdPrint(("Operation: %s\n", operation));
    
-   // Log parameter information
+   // Record parameter information
    KdPrint(("Parameters: %d, %d\n", param1, param2));
    
-   // Log error information
+   // Record error information
    KdPrint(("Error: %d\n", error));
    ```
 
 2. Log analysis:
    - Use log analysis tools
    - Filter key information
-   - Track problem root cause 
+   - Trace problem source 

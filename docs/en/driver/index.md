@@ -1,6 +1,8 @@
 # Driver Documentation
 
 ## Driver Overview
+> [!CAUTION]
+> ⚠️**Special Note: Regarding anti-cheat issues in various games, please do not ask me questions like "can this work with a certain game" - I do not provide this kind of technical support!!!**
 
 > [!WARNING]
 > Windows 7 is not tested and may cause unpredictable issues
@@ -35,7 +37,7 @@ LingYao Keys uses kernel-level driver to implement key simulation functionality,
 
 ### Uninstalling the Driver
 1. The driver will automatically uninstall when the program exits normally
-2. If uninstallation fails, use command line:
+2. If uninstallation fails, use the following command line:
    ```cmd
    sc stop lykeys
    sc delete lykeys
@@ -50,6 +52,15 @@ LingYao Keys uses kernel-level driver to implement key simulation functionality,
 1. Run the example program
 2. Test basic functionality
 3. Check driver status
+
+## Reference Materials
+
+- [kmclassdll.dll](https://github.com/BestBurning/kmclassdll/releases) - DLL Dynamic Library
+- [kmclass.sys](https://github.com/BestBurning/kmclass/releases) - Kernel Driver
+- For compilation reference, see [Compiling DLL and using ctypes in Python](https://di1shuai.com/%E7%BC%96%E8%AF%91dll%E5%B9%B6%E5%9C%A8python%E4%B8%AD%E4%BD%BF%E7%94%A8ctypes%E8%B0%83%E7%94%A8.html)
+- Error Codes [Error Codes](https://docs.microsoft.com/zh-cn/windows/win32/debug/system-error-codes)
+- [KMDF Hello World](https://docs.microsoft.com/zh-cn/windows-hardware/drivers/gettingstarted/writing-a-very-small-kmdf--driver)
+- [WDK 10](https://docs.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk) 
 
 ## Notes
 
@@ -66,4 +77,4 @@ LingYao Keys uses kernel-level driver to implement key simulation functionality,
 ### Troubleshooting
 - Check driver status
 - View error logs
-- Update system patches 
+- Follow debug documentation to troubleshoot issues 

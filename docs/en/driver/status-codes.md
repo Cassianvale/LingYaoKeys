@@ -4,11 +4,11 @@
 
 <div class="status-code-table">
 
-| Definition                    | Description                    |
-|------------------------------|--------------------------------|
-| DEVICE_STATUS_UNKNOWN (0)    | Device status unknown, initial state |
-| DEVICE_STATUS_READY (1)      | Device ready, initialization complete |
-| DEVICE_STATUS_ERROR (2)      | Device error, initialization failed |
+| Definition                    | Description                              |
+|------------------------------|------------------------------------------|
+| DEVICE_STATUS_UNKNOWN (0)    | Device status unknown, initial state     |
+| DEVICE_STATUS_READY (1)      | Device ready, initialization complete    |
+| DEVICE_STATUS_ERROR (2)      | Device error, initialization failed      |
 
 </div>
 

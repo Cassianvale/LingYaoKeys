@@ -1,6 +1,8 @@
 # 驱动文档
 
 ## 驱动概述
+> [!CAUTION]
+> ⚠️**特别提示：关于各种游戏的反作弊问题，类似某某游戏能不能过测之类不要来问我，不提供这种技术支持！！！**
 
 > [!WARNING]
 > Windows 7 未经过测试，可能导致无法预知的问题
@@ -35,21 +37,24 @@
 
 ### 卸载驱动
 1. 正常退出程序驱动会自动卸载
-2. 如果卸载失败，使用命令行：
+2. - 如果卸载失败，请使用以下命令行：
    ```cmd
    sc stop lykeys
    sc delete lykeys
    ```
-
-3. 快捷命令：
+   - 执行快捷命令（如果lykeys 服务存在，则立刻停止并删除驱动服务）
    ```cmd
    @echo off && sc query lykeys > nul 2>&1 && (echo Service exists, stopping... && sc stop lykeys > nul 2>&1 && timeout /t 2 /nobreak > nul && sc delete lykeys > nul 2>&1 && echo Service deleted successfully && exit) || (echo Service does not exist && exit)
    ```
 
-### 测试驱动
-1. 运行示例程序
-2. 测试基本功能
-3. 检查驱动状态
+## 参考资料
+
+- [kmclassdll.dll](https://github.com/BestBurning/kmclassdll/releases) - DLL动态库
+- [kmclass.sys](https://github.com/BestBurning/kmclass/releases) - 内核驱动
+- 如何编译可参考 [编译dll并在python中使用ctypes调用](https://di1shuai.com/%E7%BC%96%E8%AF%91dll%E5%B9%B6%E5%9C%A8python%E4%B8%AD%E4%BD%BF%E7%94%A8ctypes%E8%B0%83%E7%94%A8.html)
+- 错误代码 [Error Codes](https://docs.microsoft.com/zh-cn/windows/win32/debug/system-error-codes)
+- [KMDF Hello World](https://docs.microsoft.com/zh-cn/windows-hardware/drivers/gettingstarted/writing-a-very-small-kmdf--driver)
+- [WDK 10](https://docs.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk) 
 
 ## 注意事项
 
@@ -58,12 +63,7 @@
 - 保持驱动签名完整
 - 关注项目及时获取最新驱动版本
 
-### 性能优化
-- 合理设置按键间隔
-- 避免频繁操作
-- 监控系统资源
-
 ### 故障排除
 - 检查驱动状态
 - 查看错误日志
-- 更新系统补丁 
+- 按照debug文档排查故障

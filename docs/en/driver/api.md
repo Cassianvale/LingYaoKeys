@@ -46,8 +46,8 @@
 | MouseXButton1Up           | void                | void        | X1 button up       | MouseXButton1Up()               |
 | MouseXButton2Down         | void                | void        | X2 button down     | MouseXButton2Down()             |
 | MouseXButton2Up           | void                | void        | X2 button up       | MouseXButton2Up()               |
-| MouseWheelUp              | USHORT wheelDelta   | void        | Wheel up           | MouseWheelUp(120)               |
-| MouseWheelDown            | USHORT wheelDelta   | void        | Wheel down         | MouseWheelDown(120)             |
+| MouseWheelUp              | USHORT wheelDelta   | void        | Wheel scroll up    | MouseWheelUp(120)               |
+| MouseWheelDown            | USHORT wheelDelta   | void        | Wheel scroll down  | MouseWheelDown(120)             |
 
 </div>
 
@@ -90,23 +90,14 @@ MouseLeftButtonDown();
 Sleep(50);
 MouseLeftButtonUp();
 
-// Scroll mouse
+// Scroll mouse wheel
 MouseWheelUp(120);
 ```
 
 ## Notes
-
-### Thread Safety
-- All APIs are thread-safe
-- No additional synchronization needed in multi-threaded environment
-- Recommended to load/unload driver in main thread
-
-### Error Handling
-- Check function return values
-- Use GetLastError to get error codes
-- Implement error retry mechanism
-
-### Performance Optimization
-- Set reasonable key intervals
-- Avoid frequent calls
-- Release resources timely 
+1. You must call `LoadNTDriver` to load the driver before use
+2. After loading the driver, you need to call `SetHandle` to get the device handle
+3. It's recommended to check the driver status with `GetDriverStatus` before all operations
+4. Call `UnloadNTDriver` to unload the driver before the program exits
+5. Mouse movement coordinates use screen coordinate system (origin at the top-left corner)
+6. Keyboard operations use Windows Virtual-Key Codes 
