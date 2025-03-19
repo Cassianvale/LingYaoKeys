@@ -1,0 +1,103 @@
+/* 表格样式 */
+
+/* 通用表格样式 - 确保表格横向显示 */
+.driver-api-table table,
+.keyboard-api-table table,
+.mouse-api-table table,
+.status-code-table table,
+.error-code-table table {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+/* 驱动管理接口表格 */
+.driver-api-table th:first-child,
+.driver-api-table td:first-child { width: 18%; }
+.driver-api-table th:nth-child(2),
+.driver-api-table td:nth-child(2) { width: 25%; }
+.driver-api-table th:nth-child(3),
+.driver-api-table td:nth-child(3) { width: 12%; }
+.driver-api-table th:nth-child(4),
+.driver-api-table td:nth-child(4) { width: 12%; }
+.driver-api-table th:nth-child(5),
+.driver-api-table td:nth-child(5) { width: 20%; }
+
+/* 键盘操作接口表格 */
+.keyboard-api-table th:first-child,
+.keyboard-api-table td:first-child { width: 20%; }
+.keyboard-api-table th:nth-child(2),
+.keyboard-api-table td:nth-child(2) { width: 30%; }
+.keyboard-api-table th:nth-child(3),
+.keyboard-api-table td:nth-child(3) { width: 15%; }
+.keyboard-api-table th:nth-child(4),
+.keyboard-api-table td:nth-child(4) { width: 15%; }
+.keyboard-api-table th:nth-child(5),
+.keyboard-api-table td:nth-child(5) { width: 20%; }
+
+/* 鼠标操作接口表格 */
+.mouse-api-table th:first-child,
+.mouse-api-table td:first-child { width: 22%; }
+.mouse-api-table th:nth-child(2),
+.mouse-api-table td:nth-child(2) { width: 20%; }
+.mouse-api-table th:nth-child(3),
+.mouse-api-table td:nth-child(3) { width: 10%; }
+.mouse-api-table th:nth-child(4),
+.mouse-api-table td:nth-child(4) { width: 18%; }
+.mouse-api-table th:nth-child(5),
+.mouse-api-table td:nth-child(5) { width: 30%; }
+
+/* 状态码表格 */
+.status-code-table th:first-child,
+.status-code-table td:first-child { width: 60%; }
+.status-code-table th:nth-child(2),
+.status-code-table td:nth-child(2) { width: 40%; }
+
+/* 错误码表格 */
+.error-code-table th:first-child,
+.error-code-table td:first-child { width: 15%; }
+.error-code-table th:nth-child(2),
+.error-code-table td:nth-child(2) { width: 40%; }
+.error-code-table th:nth-child(3),
+.error-code-table td:nth-child(3) { width: 45%; }
+
+/* 表格内容允许换行 */
+.driver-api-table td,
+.keyboard-api-table td,
+.mouse-api-table td,
+.status-code-table td,
+.error-code-table td {
+  white-space: normal;
+  word-wrap: break-word;
+  word-break: break-word;
+  padding: 8px;
+  font-size: 0.9em;
+}
+
+/* 限制示例列的宽度，允许更智能的换行 */
+/* .driver-api-table td:nth-child(5),
+.keyboard-api-table td:nth-child(5),
+.mouse-api-table td:nth-child(5) {
+  font-family: monospace;
+  font-size: 0.85em;
+} */
+
+/* 确保表头也能换行 */
+.driver-api-table th,
+.keyboard-api-table th,
+.mouse-api-table th,
+.status-code-table th,
+.error-code-table th {
+  white-space: normal;
+  word-wrap: break-word;
+  padding: 8px;
+}
+
+/* 代码示例列可能需要横向滚动 */
+.driver-api-table td code,
+.keyboard-api-table td code,
+.mouse-api-table td code {
+  white-space: pre-wrap;
+  word-break: break-all;
+} 

@@ -1,0 +1,20 @@
+{
+  "name": "lingyaokeys-docs",
+  "version": "1.0.0",
+  "description": "灵曜按键文档站点",
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "keywords": [
+    "LingYaoKeys",
+    "灵曜按键",
+    "文档"
+  ],
+  "author": "Cassianvale",
+  "license": "GPL-3.0",
+  "devDependencies": {
+    "vitepress": "^1.6.3"
+  }
+}
