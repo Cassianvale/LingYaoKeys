@@ -3,7 +3,7 @@
 
 # LingYaoKeys - 灵曜按键
 
-<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/logo.png" width="120px" alt="LingYaoKeys Logo"/>
+<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/app.png" width="120px" alt="LingYaoKeys Logo"/>
 
 ✨ **基于.NET8.0+WPF开发的灵动、优雅的开源按键工具** ✨
 
@@ -106,7 +106,7 @@
 > - `DEFAULT_KEY_PRESS_INTERVAL`：按键按下到松开的固定时间
 > - `MIN_KEY_INTERVAL`: 最小可设置的按键间隔
 
-### 性能模式选择
+### 模式选择
 
 - **降低卡位功能(默认开启)** 
   - 平均按键速度为120+次/秒
@@ -115,11 +115,6 @@
 - **常规模式(降低卡位关闭)**
   - 解除按键速度限制，平均速度320+次/秒
   - 适用于普通应用场景
-
-### 自定义音频设置
-
-1. 打开 `C:\Users\用户\.lykeys\sound` 文件夹
-2. 替换 `start.mp3` 和 `stop.mp3` 文件（保持原文件名）
 
 ## 🖼️ 项目展示
 
@@ -161,12 +156,6 @@
 
 ```bash
 dotnet run
-```
-
-### 发布打包
-
-```bash
-dotnet publish -c Release
 ```
 
 ## 🔧 驱动使用说明
