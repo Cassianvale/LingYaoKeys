@@ -31,7 +31,7 @@ jobs:
       # 安装依赖
       - name: 安装依赖
         working-directory: ./docs
-        run: npm ci
+        run: npm install --no-audit
       
       # 构建文档
       - name: 构建文档
