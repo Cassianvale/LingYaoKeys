@@ -1,0 +1,18 @@
+import{_ as a,c as n,o as i,ag as e}from"./chunks/framework.C48t5LJr.js";const o=JSON.parse('{"title":"灵曜按键文档","description":"","frontmatter":{},"headers":[],"relativePath":"README.md","filePath":"README.md","lastUpdated":1742378511000}'),p={name:"README.md"};function l(t,s,h,d,r,c){return i(),n("div",null,s[0]||(s[0]=[e(`<h1 id="灵曜按键文档" tabindex="-1">灵曜按键文档 <a class="header-anchor" href="#灵曜按键文档" aria-label="Permalink to &quot;灵曜按键文档&quot;">​</a></h1><p>这是灵曜按键的官方文档站点，基于VitePress构建。</p><h2 id="本地开发" tabindex="-1">本地开发 <a class="header-anchor" href="#本地开发" aria-label="Permalink to &quot;本地开发&quot;">​</a></h2><div class="language-bash vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">bash</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 进入文档目录</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">cd</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> docs</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 安装依赖</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">npm</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> install</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 启动开发服务器</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">npm</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> run</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> docs:dev</span></span></code></pre></div><h2 id="构建文档" tabindex="-1">构建文档 <a class="header-anchor" href="#构建文档" aria-label="Permalink to &quot;构建文档&quot;">​</a></h2><div class="language-bash vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">bash</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 构建静态文件</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">npm</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> run</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> docs:build</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 预览构建结果</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">npm</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> run</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> docs:preview</span></span></code></pre></div><h2 id="文档结构" tabindex="-1">文档结构 <a class="header-anchor" href="#文档结构" aria-label="Permalink to &quot;文档结构&quot;">​</a></h2><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>docs/</span></span>
+<span class="line"><span>├── .vitepress/        # VitePress配置</span></span>
+<span class="line"><span>├── public/            # 静态资源</span></span>
+<span class="line"><span>├── guide/             # 用户指南</span></span>
+<span class="line"><span>├── driver/            # 驱动文档</span></span>
+<span class="line"><span>├── faq.md             # 常见问题</span></span>
+<span class="line"><span>└── index.md           # 首页</span></span></code></pre></div>`,8)]))}const g=a(p,[["render",l]]);export{o as __pageData,g as default};
