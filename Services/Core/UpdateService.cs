@@ -12,7 +12,6 @@ public class UpdateService : IDisposable
     private readonly SerilogManager _logger = SerilogManager.Instance;
     private readonly HttpClient _httpClient;
     private const string VERSION_FILE_URL = "https://lykeys-remote.oss-cn-shanghai.aliyuncs.com/version.json";
-    private const string RELEASE_BASE_URL = "https://lykeys-remote.oss-cn-shanghai.aliyuncs.com/release";
 
     public UpdateService()
     {

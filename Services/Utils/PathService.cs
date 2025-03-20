@@ -109,23 +109,8 @@ public class PathService
         }
         catch (Exception ex)
         {
-            // 在初始化阶段可能还没有日志系统，所以使用控制台输出
-            Console.WriteLine($"初始化路径服务失败: {ex.Message}");
-            
-            // 使用应用程序目录作为备选
-            string fallbackPath = Path.Combine(
-                Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? AppDomain.CurrentDomain.BaseDirectory,
-                APP_DATA_FOLDER_NAME);
-            
-            _appDataPath = fallbackPath;
-            _configPath = Path.Combine(_appDataPath, "Config");
-            _logPath = Path.Combine(_appDataPath, "Logs");
-            _resourcePath = Path.Combine(_appDataPath, "Resource");
-            _soundPath = Path.Combine(_resourcePath, "sound");
-            _driverPath = Path.Combine(_resourcePath, "lykeysdll");
-            
-            // 确保所有目录都存在
-            EnsureDirectoriesExist();
+            System.Diagnostics.Debug.WriteLine($"初始化路径服务失败: {ex.Message}");
+            throw;
         }
     }
     
@@ -145,8 +130,8 @@ public class PathService
         }
         catch (Exception ex)
         {
-            // 无法创建目录，记录错误
-            Console.WriteLine($"创建应用程序目录失败: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"创建应用程序目录失败: {ex.Message}");
+            throw;
         }
     }
     

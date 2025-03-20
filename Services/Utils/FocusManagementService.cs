@@ -57,7 +57,7 @@ public class FocusManagementService : INotifyPropertyChanged
         element.LostFocus += OnElementLostFocus;
         element.Unloaded += OnElementUnloaded;
 
-        _logger.Debug($"注册焦点元素: {GetElementIdentifier(element)}");
+        // _logger.Debug($"注册焦点元素: {GetElementIdentifier(element)}");
     }
 
     /// <summary>
@@ -77,7 +77,7 @@ public class FocusManagementService : INotifyPropertyChanged
             element.LostFocus -= OnElementLostFocus;
             element.Unloaded -= OnElementUnloaded;
 
-            _logger.Debug($"注销焦点元素: {GetElementIdentifier(element)}");
+            // _logger.Debug($"注销焦点元素: {GetElementIdentifier(element)}");
         }
     }
 
@@ -107,7 +107,7 @@ public class FocusManagementService : INotifyPropertyChanged
                 }
 
                 CurrentFocusedElement = element;
-                _logger.Debug($"设置焦点到元素: {GetElementIdentifier(element)}");
+                // _logger.Debug($"设置焦点到元素: {GetElementIdentifier(element)}");
             }
             catch (Exception ex)
             {
@@ -139,7 +139,7 @@ public class FocusManagementService : INotifyPropertyChanged
 
                 Keyboard.ClearFocus();
                 CurrentFocusedElement = null;
-                _logger.Debug("清除当前焦点");
+                // _logger.Debug("清除当前焦点");
             }
             catch (Exception ex)
             {
@@ -153,7 +153,7 @@ public class FocusManagementService : INotifyPropertyChanged
         if (sender is FrameworkElement element)
         {
             CurrentFocusedElement = element;
-            _logger.Debug($"元素获得焦点: {GetElementIdentifier(element)}");
+            // _logger.Debug($"元素获得焦点: {GetElementIdentifier(element)}");
         }
     }
 
@@ -162,7 +162,7 @@ public class FocusManagementService : INotifyPropertyChanged
         if (sender is FrameworkElement element)
         {
             UpdateBindings(element);
-            _logger.Debug($"元素失去焦点: {GetElementIdentifier(element)}");
+            // _logger.Debug($"元素失去焦点: {GetElementIdentifier(element)}");
         }
     }
 

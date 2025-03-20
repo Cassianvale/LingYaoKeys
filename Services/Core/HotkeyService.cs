@@ -132,16 +132,32 @@ public class HotkeyService
         // 加载按键列表
         if (config.keys?.Count > 0)
         {
-            // 只获取选中的键盘类型按键，并且确保Code有值
-            var selectedKeys = config.keys
-                .Where(k => k.IsSelected && k.Type == KeyItemType.Keyboard && k.Code.HasValue)
-                .Select(k => k.Code.Value)  // 提取非空值
-                .ToList();
+            // 获取所有选中的按键和坐标
+            var selectedItems = config.keys.Where(k => k.IsSelected).ToList();
 
-            if (selectedKeys.Count > 0)
+            if (selectedItems.Count > 0)
             {
-                _keyList = selectedKeys;
-                _lyKeysService.SetKeyList(selectedKeys);
+                // 创建统一操作列表
+                var operations = new List<KeyItemSettings>();
+                
+                foreach (var item in selectedItems)
+                {
+                    if (item.Type == KeyItemType.Keyboard && item.Code.HasValue)
+                    {
+                        // 添加键盘操作
+                        operations.Add(KeyItemSettings.CreateKeyboard(item.Code.Value, item.KeyInterval));
+                    }
+                    else if (item.Type == KeyItemType.Coordinates)
+                    {
+                        // 添加坐标操作
+                        operations.Add(KeyItemSettings.CreateCoordinates(item.X, item.Y, item.KeyInterval));
+                    }
+                }
+                
+                // 设置统一操作列表
+                SetKeySequence(operations);
+                
+                _logger.Debug($"初始化已加载操作列表 - 总数: {operations.Count}, 键盘按键: {operations.Count(o => o.Type == KeyItemType.Keyboard)}, 坐标操作: {operations.Count(o => o.Type == KeyItemType.Coordinates)}");
             }
         }
 
@@ -739,19 +755,13 @@ public class HotkeyService
                 .Select(k => k.KeyCode.Value)
                 .ToList();
 
-            // 提取坐标类型的设置
-            var coordinates = keySettings
-                .Where(k => k.Type == KeyItemType.Coordinates)
-                .Select(k => (k.X, k.Y, k.Interval))
-                .ToList();
-                
-            // 传递给LyKeysService
-            _lyKeysService.SetKeyItemsListWithCoordinates(_keyList, coordinates);
+            // 传递给LyKeysService统一的操作列表
+            _lyKeysService.SetUnifiedOperationList(keySettings);
 
-            // 保存完整的按键设置，包括坐标类型
+            // 保存完整的按键设置
             _keySettings = keySettings.ToList();
 
-            _logger.Debug($"设置按键序列: 按键数={keySettings.Count}, 键盘按键={_keyList.Count}, 坐标点={coordinates.Count}, 使用独立按键间隔");
+            _logger.Debug($"设置按键序列: 总操作数={keySettings.Count}, 键盘按键={_keyList.Count}, 坐标点={keySettings.Count(k => k.Type == KeyItemType.Coordinates)}, 使用独立按键间隔");
         }
         catch (Exception ex)
         {

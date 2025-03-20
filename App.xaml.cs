@@ -159,18 +159,6 @@ public partial class App : Application
             _logger.Debug("服务清理完成");
             _logger.Debug("=================================================");
 
-            // 先释放控制台（如果在调试模式）
-            if (AppConfigService.Config.Debug.IsDebugMode)
-                try
-                {
-                    ConsoleManager.Release();
-                    Thread.Sleep(100); // 给一点时间让控制台完全释放
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"释放控制台失败: {ex.Message}");
-                }
-
             // 最后释放日志服务
             _logger.Dispose();
         }
@@ -345,7 +333,7 @@ public partial class App : Application
             splashWindow.UpdateProgress("正在初始化应用程序...", 0);
 
             // 设置高DPI模式
-            Console.WriteLine("正在应用 Per Monitor V2 DPI 感知...");
+            System.Diagnostics.Debug.WriteLine("正在应用 Per Monitor V2 DPI 感知...");
 
             // 确保用户数据目录存在
             Directory.CreateDirectory(_pathService.AppDataPath);

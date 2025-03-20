@@ -285,8 +285,10 @@ public class KeyMappingService
             }
             else if (keyConfig.Type == KeyItemType.Coordinates)
             {
-                // 创建坐标按键
-                keyItem = new KeyItem(keyConfig.X, keyConfig.Y, _lyKeysService)
+                // 创建坐标按键 - 处理可空类型
+                int xValue = keyConfig.X ?? 1;
+                int yValue = keyConfig.Y ?? 1;
+                keyItem = new KeyItem(xValue, yValue, _lyKeysService)
                 {
                     IsSelected = keyConfig.IsSelected
                 };
@@ -335,7 +337,10 @@ public class KeyMappingService
             else // KeyItemType.Coordinates
             {
                 // 创建坐标配置
-                keyConfig = new KeyConfig(item.X, item.Y, item.IsSelected)
+                int xValue = item.X ?? 1;
+                int yValue = item.Y ?? 1;
+                
+                keyConfig = new KeyConfig(xValue, yValue, item.IsSelected)
                 {
                     KeyInterval = item.KeyInterval,
                     Type = KeyItemType.Coordinates

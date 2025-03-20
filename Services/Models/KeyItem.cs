@@ -26,8 +26,8 @@ public class KeyItem : INotifyPropertyChanged
     private bool _isSelected = true;
     private LyKeysCode _keyCode;
     private int _keyInterval = 5;
-    private int _x;
-    private int _y;
+    private int? _x;
+    private int? _y;
     private KeyItemType _type = KeyItemType.Keyboard;
     private int _coordinateIndex = 0;
 
@@ -43,6 +43,8 @@ public class KeyItem : INotifyPropertyChanged
         _keyCode = keyCode;
         _lyKeysService = lyKeysService ?? throw new ArgumentNullException(nameof(lyKeysService));
         _type = KeyItemType.Keyboard;
+        _x = null;
+        _y = null;
     }
 
     /// <summary>
@@ -54,6 +56,7 @@ public class KeyItem : INotifyPropertyChanged
         _y = y;
         _lyKeysService = lyKeysService ?? throw new ArgumentNullException(nameof(lyKeysService));
         _type = KeyItemType.Coordinates;
+        _keyCode = default;
     }
 
     /// <summary>
@@ -93,7 +96,7 @@ public class KeyItem : INotifyPropertyChanged
     /// <summary>
     /// X坐标（仅当Type为Coordinates时有效）
     /// </summary>
-    public int X
+    public int? X
     {
         get => _x;
         set
@@ -110,7 +113,7 @@ public class KeyItem : INotifyPropertyChanged
     /// <summary>
     /// Y坐标（仅当Type为Coordinates时有效）
     /// </summary>
-    public int Y
+    public int? Y
     {
         get => _y;
         set
@@ -180,7 +183,7 @@ public class KeyItem : INotifyPropertyChanged
             return _type switch
             {
                 KeyItemType.Keyboard => _lyKeysService.GetKeyDescription(_keyCode),
-                KeyItemType.Coordinates => $"坐标 {_coordinateIndex + 1}-({_x}, {_y})",
+                KeyItemType.Coordinates => $"坐标 {_coordinateIndex + 1}-({_x ?? 0}, {_y ?? 0})",
                 _ => "未知类型"
             };
         }

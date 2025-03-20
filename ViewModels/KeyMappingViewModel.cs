@@ -23,8 +23,8 @@ public class KeyItemSettings
     public LyKeysCode? KeyCode { get; set; }
     public int Interval { get; set; } = 5;
     public KeyItemType Type { get; set; } = KeyItemType.Keyboard;
-    public int X { get; set; }
-    public int Y { get; set; }
+    public int? X { get; set; }
+    public int? Y { get; set; }
     
     // 创建键盘按键设置
     public static KeyItemSettings CreateKeyboard(LyKeysCode keyCode, int interval = 5)
@@ -33,19 +33,22 @@ public class KeyItemSettings
         {
             KeyCode = keyCode,
             Interval = interval,
-            Type = KeyItemType.Keyboard
+            Type = KeyItemType.Keyboard,
+            X = null,
+            Y = null
         };
     }
     
     // 创建坐标设置
-    public static KeyItemSettings CreateCoordinates(int x, int y, int interval = 5)
+    public static KeyItemSettings CreateCoordinates(int? x, int? y, int interval = 5)
     {
         return new KeyItemSettings
         {
-            X = x,
-            Y = y,
+            KeyCode = null,
             Interval = interval,
-            Type = KeyItemType.Coordinates
+            Type = KeyItemType.Coordinates,
+            X = x,
+            Y = y
         };
     }
 }
@@ -968,25 +971,18 @@ namespace WpfApp.ViewModels
             // 最后标记初始化完成
             _isInitializing = false;
             _logger.Debug("KeyMappingViewModel初始化完成");
-            
-            // 初始化完成后重新同步一次按键配置，确保正确加载完毕
-            try 
-            {
-                SyncConfigToServices();
-                _logger.Debug("初始化完成后额外同步配置完成");
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("初始化完成后同步配置失败", ex);
-            }
         }
 
         private void SyncConfigToServices()
         {
             try
             {
-                // 同步按键列表到服务
-                UpdateHotkeyServiceKeyList();
+                // 如果正在初始化中，只同步基本参数，而不同步按键列表，避免重复更新
+                if (!_isInitializing)
+                {
+                    // 只在非初始化状态下同步按键列表到服务
+                    UpdateHotkeyServiceKeyList();
+                }
 
                 // 同步按键模式设置
                 _lyKeysService.IsHoldMode = !_isSequenceMode;
@@ -1073,9 +1069,9 @@ namespace WpfApp.ViewModels
                         // 验证键盘类型按键配置
                         else if (keyConfig.Type == KeyItemType.Keyboard)
                         {
-                            // 键盘类型的X和Y应设为0
-                            keyConfig.X = 0;
-                            keyConfig.Y = 0;
+                            // 键盘类型的X和Y应设为null
+                            keyConfig.X = null;
+                            keyConfig.Y = null;
 
                             // 如果键盘类型但Code为null，则记录警告
                             if (!keyConfig.Code.HasValue)
@@ -1102,7 +1098,9 @@ namespace WpfApp.ViewModels
                         else if (keyConfig.Type == KeyItemType.Coordinates)
                         {
                             // 创建坐标项
-                            keyItem = new KeyItem(keyConfig.X, keyConfig.Y, _lyKeysService);
+                            int xValue = keyConfig.X ?? 1;
+                            int yValue = keyConfig.Y ?? 1;
+                            keyItem = new KeyItem(xValue, yValue, _lyKeysService);
                             
                             // 同步到LyKeysService的坐标缓存
                             _lyKeysService.SetCoordinateInterval(keyConfig.X, keyConfig.Y, keyConfig.KeyInterval);
@@ -1160,21 +1158,33 @@ namespace WpfApp.ViewModels
                     UpdateCoordinateIndices();
 
                     // 立即同步选中的按键到服务
-                    var selectedKeys = KeyList.Where(k => k.IsSelected).ToList();
-                    if (selectedKeys.Any())
+                    var selectedItems = KeyList.Where(k => k.IsSelected).ToList();
+                    if (selectedItems.Any())
                     {
-                        // 设置按键列表到驱动服务
-                        _lyKeysService.SetKeyList(selectedKeys.Select(k => k.KeyCode).ToList());
-
-                        // 将选中的按键及其间隔传递给HotkeyService
-                        _hotkeyService.SetKeySequence(
-                            selectedKeys.Select(k => new KeyItemSettings
+                        // 创建统一操作列表
+                        var operations = new List<KeyItemSettings>();
+                        
+                        foreach (var item in selectedItems)
+                        {
+                            if (item.Type == KeyItemType.Keyboard)
                             {
-                                KeyCode = k.KeyCode,
-                                Interval = k.KeyInterval
-                            }).ToList());
+                                // 添加键盘操作
+                                operations.Add(KeyItemSettings.CreateKeyboard(item.KeyCode, item.KeyInterval));
+                            }
+                            else if (item.Type == KeyItemType.Coordinates)
+                            {
+                                // 添加坐标操作
+                                operations.Add(KeyItemSettings.CreateCoordinates(item.X, item.Y, item.KeyInterval));
+                            }
+                        }
+                        
+                        // 设置统一操作列表到服务 - 一站式更新，避免多处重复调用
+                        _lyKeysService.SetUnifiedOperationList(operations);
+                        
+                        // 只通知HotkeyService一次
+                        _hotkeyService.SetKeySequence(operations);
 
-                        _logger.Debug($"已加载按键列表 - 按键数量: {selectedKeys.Count}, 使用独立按键间隔");
+                        _logger.Debug($"已加载操作列表 - 总数: {operations.Count}, 键盘按键: {operations.Count(o => o.Type == KeyItemType.Keyboard)}, 坐标操作: {operations.Count(o => o.Type == KeyItemType.Coordinates)}");
                     }
                 }
 
@@ -1514,56 +1524,49 @@ namespace WpfApp.ViewModels
             }
         }
 
-        // 更新HotkeyService按键列表的辅助方法
+        // 更新热键服务的按键列表
         private void UpdateHotkeyServiceKeyList()
         {
             try
             {
-                // 准备设置序列的按键列表
+                if (_isInitializing)
+                {
+                    _logger.Debug("正在初始化中，跳过更新热键服务按键列表");
+                    return;
+                }
+                
+                // 获取选中的按键列表
                 var selectedItems = KeyList.Where(k => k.IsSelected).ToList();
                 
-                if (selectedItems.Count > 0)
+                // 如果没有选中的按键，则跳过更新
+                if (!selectedItems.Any())
                 {
-                    _logger.Debug($"更新热键服务的按键列表 - 总按键数: {selectedItems.Count}");
-
-                    // 创建包含所有类型的设置列表
-                    var keySettings = selectedItems.Select(k => 
+                    _logger.Debug("没有选中的按键，跳过更新热键服务按键列表");
+                    return;
+                }
+                
+                // 创建操作列表
+                var operations = new List<KeyItemSettings>();
+                
+                foreach (var item in selectedItems)
+                {
+                    if (item.Type == KeyItemType.Keyboard)
                     {
-                        if (k.Type == KeyItemType.Keyboard)
-                        {
-                            return KeyItemSettings.CreateKeyboard(k.KeyCode, k.KeyInterval);
-                        }
-                        else // KeyItemType.Coordinates
-                        {
-                            return KeyItemSettings.CreateCoordinates(k.X, k.Y, k.KeyInterval);
-                        }
-                    }).ToList();
-
-                    // 将设置列表传递给HotkeyService
-                    _hotkeyService.SetKeySequence(keySettings);
-
-                    // 分离键盘按键和坐标设置
-                    var keyboardKeys = selectedItems
-                        .Where(k => k.Type == KeyItemType.Keyboard)
-                        .Select(k => k.KeyCode)
-                        .ToList();
-                    
-                    var coordinateSettings = selectedItems
-                        .Where(k => k.Type == KeyItemType.Coordinates)
-                        .Select(k => (k.X, k.Y, k.KeyInterval))
-                        .ToList();
-
-                    // 传递给LyKeysService分离的列表
-                    _lyKeysService.SetKeyItemsListWithCoordinates(keyboardKeys, coordinateSettings);
-
-                    _logger.Debug($"按键列表已更新 - 键盘按键: {keyboardKeys.Count}, 坐标点: {coordinateSettings.Count}");
+                        operations.Add(KeyItemSettings.CreateKeyboard(item.KeyCode, item.KeyInterval));
+                    }
+                    else if (item.Type == KeyItemType.Coordinates)
+                    {
+                        operations.Add(KeyItemSettings.CreateCoordinates(item.X, item.Y, item.KeyInterval));
+                    }
                 }
-                else
-                {
-                    _logger.Debug("没有选择任何按键，设置空列表");
-                    _lyKeysService.SetKeyList(new List<LyKeysCode>());
-                    _hotkeyService.SetKeySequence(new List<KeyItemSettings>());
-                }
+                
+                // 一站式更新操作列表
+                _lyKeysService.SetUnifiedOperationList(operations);
+                
+                // 更新HotkeyService
+                _hotkeyService.SetKeySequence(operations);
+                
+                _logger.Debug($"按键列表已更新 - 总操作数: {operations.Count}, 键盘按键: {operations.Count(o => o.Type == KeyItemType.Keyboard)}, 坐标点: {operations.Count(o => o.Type == KeyItemType.Coordinates)}");
             }
             catch (Exception ex)
             {
@@ -1590,17 +1593,17 @@ namespace WpfApp.ViewModels
                         {
                             KeyInterval = item.KeyInterval,
                             Type = KeyItemType.Keyboard,
-                            X = 0,  // 确保键盘类型的X和Y为0
-                            Y = 0
+                            X = null,  // 确保键盘类型的X和Y为null
+                            Y = null
                         };
                     }
                     else // KeyItemType.Coordinates
                     {
                         // 确保坐标不能同时为0
-                        int x = item.X;
-                        int y = item.Y;
+                        int? x = item.X;
+                        int? y = item.Y;
                         
-                        if (x == 0 && y == 0)
+                        if ((x ?? 0) == 0 && (y ?? 0) == 0)
                         {
                             _logger.Warning($"修正无效的坐标配置: ({x}, {y}) => (1, 1)");
                             x = 1;
@@ -1608,7 +1611,7 @@ namespace WpfApp.ViewModels
                         }
                         
                         // 创建坐标配置
-                        keyConfig = new KeyConfig(x, y, item.IsSelected)
+                        keyConfig = new KeyConfig(x ?? 1, y ?? 1, item.IsSelected)
                         {
                             KeyInterval = item.KeyInterval,
                             Type = KeyItemType.Coordinates,

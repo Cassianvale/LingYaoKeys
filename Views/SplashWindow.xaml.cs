@@ -63,8 +63,7 @@ public partial class SplashWindow : Window
         }
         catch (Exception ex)
         {
-            // 记录异常，防止动画异常影响程序启动
-            Console.WriteLine($"启动动画异常: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"启动动画异常: {ex.Message}");
         }
     }
 

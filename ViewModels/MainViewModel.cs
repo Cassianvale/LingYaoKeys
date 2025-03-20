@@ -240,15 +240,6 @@ public class MainViewModel : ViewModelBase
                 }
             },
             
-            // QRCode 页面：使用缓存，记录创建日志，非频繁访问
-            ["QRCode"] = new PageConfig
-            {
-                UseCaching = true,
-                LogCreation = true,
-                IsFrequentlyAccessed = false,
-                CreatePageFunc = () => new QRCodeView()
-            },
-            
             // Settings 页面：使用缓存，记录创建日志，非频繁访问
             ["Settings"] = new PageConfig
             {

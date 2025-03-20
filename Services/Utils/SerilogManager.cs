@@ -27,9 +27,6 @@ public class SerilogManager : ILogger, IDisposable
             // 如果调试模式未启用且日志未启用，则不初始化日志系统
             if (!debugConfig.IsDebugMode && !debugConfig.EnableLogging) return;
 
-            // 如果是调试模式，显示控制台窗口
-            if (debugConfig.IsDebugMode) ConsoleManager.Show();
-
             // 1. 设置日志级别
             var logLevel = debugConfig.LogLevel.ToLower() switch
             {
@@ -97,29 +94,24 @@ public class SerilogManager : ILogger, IDisposable
             const string outputTemplate =
                 "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{ThreadId}] [{SourceContext}.{CallerMember}:{LineNumber}] {Message}{NewLine}{Exception}";
 
-            // 调试模式下始终输出到控制台
-            if (debugConfig.IsDebugMode)
+            // 添加Debug输出（合并两处输出条件，避免重复）
+            if (debugConfig.IsDebugMode || debugConfig.EnableLogging)
             {
-                loggerConfig = loggerConfig
-                    .WriteTo.Console(
-                        outputTemplate: outputTemplate,
-                        theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Code,
-                        restrictedToMinimumLevel: LogEventLevel.Debug
-                    );
-
-                // 输出一条测试日志
-                Console.WriteLine("Serilog 控制台输出已初始化");
-            }
-
-            // 如果启用了日志记录，添加其他输出目标
-            if (debugConfig.EnableLogging)
-            {
-                // Debug输出
                 loggerConfig = loggerConfig.WriteTo.Debug(
                     outputTemplate: outputTemplate,
                     restrictedToMinimumLevel: LogEventLevel.Debug
                 );
 
+                // 输出一条测试日志
+                if (debugConfig.IsDebugMode)
+                {
+                    System.Diagnostics.Debug.WriteLine("Serilog 调试输出已初始化");
+                }
+            }
+
+            // 如果启用了日志记录，添加文件输出目标
+            if (debugConfig.EnableLogging)
+            {
                 // 文件输出
                 if (!string.IsNullOrEmpty(_baseDirectory))
                 {
@@ -145,12 +137,12 @@ public class SerilogManager : ILogger, IDisposable
                                         }
                                         catch (Exception ex)
                                         {
-                                            Console.WriteLine($"删除旧日志文件失败: {ex.Message}");
+                                            System.Diagnostics.Debug.WriteLine($"删除旧日志文件失败: {ex.Message}");
                                         }
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"清理旧日志文件失败: {ex.Message}");
+                            System.Diagnostics.Debug.WriteLine($"清理旧日志文件失败: {ex.Message}");
                         }
 
                     // 设置文件输出
@@ -180,7 +172,7 @@ public class SerilogManager : ILogger, IDisposable
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"初始化日志系统失败: {ex}");
+            System.Diagnostics.Debug.WriteLine($"初始化日志系统失败: {ex}");
             throw;
         }
     }

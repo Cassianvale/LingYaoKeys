@@ -350,7 +350,7 @@
                         </DockPanel>
                         
                         <!-- 坐标输入区域 -->
-                        <Grid x:Name="CoordinateInputArea" 
+                        <Grid x:Name="CoordinateInputArea"
                               Height="35"
                               Visibility="Collapsed"
                               d:Visibility="Visible">

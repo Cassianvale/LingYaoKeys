@@ -44,13 +44,13 @@ public class AppConfigService
 
     public static void Initialize(string? userDataPath = null)
     {
-        Console.WriteLine("开始初始化配置服务...");
+        System.Diagnostics.Debug.WriteLine("开始初始化配置服务...");
 
         lock (_lockObject)
         {
             // 使用PathService获取配置文件路径
             _configPath = _pathService.GetAppConfigPath();
-            Console.WriteLine($"使用配置路径: {_configPath}");
+            System.Diagnostics.Debug.WriteLine($"使用配置路径: {_configPath}");
 
             // 确保配置目录存在
             Directory.CreateDirectory(Path.GetDirectoryName(_configPath)!);
@@ -59,14 +59,14 @@ public class AppConfigService
             {
                 _config = CreateDefaultConfig();
                 SaveConfig();
-                Console.WriteLine("已创建新的默认配置文件");
+                System.Diagnostics.Debug.WriteLine("已创建新的默认配置文件");
             }
             else
             {
                 LoadConfig();
             }
 
-            Console.WriteLine("配置服务初始化完成");
+            System.Diagnostics.Debug.WriteLine("配置服务初始化完成");
         }
     }
 
@@ -79,7 +79,7 @@ public class AppConfigService
             {
                 _config = CreateDefaultConfig();
                 SaveConfig();
-                Console.WriteLine("创建新的默认配置文件");
+                System.Diagnostics.Debug.WriteLine("创建新的默认配置文件");
                 return;
             }
 
@@ -95,12 +95,12 @@ public class AppConfigService
             };
             _config = JsonConvert.DeserializeObject<AppConfig>(json, jsonSettings);
 
-            Console.WriteLine($"从配置文件加载成功: {_configPath}");
+            System.Diagnostics.Debug.WriteLine($"从配置文件加载成功: {_configPath}");
             ValidateConfig();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"加载配置文件失败: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"加载配置文件失败: {ex.Message}");
             _config = CreateDefaultConfig();
             SaveConfig();
         }
@@ -108,7 +108,8 @@ public class AppConfigService
 
     private static AppConfig CreateDefaultConfig()
     {
-        return new AppConfig
+        System.Diagnostics.Debug.WriteLine("创建新的默认配置文件");
+        _config = new AppConfig
         {
             UI = new UIConfig
             {
@@ -171,6 +172,8 @@ public class AppConfigService
             TargetWindowProcessName = null,
             TargetWindowTitle = null
         };
+        SaveConfig();
+        return _config;
     }
 
     private static void ValidateConfig()
@@ -264,12 +267,12 @@ public class AppConfigService
                 // 只在配置真正发生变化时触发事件
                 ConfigChanged?.Invoke(null, new ConfigChangedEventArgs("AppConfig", _config));
 
-                Console.WriteLine($"配置已更新并保存到: {_configPath}");
+                System.Diagnostics.Debug.WriteLine($"配置已更新并保存到: {_configPath}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"保存配置文件失败: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"保存配置文件失败: {ex.Message}");
             throw; // 重新抛出异常，让调用者知道保存失败
         }
     }
@@ -290,7 +293,7 @@ public class AppConfigService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"更新配置失败: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"更新配置失败: {ex.Message}");
             throw;
         }
     }
