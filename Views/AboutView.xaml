@@ -8,131 +8,265 @@
       mc:Ignorable="d"
       Title="关于"
       x:Name="AboutViewPage">
-    <Grid ClipToBounds="True">
-        <Grid Margin="10">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid ClipToBounds="True">
+            <Grid Margin="20">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-            <!-- 顶部标题和按钮区域 -->
-            <Grid Grid.Row="0" Margin="0,0,0,10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+                <!-- 顶部标题和按钮区域 -->
+                <Grid Grid.Row="0" Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0"
-                           Text="关于"
-                           FontSize="24"
-                           FontWeight="Bold" />
+                    <TextBlock Grid.Column="0"
+                               Text="关于"
+                               FontSize="24"
+                               FontWeight="Bold" />
 
-                <StackPanel Grid.Column="2"
-                            Orientation="Horizontal">
-                    <Button Content="访问 GitHub 仓库"
-                            Command="{Binding OpenGitHubCommand}"
-                            Style="{StaticResource PrimaryButtonStyle}"
-                            Height="35"
-                            Width="130"
-                            Padding="0,0"
-                            Margin="0,0,10,0" />
+                    <StackPanel Grid.Column="2"
+                                Orientation="Horizontal">
+                        <Button Content="访问官网"
+                                Command="{Binding OpenWebsiteCommand}"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Height="35"
+                                Width="100"
+                                Padding="0,0"
+                                Margin="0,0,10,0" />
+                                
+                        <Button Content="访问 GitHub 仓库"
+                                Command="{Binding OpenGitHubCommand}"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Height="35"
+                                Width="130"
+                                Padding="0,0" />
+                    </StackPanel>
+                </Grid>
 
-                    <Button Content="支持作者"
-                            Command="{Binding ShowQRCodeCommand}"
-                            Style="{StaticResource PrimaryButtonStyle}"
-                            Height="35"
-                            Width="100"
-                            Padding="0,0" />
-                </StackPanel>
-            </Grid>
+                <!-- 支持作者区域 -->
+                <Grid Grid.Row="1" Margin="0,0,0,15">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    
+                    <!-- 标题 -->
+                    <StackPanel Grid.Row="0" 
+                                HorizontalAlignment="Center"
+                                Margin="0,0,0,15">
+                        <TextBlock Text="如果您喜欢这个项目可以支持一下作者"
+                                FontSize="18"
+                                FontWeight="SemiBold"
+                                HorizontalAlignment="Center" />
+                        <TextBlock Text="这将是对我极大的鼓励！"
+                                FontSize="16"
+                                Margin="0,5,0,0"
+                                HorizontalAlignment="Center" />
+                    </StackPanel>
+                    
+                    <!-- 二维码容器 -->
+                    <Grid Grid.Row="1" VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
 
-            <!-- 内容区域 -->
-            <Grid Grid.Row="1">
-                <!-- 使用更简单的方式显示内容 -->
-                <ScrollViewer x:Name="DocumentViewer"
-                              VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled"
-                              Visibility="Collapsed">
-                    <RichTextBox x:Name="MainDocument"
-                                 BorderThickness="0"
-                                 Background="Transparent"
-                                 IsReadOnly="True"
-                                 Padding="20"
-                                 FontSize="14"
-                                 FontFamily="Microsoft YaHei">
-                        <FlowDocument>
-                            <!-- 内容将在代码中动态添加 -->
-                        </FlowDocument>
-                    </RichTextBox>
-                </ScrollViewer>
+                        <!-- 左侧二维码 -->
+                        <StackPanel Grid.Column="0"
+                                    Margin="0,10,20,0"
+                                    HorizontalAlignment="Center">
+                            <Image x:Name="WechatQRImage"
+                                   Width="180"
+                                   Height="180"
+                                   SnapsToDevicePixels="True"
+                                   CacheMode="BitmapCache" 
+                                   Source="pack://application:,,,/Resource/img/wechat_qr.png"/>
+                            <TextBlock Text="微信赞赏码"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,10,0,0"
+                                       FontSize="14" />
+                        </StackPanel>
 
-                <!-- 加载指示器 -->
-                <Border x:Name="LoadingIndicator"
-                        Background="#80FFFFFF"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
-                        Panel.ZIndex="1"
-                        Visibility="Visible">
+                        <!-- 右侧二维码 -->
+                        <StackPanel Grid.Column="1"
+                                    Margin="20,10,0,0"
+                                    HorizontalAlignment="Center">
+                            <Image x:Name="WechatQR1Image"
+                                   Width="180"
+                                   Height="180"
+                                   SnapsToDevicePixels="True"
+                                   CacheMode="BitmapCache"
+                                   Source="pack://application:,,,/Resource/img/wechat_qr_1.png" />
+                            <TextBlock Text="微信打赏码"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,10,0,0"
+                                       FontSize="14" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+                
+                <!-- 主要内容区域 -->
+                <Border Grid.Row="2" 
+                       Background="#F8F9FA"
+                       CornerRadius="6"
+                       Padding="20"
+                       Margin="0,0,0,20">
                     <Grid>
-                        <Border Background="White"
-                                CornerRadius="8"
-                                Width="150"
-                                Height="60">
-                            <Border.Effect>
-                                <DropShadowEffect BlurRadius="10"
-                                                  Direction="270"
-                                                  ShadowDepth="2"
-                                                  Opacity="0.2"
-                                                  Color="#000000" />
-                            </Border.Effect>
-                            <StackPanel VerticalAlignment="Center"
-                                        HorizontalAlignment="Center">
-                                <ProgressBar IsIndeterminate="True"
-                                             Width="150"
-                                             Height="8"
-                                             Margin="0,0,0,5"
-                                             Background="Transparent"
-                                             BorderBrush="Transparent"
-                                             Foreground="{StaticResource PrimaryBrush}" />
-                                <TextBlock Text="正在加载..."
-                                           HorizontalAlignment="Center"
-                                           FontSize="14"
-                                           Foreground="{StaticResource TextForegroundBrush}" />
-                            </StackPanel>
-                        </Border>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- 软件介绍 -->
+                        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+                            <TextBlock Text="软件介绍" 
+                                      FontSize="16" 
+                                      FontWeight="SemiBold" 
+                                      Foreground="#333333"
+                                      Margin="0,0,0,10"/>
+                            
+                            <TextBlock TextWrapping="Wrap" 
+                                      Margin="0,0,0,0" 
+                                      FontSize="14" 
+                                      LineHeight="24"
+                                      Foreground="#555555">
+                                灵曜按键是一款功能强大的按键映射工具，旨在提高您在各种应用程序中的操作效率。本软件采用全新设计，界面简洁直观，操作便捷，能够满足多种不同的使用场景需求。
+                            </TextBlock>
+                        </StackPanel>
+                        
+                        <!-- 功能特点 -->
+                        <StackPanel Grid.Row="1">
+                            <TextBlock Text="主要功能" 
+                                      FontSize="16" 
+                                      FontWeight="SemiBold" 
+                                      Foreground="#333333"
+                                      Margin="0,0,0,10"/>
+                            
+                            <!-- 功能卡片 -->
+                            <WrapPanel Orientation="Horizontal">
+                                <!-- 功能项1 -->
+                                <Border Background="#FFFFFF" 
+                                       CornerRadius="5" 
+                                       BorderBrush="#EEEEEE" 
+                                       BorderThickness="1"
+                                       Margin="0,0,10,10" 
+                                       Width="190">
+                                    <StackPanel Margin="15,12">
+                                        <TextBlock Text="键盘和鼠标按键映射" 
+                                                  FontWeight="SemiBold" 
+                                                  FontSize="14" 
+                                                  Foreground="#333333"
+                                                  Margin="0,0,0,6"/>
+                                        <TextBlock Text="支持将键盘按键和鼠标动作灵活映射，实现高效操作" 
+                                                  TextWrapping="Wrap"
+                                                  FontSize="12" 
+                                                  Foreground="#666666"/>
+                                    </StackPanel>
+                                </Border>
+                                
+                                <!-- 功能项2 -->
+                                <Border Background="#FFFFFF" 
+                                       CornerRadius="5" 
+                                       BorderBrush="#EEEEEE" 
+                                       BorderThickness="1"
+                                       Margin="0,0,10,10" 
+                                       Width="190">
+                                    <StackPanel Margin="15,12">
+                                        <TextBlock Text="多种按键模式" 
+                                                  FontWeight="SemiBold" 
+                                                  FontSize="14" 
+                                                  Foreground="#333333"
+                                                  Margin="0,0,0,6"/>
+                                        <TextBlock Text="支持顺序模式和按压模式，满足不同场景的操作需求" 
+                                                  TextWrapping="Wrap"
+                                                  FontSize="12" 
+                                                  Foreground="#666666"/>
+                                    </StackPanel>
+                                </Border>
+                                
+                                <!-- 功能项3 -->
+                                <Border Background="#FFFFFF" 
+                                       CornerRadius="5" 
+                                       BorderBrush="#EEEEEE" 
+                                       BorderThickness="1"
+                                       Margin="0,0,10,10" 
+                                       Width="190">
+                                    <StackPanel Margin="15,12">
+                                        <TextBlock Text="坐标点击和移动" 
+                                                  FontWeight="SemiBold" 
+                                                  FontSize="14" 
+                                                  Foreground="#333333"
+                                                  Margin="0,0,0,6"/>
+                                        <TextBlock Text="支持精确的鼠标坐标定位，实现自动化点击和移动" 
+                                                  TextWrapping="Wrap"
+                                                  FontSize="12" 
+                                                  Foreground="#666666"/>
+                                    </StackPanel>
+                                </Border>
+                                
+                                <!-- 功能项4 -->
+                                <Border Background="#FFFFFF" 
+                                       CornerRadius="5" 
+                                       BorderBrush="#EEEEEE" 
+                                       BorderThickness="1"
+                                       Margin="0,0,10,10" 
+                                       Width="190">
+                                    <StackPanel Margin="15,12">
+                                        <TextBlock Text="灵活的按键间隔" 
+                                                  FontWeight="SemiBold" 
+                                                  FontSize="14" 
+                                                  Foreground="#333333"
+                                                  Margin="0,0,0,6"/>
+                                        <TextBlock Text="可自定义按键间隔时间，满足各种速度和精度要求" 
+                                                  TextWrapping="Wrap"
+                                                  FontSize="12" 
+                                                  Foreground="#666666"/>
+                                    </StackPanel>
+                                </Border>
+                                
+                                <!-- 功能项5 -->
+                                <Border Background="#FFFFFF" 
+                                       CornerRadius="5" 
+                                       BorderBrush="#EEEEEE" 
+                                       BorderThickness="1"
+                                       Margin="0,0,10,10" 
+                                       Width="190">
+                                    <StackPanel Margin="15,12">
+                                        <TextBlock Text="自动切换输入法" 
+                                                  FontWeight="SemiBold" 
+                                                  FontSize="14" 
+                                                  Foreground="#333333"
+                                                  Margin="0,0,0,6"/>
+                                        <TextBlock Text="智能识别并切换输入法，保证按键映射结果的一致性" 
+                                                  TextWrapping="Wrap"
+                                                  FontSize="12" 
+                                                  Foreground="#666666"/>
+                                    </StackPanel>
+                                </Border>
+                            </WrapPanel>
+                        </StackPanel>
                     </Grid>
                 </Border>
 
-                <!-- 错误信息显示 -->
-                <Border x:Name="ErrorMessage"
-                        Background="#FFFFFFFF"
-                        BorderBrush="#FFDDDDDD"
-                        BorderThickness="1"
-                        CornerRadius="4"
-                        Padding="15"
-                        Margin="20"
-                        Visibility="Collapsed"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center">
-                    <StackPanel>
-                        <TextBlock Text="加载内容出错"
-                                   FontSize="18"
-                                   FontWeight="Bold"
-                                   Margin="0,0,0,10" />
-                        <TextBlock x:Name="ErrorDetails"
-                                   Text="无法加载README内容，请检查资源文件是否存在。"
-                                   TextWrapping="Wrap"
-                                   Width="300"
-                                   Foreground="#FF555555" />
-                        <Button Content="刷新"
-                                Command="{Binding RefreshCommand}"
-                                Style="{StaticResource PrimaryButtonStyle}"
-                                Margin="0,15,0,0"
-                                HorizontalAlignment="Right" />
-                    </StackPanel>
+                <!-- 底部信息 -->
+                <Border Grid.Row="3" 
+                        BorderBrush="#EEEEEE" 
+                        BorderThickness="0,1,0,0" 
+                        Padding="0,15,0,0">
+                    <TextBlock Text="如有任何问题或建议，请通过GitHub仓库提交反馈。" 
+                              FontSize="12" 
+                              Foreground="#888888" 
+                              TextWrapping="Wrap"/>
                 </Border>
             </Grid>
         </Grid>
-    </Grid>
+    </ScrollViewer>
 </Page>

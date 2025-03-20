@@ -64,9 +64,9 @@
     <!-- 资源文件配置 -->
     <ItemGroup>
         <!-- 所有资源文件配置为Resource -->
-        <Resource Include="Resource\img\**"/>
-        <Resource Include="Resource\icon\**"/>
-        <Resource Include="Resource\svg\**"/>
+        <Resource Include="Resource\img\**" />
+        <Resource Include="Resource\icon\**" />
+        <Resource Include="Resource\svg\**" />
 
         <!-- 驱动文件配置为嵌入式资源 -->
         <EmbeddedResource Include="Resource\lykeysdll\lykeysdll.dll">
@@ -87,46 +87,38 @@
             <LogicalName>WpfApp.Resource.sound.%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
             <CopyToOutputDirectory>Never</CopyToOutputDirectory>
         </EmbeddedResource>
-        <EmbeddedResource Remove="Resource\lykeysdll\csharp_example\**"/>
+        <EmbeddedResource Remove="Resource\lykeysdll\csharp_example\**" />
     </ItemGroup>
 
     <!-- 新增：配置程序集依赖项 -->
     <ItemGroup>
-        <PackageReference Include="Markdig" Version="0.39.1" PrivateAssets="all"/>
-        <PackageReference Include="MaterialDesignColors" Version="5.2.0"/>
-        <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.0"/>
-        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0"/>
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" PrivateAssets="all"/>
-        <PackageReference Include="NAudio" Version="2.2.1" PrivateAssets="all"/>
-        <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" PrivateAssets="all"/>
-        <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" PrivateAssets="all"/>
-        <PackageReference Include="SharpVectors" Version="1.8.4"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <EmbeddedResource Include="README.md">
-            <LogicalName>WpfApp.README.md</LogicalName>
-            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-        </EmbeddedResource>
+        <PackageReference Include="MaterialDesignColors" Version="5.2.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" PrivateAssets="all" />
+        <PackageReference Include="NAudio" Version="2.2.1" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" PrivateAssets="all" />
+        <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" PrivateAssets="all" />
+        <PackageReference Include="SharpVectors" Version="1.8.4" />
     </ItemGroup>
 
     <!-- 新增：发布后清理临时文件 -->
     <Target Name="CleanupTempFiles" AfterTargets="Publish">
         <ItemGroup>
-            <FilesToDelete Include="$(PublishDir)*.pdb"/>
-            <FilesToDelete Include="$(PublishDir)*.xml"/>
-            <FilesToDelete Include="$(PublishDir)*.deps.json"/>
-            <FilesToDelete Include="$(PublishDir)*.dll"/>
-            <FilesToDelete Include="$(PublishDir)*.runtimeconfig.json"/>
-            <FilesToDelete Include="$(PublishDir)runtimes\**\*.*"/>
-            <DirectoriesToDelete Include="$(PublishDir)runtimes"/>
+            <FilesToDelete Include="$(PublishDir)*.pdb" />
+            <FilesToDelete Include="$(PublishDir)*.xml" />
+            <FilesToDelete Include="$(PublishDir)*.deps.json" />
+            <FilesToDelete Include="$(PublishDir)*.dll" />
+            <FilesToDelete Include="$(PublishDir)*.runtimeconfig.json" />
+            <FilesToDelete Include="$(PublishDir)runtimes\**\*.*" />
+            <DirectoriesToDelete Include="$(PublishDir)runtimes" />
         </ItemGroup>
-        <Delete Files="@(FilesToDelete)"/>
-        <RemoveDir Directories="@(DirectoriesToDelete)"/>
+        <Delete Files="@(FilesToDelete)" />
+        <RemoveDir Directories="@(DirectoriesToDelete)" />
     </Target>
 
     <ItemGroup>
-        <PackageReference Include="System.Drawing.Common" Version="9.0.0"/>
+        <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -147,24 +139,24 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Serilog" Version="4.2.0"/>
-        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0"/>
-        <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0"/>
-        <PackageReference Include="Serilog.Sinks.File" Version="6.0.0"/>
-        <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0"/>
-        <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0"/>
+        <PackageReference Include="Serilog" Version="4.2.0" />
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+        <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
+        <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+        <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
+        <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Remove="Resource\lykeysdll\csharp_example\**"/>
+        <Compile Remove="Resource\lykeysdll\csharp_example\**" />
     </ItemGroup>
 
     <ItemGroup>
-        <Page Remove="Resource\lykeysdll\csharp_example\**"/>
+        <Page Remove="Resource\lykeysdll\csharp_example\**" />
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="Resource\lykeysdll\csharp_example\**"/>
+        <None Remove="Resource\lykeysdll\csharp_example\**" />
     </ItemGroup>
 
 </Project>

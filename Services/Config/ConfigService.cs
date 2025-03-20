@@ -8,16 +8,15 @@ namespace WpfApp.Services.Config;
 public class ConfigService
 {
     private readonly SerilogManager _logger = SerilogManager.Instance;
+    private readonly PathService _pathService = PathService.Instance;
 
-    private readonly string _configDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-        ".lykeys");
-
+    private readonly string _configDir;
     private const int MAX_BACKUP_FILES = 5;
     private Dictionary<string, object> _settings;
 
     public ConfigService()
     {
+        _configDir = _pathService.ConfigPath;
         _settings = LoadSettings();
     }
 
@@ -25,7 +24,7 @@ public class ConfigService
     {
         try
         {
-            var appConfigPath = Path.Combine(_configDir, "AppConfig.json");
+            var appConfigPath = _pathService.GetAppConfigPath();
             if (File.Exists(appConfigPath))
             {
                 var json = File.ReadAllText(appConfigPath);
@@ -66,7 +65,7 @@ public class ConfigService
     {
         try
         {
-            var appConfigPath = Path.Combine(_configDir, "AppConfig.json");
+            var appConfigPath = _pathService.GetAppConfigPath();
             Directory.CreateDirectory(_configDir);
             var json = JsonConvert.SerializeObject(_settings, Formatting.Indented);
             File.WriteAllText(appConfigPath, json);
@@ -82,7 +81,7 @@ public class ConfigService
         try
         {
             var configContent = File.ReadAllText(sourceFile);
-            var appConfigPath = Path.Combine(_configDir, "AppConfig.json");
+            var appConfigPath = _pathService.GetAppConfigPath();
 
             Directory.CreateDirectory(_configDir);
 
@@ -111,7 +110,7 @@ public class ConfigService
     {
         try
         {
-            var appConfigPath = Path.Combine(_configDir, "AppConfig.json");
+            var appConfigPath = _pathService.GetAppConfigPath();
             if (!File.Exists(appConfigPath)) throw new FileNotFoundException("配置文件不存在", appConfigPath);
             File.Copy(appConfigPath, targetFile, true);
         }

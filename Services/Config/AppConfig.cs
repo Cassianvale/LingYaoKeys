@@ -64,8 +64,8 @@ public class KeyConfig
     public bool IsSelected { get; set; }
     public int KeyInterval { get; set; }
     public KeyItemType Type { get; set; } = KeyItemType.Keyboard;
-    public int X { get; set; }
-    public int Y { get; set; }
+    public int? X { get; set; }
+    public int? Y { get; set; }
 
     // 无参构造函数，用于JSON反序列化
     public KeyConfig()
@@ -82,6 +82,8 @@ public class KeyConfig
         IsSelected = isSelected;
         KeyInterval = keyInterval;
         Type = KeyItemType.Keyboard;
+        X = null;
+        Y = null;
     }
     
     // 坐标构造函数
@@ -203,7 +205,7 @@ public class WindowConfig
     [JsonIgnore] public double MinHeight { get; set; } = 660;
 
     // 当前窗口尺寸
-    public double Width { get; set; } = 880;
+    public double Width { get; set; } = 800;
     public double Height { get; set; } = 660;
 }
 

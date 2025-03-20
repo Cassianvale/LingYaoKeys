@@ -292,7 +292,7 @@ public partial class KeyMappingView : Page
         {
             // 设置标签文本
             // 格式为 "序号-(X,Y)"
-            label.Text = $"{Index + 1}-({KeyItem.X},{KeyItem.Y})";
+            label.Text = $"{Index + 1}-({KeyItem.X ?? 0},{KeyItem.Y ?? 0})";
         }
         
         public void UpdatePosition()
@@ -303,8 +303,8 @@ public partial class KeyMappingView : Page
                     return;
                     
                 // 使用用户坐标（从1开始）转换为系统坐标（从0开始）
-                int x = KeyItem.X - 1; // 用户坐标从1开始，系统坐标从0开始
-                int y = KeyItem.Y - 1;
+                int x = (KeyItem.X ?? 1) - 1; // 用户坐标从1开始，系统坐标从0开始
+                int y = (KeyItem.Y ?? 1) - 1;
                 
                 // 确保MarkerWindow尺寸已更新
                 MarkerWindow.UpdateLayout();

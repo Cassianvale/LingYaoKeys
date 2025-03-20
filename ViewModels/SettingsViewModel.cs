@@ -70,12 +70,6 @@ public class SettingsViewModel : ViewModelBase
                 config.Debug.UpdateDebugState();
             });
 
-            // 更新控制台显示状态
-            if (AppConfigService.Config.Debug.IsDebugMode)
-                ConsoleManager.Show();
-            else
-                ConsoleManager.Hide();
-
             UpdateDebugModeStatus();
 
             var result = MessageBox.Show(

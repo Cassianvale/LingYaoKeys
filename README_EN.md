@@ -39,7 +39,7 @@
 - [📖 Usage Instructions](#-usage-instructions)
 - [🖼️ Project Showcase](#️-project-showcase)
 - [📃 Common Issues](#-common-issues)
-- [😶‍🌫️ About & Suggestions](#-about--suggestions)
+- [🍒 About & Suggestions](#-about--suggestions)
 - [⚙️ Development Related](#️-development-related)
 - [🔧 Driver Instructions](#-driver-instructions)
 - [☕️ Support Project](#️-support-project)
@@ -143,7 +143,7 @@ Since this project uses Microsoft's latest <code>.Net Core 8.0</code>, some user
 If you experience suboptimal key speed performance, try disabling the "Reduce Sticking" feature. However, please note that this may cause sticking movement in some games. Choose the appropriate mode based on your actual usage scenario.
 </details>
 
-## 😶‍🌫️ About & Suggestions
+## 🍒 About & Suggestions
 
 - This project is my first attempt at developing with `C#`, `WPF`, and `Cursor AI` technology stack during my spare time
 - The project is in its early development stage with new features being continuously added
