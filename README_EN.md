@@ -63,7 +63,7 @@
 - [x] **Utility Tools**
   - Window handle detection
   - Voice notification toggle and custom audio
-  - Normal/Game mode switching
+  - Normal/Reduce Sticking mode switching
   - Drag-and-drop key and coordinate sorting
   - Floating window status display
   - Input method switching support
@@ -88,67 +88,87 @@
   - Hot-plug driver support
   - Clean uninstallation upon exit
 
-## 🌏 Direct Download
+## 🌏 Quick Download
 
-You can download the latest version from:
+<div align="center">
 
-- [Latest Version Download](https://github.com/Cassianvale/LingYaoKeys/releases/latest)
-- [View All Versions](https://github.com/Cassianvale/LingYaoKeys/releases)
+📥 **[Latest Version Download](https://github.com/Cassianvale/LingYaoKeys/releases/latest)** | 🗂️ **[All Versions](https://github.com/Cassianvale/LingYaoKeys/releases)**
 
-> Note: Always download the latest version from the GitHub Releases page to ensure you have the latest features and
-> security updates.
+</div>
+
+> **Note**: Always download the latest version from the GitHub Releases page to ensure you have the latest features and security updates.
 
 ## 📖 Usage Instructions
 
-> [!IMPORTANT]
-> After extensive testing and comparing with other key tools, key speeds exceeding 200-300 per second can cause input
-> lag or position shifts (depending on CPU and memory performance). This is likely due to Windows' message handling
-> mechanism. For gaming, extremely high key speeds are not necessary. Based on test results, I've implemented a game mode
-> with optimized settings.
-> DEFAULT_KEY_PRESS_INTERVAL: Fixed time between key press and release
-> MIN_KEY_INTERVAL: Minimum configurable interval between keys
+### Mode Selection
 
-- _**Game Mode ON (Default)**_: Average key speed of 120+, suitable for gaming
-- _**Game Mode OFF**_: Unlimited key speed with average of 320+, suitable for general use
-- _**Custom Audio**_: Open `C:\Users\username\.lykeys\sound` and replace `start.mp3`/`stop.mp3` files
+> [!IMPORTANT]
+> Based on testing results, key speeds in games don't need to be too fast, as you need to consider the game client's response. Key speeds above 200-300 per second may cause key response delay or sticking movement.  
+> This feature is only for specific gaming scenarios. If you experience sticking movement or skill activation issues, please enable this feature.  
+> Setting the press-release interval to 0 can reach thousands of presses per second, but that's unnecessary 🫥  
+
+- **Reduce Sticking Feature (enabled by default)** 
+  - Average key speed of 120+ times per second
+  - Suitable for specific gaming scenarios, reduces sticking movement phenomena
+
+- **Normal Mode (Reduce Sticking disabled)**
+  - Removes key speed limits, average speed of 320+ times per second
+  - Suitable for normal application scenarios
 
 ## 🖼️ Project Showcase
 
-<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/screenshots.gif" width="700px"/>
+<div align="center">
+<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/screenshots.gif" width="700px" alt="LingYaoKeys Interface"/>
+</div>
 
 ## 📃 Common Issues
 
-Since this project uses Microsoft's latest `.Net Core 8.0`, some users may need to download the runtime
-<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/download_core.png" heigh="400px"/>
+<details>
+<summary><b>Runtime Environment Issues</b></summary>
+<br>
+Since this project uses Microsoft's latest <code>.Net Core 8.0</code>, some users may need to download the runtime:
+<br><br>
+<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/download_core.png" height="250px" alt="Download .NET Core Runtime"/>
+</details>
+
+<details>
+<summary><b>Key Speed Issues</b></summary>
+<br>
+If you experience suboptimal key speed performance, try disabling the "Reduce Sticking" feature. However, please note that this may cause sticking movement in some games. Choose the appropriate mode based on your actual usage scenario.
+</details>
 
 ## 🎙 About & Suggestions
 
 - This project is my first attempt at developing with `C#`, `WPF`, and `Cursor AI` technology stack during my spare time
-- The project is in its early development stage with new features being continuously added. If you have any suggestions
-  for the software, feel free to raise them in `Issues`. If you're interested in the project, welcome to join the
-  discussion
-- If you like the design philosophy of this software, feel free to submit a `pr`. Thank you very much for your support!
+- The project is in its early development stage with new features being continuously added
+- If you have any suggestions for the software, feel free to raise them in [Issues](https://github.com/Cassianvale/LingYaoKeys/issues)
+- If you're interested in the project, welcome to join the discussion or submit a [Pull Request](https://github.com/Cassianvale/LingYaoKeys/pulls)
 
-## ⚙️ Development
+## ⚙️ Development Related
 
-### Run
+### Environment Setup
 
-- `dotnet run`
+- Install [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- Recommended to use [Visual Studio 2022](https://visualstudio.microsoft.com/) or higher
 
-### Build & Package
+### Running the Project
 
-- `dotnet publish -c Release`
+```bash
+dotnet run
+```
 
 ## 🔧 Driver Usage Instructions
 
 ### Driver File Description
 
-- `Resource\lykeysdll\lykeysdll.dll`: Core driver DLL (*Required)
-- `Resource\lykeysdll\lykeys.sys`: Kernel-level driver file (*Required)
-- `Resource\lykeysdll\lykeys.cat`: Driver signature file
-- `Resource\lykeysdll\README.md`: [Driver Interface & Debug Guide](https://github.com/Cassianvale/LingYaoKeys/blob/main/Resource/lykeysdll/README.md)
-- `Resource\lykeysdll\csharp_example\*`: C# Example Code
-- `Resource\lykeysdll\python_example\*`: Python Example Code
+| File | Description |
+|------|-------------|
+| `Resource\lykeysdll\lykeysdll.dll` | Core driver DLL (**Required**) |
+| `Resource\lykeysdll\lykeys.sys` | Kernel-level driver file (**Required**) |
+| `Resource\lykeysdll\lykeys.cat` | Driver signature file |
+| `Resource\lykeysdll\README.md` | [Driver Interface & Debug Guide](https://github.com/Cassianvale/LingYaoKeys/blob/main/Resource/lykeysdll/README.md) |
+| `Resource\lykeysdll\csharp_example\*` | C# Example Code |
+| `Resource\lykeysdll\python_example\*` | Python Example Code |
 
 ### ⚠️ Important Notes
 
@@ -157,36 +177,39 @@ Since this project uses Microsoft's latest `.Net Core 8.0`, some users may need 
     - Do NOT modify driver files to avoid signature invalidation
 
 2. **System Requirements**
-    - Supports Windows 10/11 (x86/x64), Windows 7 has not been tested
+    - Supports Windows 10/11 (x86/x64)
+    - Windows 7 has not been tested and may cause unpredictable issues
     - Requires Administrator privileges
 
 3. **Usage Restrictions**
+    - **Regarding various game anti-cheat issues, please do not ask about whether it can pass detection tests. This kind of technical support is not provided!**
     - For personal study and research only
     - Reverse engineering or modification prohibited
 
-## ☕️ Buy me a coffee
+## ☕️ Support Project
 
-**The driver signature was self-funded. If you like this project, your support would be a great encouragement to me**
+<div align="center">
 
-<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/wechat_qr.png" width="200px"/>
+♥ The driver signature was self-funded. If you like this project, your support would be a great encouragement to me ♥
+
+<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/wechat_qr.png" width="200px" alt="WeChat QR Code"/>
+</div>
 
 ## 📢 Disclaimer
 
 - **For personal study and research use only, commercial and illegal use is prohibited**
 - **The developer reserves the final right of interpretation for this project**
-- **Strictly prohibited for any use that violates the laws and regulations of
-  the `People's Republic of China (including Taiwan Province)` or the user's region**
-- **Users must comply with relevant laws and regulations when using this project and must not use it for any commercial
-  or illegal purposes. In case of violation, all consequences shall be borne by the user. Meanwhile, users should bear
-  the risks and responsibilities arising from using this project. The project developer makes no warranties regarding
-  the services and content provided by this project**
-- **If you encounter merchants charging for this software, any resulting issues and consequences are not related to this
-  project**
+- **Strictly prohibited for any use that violates the laws and regulations of the `People's Republic of China (including Taiwan Province)` or the user's region**
+- **Users must comply with relevant laws and regulations when using this project and must not use it for any commercial or illegal purposes. In case of violation, all consequences shall be borne by the user. Meanwhile, users should bear the risks and responsibilities arising from using this project. The project developer makes no warranties regarding the services and content provided by this project**
+- **If you encounter merchants charging for this software, any resulting issues and consequences are not related to this project**
 
 ## 📜 Open Source License
+
+<div align="center">
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 LingYaoKeys is licensed under [GNU General Public License v3.0](LICENSE)
 
 Copyright © 2025 by Cassianvale.
+</div>
