@@ -1,1 +1,0 @@
-const s="/LingYaoKeys/images/screenshots.gif",e="/LingYaoKeys/images/main-interface.png",i="/LingYaoKeys/images/coordinate-interface.png",o="/LingYaoKeys/images/window-selector.png";export{s as _,e as a,i as b,o as c};
