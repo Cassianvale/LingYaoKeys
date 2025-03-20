@@ -203,7 +203,7 @@ public class WindowConfig
     [JsonIgnore] public double MinHeight { get; set; } = 660;
 
     // 当前窗口尺寸
-    public double Width { get; set; } = 880;
+    public double Width { get; set; } = 800;
     public double Height { get; set; } = 660;
 }
 

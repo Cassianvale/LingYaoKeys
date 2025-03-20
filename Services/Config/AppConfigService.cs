@@ -21,13 +21,9 @@ public class ConfigChangedEventArgs : EventArgs
 public class AppConfigService
 {
     private static readonly SerilogManager _logger = SerilogManager.Instance;
+    private static readonly PathService _pathService = PathService.Instance;
 
-    private static string _configPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-        ".lykeys",
-        "AppConfig.json"
-    );
-
+    private static string _configPath;
     private static AppConfig? _config;
     private static readonly object _lockObject = new();
     public static event EventHandler<ConfigChangedEventArgs>? ConfigChanged;
@@ -52,12 +48,11 @@ public class AppConfigService
 
         lock (_lockObject)
         {
-            if (!string.IsNullOrEmpty(userDataPath))
-            {
-                _configPath = Path.Combine(userDataPath, "AppConfig.json");
-                Console.WriteLine($"使用自定义配置路径: {_configPath}");
-            }
+            // 使用PathService获取配置文件路径
+            _configPath = _pathService.GetAppConfigPath();
+            Console.WriteLine($"使用配置路径: {_configPath}");
 
+            // 确保配置目录存在
             Directory.CreateDirectory(Path.GetDirectoryName(_configPath)!);
 
             if (!File.Exists(_configPath))
@@ -119,8 +114,8 @@ public class AppConfigService
             {
                 MainWindow = new WindowConfig
                 {
-                    Width = 970,
-                    Height = 650
+                    Width = 800,
+                    Height = 660
                 },
                 FloatingWindow = new FloatingWindowConfig
                 {
@@ -131,8 +126,8 @@ public class AppConfigService
             },
             Debug = new DebugConfig
             {
-                IsDebugMode = true, // 调试模式总开关
-                EnableLogging = true, // 日志记录开关
+                IsDebugMode = false, // 调试模式总开关
+                EnableLogging = false, // 日志记录开关
                 LogLevel = "Debug", // 日志级别
                 FileSettings = new LogFileSettings
                 {
@@ -156,7 +151,7 @@ public class AppConfigService
 
             startKey = LyKeysCode.VK_F9,
             startMods = 0,
-            stopKey = LyKeysCode.VK_F10,
+            stopKey = LyKeysCode.VK_F9,
             stopMods = 0,
             keys = new List<KeyConfig>
             {
@@ -168,7 +163,9 @@ public class AppConfigService
             interval = 5,
             soundEnabled = true,
             IsReduceKeyStuck = true,
+            SoundVolume = 0.8,
             KeyPressInterval = 5,
+            AutoSwitchToEnglishIME = true,
             isHotkeyControlEnabled = true, // 热键总开关默认启用
             TargetWindowClassName = null,
             TargetWindowProcessName = null,

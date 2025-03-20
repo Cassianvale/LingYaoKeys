@@ -8,6 +8,7 @@ namespace WpfApp.Services;
 public class AudioService
 {
     private readonly SerilogManager _logger = SerilogManager.Instance;
+    private readonly PathService _pathService = PathService.Instance;
     private readonly string _startSoundPath;
     private readonly string _stopSoundPath;
     private WaveOutEvent _outputDevice;
@@ -56,19 +57,13 @@ public class AudioService
 
     public AudioService()
     {
-        var userDataPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".lykeys",
-            "sound"
-        );
-
         try
         {
-            Directory.CreateDirectory(userDataPath);
-            _logger.Debug($"创建音频文件目录: {userDataPath}");
-
-            _startSoundPath = Path.Combine(userDataPath, "start.mp3");
-            _stopSoundPath = Path.Combine(userDataPath, "stop.mp3");
+            // 使用PathService获取音频文件路径
+            _startSoundPath = _pathService.GetSoundFilePath("start.mp3");
+            _stopSoundPath = _pathService.GetSoundFilePath("stop.mp3");
+            
+            _logger.Debug($"音频文件目录: {_pathService.SoundPath}");
 
             // 确保音频文件存在
             EnsureAudioFileExists("start.mp3", _startSoundPath);
@@ -125,6 +120,9 @@ public class AudioService
                         _logger.Error($"找不到音频资源：{resourceName}");
                         throw new FileNotFoundException($"找不到音频资源：{resourceName}");
                     }
+
+                    // 确保目录存在
+                    Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
 
                     using (var fileStream = File.Create(targetPath))
                     {
