@@ -29,7 +29,6 @@ LingYaoKeys is a modern key tool developed based on .NET8.0 and WPF, offering ri
 ### Driver Features
 - Implemented using kernel-level DeviceIoControl driver
 - Support for offline operation
-- Comprehensive anti-Hook and memory protection mechanisms
 - Support for 32-bit/64-bit system architectures
 - Support for USB/PS2 keyboard and mouse devices
 - Compatible with Win10/Win11 systems

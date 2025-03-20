@@ -41,13 +41,17 @@
 
 ### Anti-Sticking Mode
 > [!IMPORTANT]
-> This feature is only for specific gaming scenarios. If it affects your gaming experience, please turn it off.
-> Key speeds above 200-300 per second may cause key response delay or sticking movement.
-> _**Reduce Sticking feature ON (default)**_: Average key speed tested at 120+, suitable for specific gaming scenarios
-> _**Reduce Sticking feature OFF**_: Removes key speed limits with average speed of 320+, suitable for normal scenarios
+> Based on testing results, key speeds in games don't need to be too fast, as you need to consider the game client's response. Key speeds above 200-300 per second may cause key response delay or sticking movement.  
+> This feature is only for specific gaming scenarios. If you experience sticking movement or skill activation issues, please enable this feature.  
+> Setting the press-release interval to 0 can reach thousands of presses per second, but that's unnecessary 🫥  
 
-- Support for Normal/Reduce Sticking toggle
-- Optimized for gaming scenarios
+- **Reduce Sticking Feature (enabled by default)** 
+  - Average key speed of 120+ times per second
+  - Suitable for specific gaming scenarios, reduces sticking movement phenomena
+
+- **Normal Mode (Reduce Sticking disabled)**
+  - Removes key speed limits, average speed of 320+ times per second
+  - Suitable for normal application scenarios
 
 ### Key Sorting
 - Key/coordinate lists support drag-and-drop sorting with real-time sequence changes
@@ -74,12 +78,8 @@
 ### Driver Management
 - Support for driver hot-swapping
 - Support for driver status monitoring
-
-### Security Protection
-- Support for anti-Hook protection
-- Support for memory protection
-- Support for driver signature verification
 - Support for exception handling
+- Support for driver uninstallation
 
 ### System Compatibility
 - Support for 32-bit/64-bit systems
