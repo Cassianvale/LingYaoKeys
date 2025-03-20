@@ -34,7 +34,7 @@ features:
     link: /guide/tutorial
   - icon: 🛡
     title: 安全可靠
-    details: 基于内核级驱动实现，完善的反Hook和内存保护机制，支持离线运行，确保应用稳定安全，开放驱动文件和接口文档，方便开发者了解实现原理并进行二次开发
+    details: 基于内核级驱动实现，支持离线运行，确保应用稳定安全，开放驱动文件和接口文档，方便开发者了进行二次开发
     linkText: 驱动文档
     link: /driver/opensource
   - icon: 🛠️

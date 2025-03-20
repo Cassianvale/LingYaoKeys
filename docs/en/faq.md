@@ -5,31 +5,31 @@
 ### System Requirements
 **Q: Which Windows versions does LingYaoKeys support?**  
 
-A: Windows 10/11 are supported. Windows 10/11 are recommended. Windows 7 has not been tested and may cause unexpected issues.
+A: Windows 10/11 are supported and recommended. Windows 7 is untested and may cause unexpected issues.
 
-**Q: Do I need to install the .NET runtime?**  
+**Q: Do I need to install .NET Runtime?**  
 
-A: Yes, .NET 8.0 Runtime is required.
+A: Yes, .NET 8.0 Desktop Runtime is required.
 
-**Q: Why does it need administrator privileges?**  
+**Q: Why are administrator privileges needed?**  
 
-A: Administrator privileges are required to install and run the kernel-level driver.
+A: Administrator privileges are required to install and run kernel-level drivers.
 
 ### Installation Issues
-**Q: What should I do if I get a "Driver signature invalid" message during installation?**  
+**Q: What should I do if I get "Invalid Driver Signature" error?**  
 
-A: Please ensure you download the software from official channels and do not modify the driver files. If you are in a testing environment, you can:
-1. Disable secure boot
-2. Enable test mode
-3. Restart your system
+A: Ensure you downloaded the software from official sources and haven't modified driver files. For test environments:
+1. Disable Secure Boot
+2. Enable Test Mode
+3. Restart system
 
-**Q: The program doesn't start after installation. What could be wrong?**
+**Q: What if the program won't start after installation?**  
 
-A: Please check the following:
-1. Verify that .NET 8.0 Runtime is properly installed
-2. Check if your antivirus software is blocking the application
-3. Run the application as administrator
-4. Check the error logs
+A: Please check:
+1. Confirm .NET 8.0 Desktop Runtime is installed
+2. Check if antivirus is blocking
+3. Run as administrator
+4. Check error logs
 
 ## Usage Related
 
@@ -148,4 +148,4 @@ A: Download the latest version installation package from GitHub Releases to upda
 
 **Q: Do I need to reconfigure after updating?**
 
-A: No, configuration information will be automatically preserved. 
+A: No, configuration information will be automatically preserved.

@@ -2,17 +2,17 @@
 layout: home
 hero:
   name: "LingYaoKeys"
-  text: "An elegant and powerful keyboard tool for smoother, more natural operations"
-  tagline: Developed with .NET8.0+WPF, perfectly combining modern UI with powerful functionality
+  text: "Elegant and powerful key mapping tool for smooth operation"
+  tagline: Developed with .NET8.0+WPF, perfectly combining modern UI with powerful features
   image:
     src: /logo.png
     alt: LingYaoKeys
   actions:
     - theme: brand
-      text: About Project
+      text: About
       link: /en/guide/index
     - theme: alt
-      text: Direct Download
+      text: Download
       link: https://github.com/Cassianvale/LingYaoKeys/releases/latest
     - theme: alt
       text: View on GitHub
@@ -24,30 +24,30 @@ hero:
 features:
   - icon: 🎯
     title: Elegant Interaction
-    details: Supports drag-and-drop sorting, floating status display, voice feedback for more intuitive and natural operations
+    details: Supports drag-and-drop sorting, floating window status display, and voice feedback for intuitive operation
     linkText: Feature Details
     link: /en/guide/features
   - icon: ⚡
-    title: Powerful Functionality
-    details: Global hotkeys, coordinate movement, side button & scroll wheel triggers, independent interval control, window handle detection to meet professional needs
-    linkText: Usage Instructions
+    title: Powerful Features
+    details: Global hotkeys, coordinate movement, side button & wheel triggers, independent interval control, window handle detection
+    linkText: Tutorial
     link: /en/guide/tutorial
   - icon: 🛡
-    title: Safe and Reliable
-    details: Implemented with kernel-level driver, comprehensive anti-hook and memory protection mechanisms, supports offline operation, ensures stable and secure applications, provides open driver files and interface documentation for developers
+    title: Safe & Reliable
+    details: Kernel-level driver implementation, offline support, open driver files and interface documentation
     linkText: Driver Documentation
     link: /en/driver/opensource
   - icon: 🛠️
-    title: Stable Compatibility
-    details: Supports 32-bit/64-bit systems, compatible with Win10/Win11, supports driver hot-swapping, traceless uninstallation
+    title: Stable & Compatible
+    details: Supports 32/64-bit systems, Win10/11 compatible, hot-plug support, clean uninstall
     linkText: System Requirements
     link: /en/guide/#system-requirements
   - icon: 🔄
     title: Flexible Configuration
-    details: Supports configuration import/export, online updates, debug mode for easy personalization
+    details: Import/export settings, online updates, debug mode for easy customization
   - icon: 🎨
     title: Elegant Design
-    details: Adopts MVVM architecture, modern UI design, smooth animation effects
+    details: MVVM architecture, modern UI design, smooth animations
 
 ---
 
@@ -306,4 +306,4 @@ features:
     font-size: 0.9rem;
   }
 }
-</style> 
+</style>
