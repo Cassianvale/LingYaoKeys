@@ -39,7 +39,7 @@
 - [📖 Usage Instructions](#-usage-instructions)
 - [🖼️ Project Showcase](#️-project-showcase)
 - [📃 Common Issues](#-common-issues)
-- [🎙 About & Suggestions](#-about--suggestions)
+- [😶‍🌫️ About & Suggestions](#-about--suggestions)
 - [⚙️ Development Related](#️-development-related)
 - [🔧 Driver Instructions](#-driver-instructions)
 - [☕️ Support Project](#️-support-project)
@@ -61,7 +61,7 @@
   - Independent intervals for each key and coordinate
 
 - [x] **Utility Tools**
-  - Window handle detection
+  - Window handle detection (hotkeys only trigger for specified window)
   - Voice notification toggle and custom audio
   - Normal/Reduce Sticking mode switching
   - Drag-and-drop key and coordinate sorting
@@ -100,6 +100,12 @@
 
 ## 📖 Usage Instructions
 
+<div align="center">
+
+**[View Tutorial Documentation](https://cassianvale.github.io/LingYaoKeys/guide/tutorial)**
+
+</div>
+
 ### Mode Selection
 
 > [!IMPORTANT]
@@ -137,7 +143,7 @@ Since this project uses Microsoft's latest <code>.Net Core 8.0</code>, some user
 If you experience suboptimal key speed performance, try disabling the "Reduce Sticking" feature. However, please note that this may cause sticking movement in some games. Choose the appropriate mode based on your actual usage scenario.
 </details>
 
-## 🎙 About & Suggestions
+## 😶‍🌫️ About & Suggestions
 
 - This project is my first attempt at developing with `C#`, `WPF`, and `Cursor AI` technology stack during my spare time
 - The project is in its early development stage with new features being continuously added
@@ -161,12 +167,13 @@ dotnet run
 
 ### Driver File Description
 
+[Driver Interface & Debug Guide](https://cassianvale.github.io/LingYaoKeys/driver/)
+
 | File | Description |
 |------|-------------|
 | `Resource\lykeysdll\lykeysdll.dll` | Core driver DLL (**Required**) |
 | `Resource\lykeysdll\lykeys.sys` | Kernel-level driver file (**Required**) |
 | `Resource\lykeysdll\lykeys.cat` | Driver signature file |
-| `Resource\lykeysdll\README.md` | [Driver Interface & Debug Guide](https://github.com/Cassianvale/LingYaoKeys/blob/main/Resource/lykeysdll/README.md) |
 | `Resource\lykeysdll\csharp_example\*` | C# Example Code |
 | `Resource\lykeysdll\python_example\*` | Python Example Code |
 
