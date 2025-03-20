@@ -3,7 +3,11 @@
 
 # LingYaoKeys
 
-✨**An Elegant and Flexible Open-Source Keyboard Tool Based on .NET8.0+WPF**✨
+<img src="https://github.com/Cassianvale/LingYaoKeys/raw/main/Resource/img/app.png" width="120px" alt="LingYaoKeys Logo"/>
+
+✨ **An Elegant and Flexible Open-Source Keyboard Tool Based on .NET8.0+WPF** ✨
+
+📚 [Documentation](https://cassianvale.github.io/LingYaoKeys/)
 
 <div>
     <img alt="platform" src="https://img.shields.io/badge/platform-Windows-blueviolet">
@@ -28,29 +32,61 @@
 
 <!-- markdownlint-restore -->
 
+## 📌 Table of Contents
+
+- [✨ Main Features](#-main-features)
+- [🌏 Quick Download](#-quick-download)
+- [📖 Usage Instructions](#-usage-instructions)
+- [🖼️ Project Showcase](#️-project-showcase)
+- [📃 Common Issues](#-common-issues)
+- [🎙 About & Suggestions](#-about--suggestions)
+- [⚙️ Development Related](#️-development-related)
+- [🔧 Driver Instructions](#-driver-instructions)
+- [☕️ Support Project](#️-support-project)
+- [📢 Disclaimer](#-disclaimer)
+- [📜 Open Source License](#-open-source-license)
+
 ## ✨ Main Features
 
 ### 🎮 Basic Features
 
-- [x] **Global hotkey support, including side buttons and scroll wheel triggers with independent key intervals**
-- [x] Window handle detection support
-- [x] Sequential/Press mode key trigger support
-- [x] Voice notification on/off support
-- [x] Normal/Game mode switching support
-- [x] Custom start/stop audio support
-- [x] Drag-and-drop key list sorting support
-- [x] Floating window display for key activation status
-- [x] Coordinate editing mode support
+- [x] **Hotkey System**
+  - Global hotkey registration support
+  - Sequential/Press mode switching
+  - Side button and scroll wheel trigger support
+
+- [x] **Mouse Features**
+  - Mouse movement to coordinates
+  - Coordinate input and editing
+  - Independent intervals for each key and coordinate
+
+- [x] **Utility Tools**
+  - Window handle detection
+  - Voice notification toggle and custom audio
+  - Normal/Game mode switching
+  - Drag-and-drop key and coordinate sorting
+  - Floating window status display
+  - Input method switching support
+
+- [x] **Configuration Management**
+  - Config export/import
+  - Online updates
+  - Debug mode support
 
 ### 🚀 Driver Features
 
-- [x] Kernel-level driver implementation based on DeviceIoControl
-- [x] Offline operation support
-- [x] Comprehensive anti-Hook and memory protection mechanisms
-- [x] 32-bit/64-bit system architecture support
-- [x] USB/PS2 keyboard and mouse device support
-- [x] Compatible with Win7/Win10/Win11 systems
-- [x] Hot-plug driver support with clean uninstallation upon program exit
+- [x] **Core Technology**
+  - DeviceIoControl kernel-level driver implementation
+  - Offline operation support
+
+- [x] **System Compatibility**
+  - 32-bit/64-bit system architecture support
+  - USB/PS2 keyboard and mouse support
+  - Win10/Win11 system compatibility
+
+- [x] **Reliability**
+  - Hot-plug driver support
+  - Clean uninstallation upon exit
 
 ## 🌏 Direct Download
 
@@ -110,8 +146,7 @@ Since this project uses Microsoft's latest `.Net Core 8.0`, some users may need 
 - `Resource\lykeysdll\lykeysdll.dll`: Core driver DLL (*Required)
 - `Resource\lykeysdll\lykeys.sys`: Kernel-level driver file (*Required)
 - `Resource\lykeysdll\lykeys.cat`: Driver signature file
--
-`Resource\lykeysdll\README.md`: [Driver Interface & Debug Guide](https://github.com/Cassianvale/LingYaoKeys/blob/main/Resource/lykeysdll/README.md)
+- `Resource\lykeysdll\README.md`: [Driver Interface & Debug Guide](https://github.com/Cassianvale/LingYaoKeys/blob/main/Resource/lykeysdll/README.md)
 - `Resource\lykeysdll\csharp_example\*`: C# Example Code
 - `Resource\lykeysdll\python_example\*`: Python Example Code
 
