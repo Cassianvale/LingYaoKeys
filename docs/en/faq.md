@@ -46,6 +46,10 @@ A: In the "Side Button Settings", select the side button you want to use, and co
 
 A: You can set millisecond-level key intervals in the key settings. It's recommended to adjust based on your actual needs.
 
+**Q: Why do I get numpad 2/4/6/8 when I set arrow keys?**
+
+A: You need to turn off the `Num Lock` key at the top-left of the numpad, otherwise it will trigger the numpad keys instead of arrow keys.
+
 ### Advanced Features
 **Q: What is the "Reduce Sticking" feature?**
 
