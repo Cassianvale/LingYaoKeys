@@ -27,6 +27,7 @@
 简体中文 | [English](./README_EN.md)
 
 ❤ 如果喜欢本项目可以右上角送作者一个 `Star` 🌟 ❤
+加入🐧群聊：<a target="_blank" href="https://qm.qq.com/cgi-bin/qm/qr?k=Iv4RluZN1ceLX_iV5j6oNITElvUP5sFo&jump_from=webapi&authKey=xUof/EqyhLD6KNkVaL2vf1wqx14Gz5OTKHtGLiZN7igbtZLn1/l1DeOAtAkOTOUd"><img border="0" src="https://pub.idqqimg.com/wpa/images/group.png" alt="灵曜按键" title="灵曜按键"></a>
 </div>
 
 <!-- markdownlint-restore -->
