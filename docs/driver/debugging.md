@@ -63,6 +63,59 @@
    }
    ```
 
+## 驱动状态调试
+
+### 使用详细错误码
+1. 获取更精确的错误信息：
+   ```c
+   // 检测设备状态
+   CheckDeviceStatus();
+   DEVICE_STATUS status = GetDriverStatus();
+   
+   // 获取详细错误代码
+   int errorCode = GetDetailedErrorCode();
+   
+   // 获取上次检查时间
+   ULONGLONG lastCheck = GetLastCheckTime();
+   
+   printf("设备状态: %d, 详细错误码: %d, 上次检查时间: %llu\n", 
+          status, errorCode, lastCheck);
+   ```
+
+2. 详细错误码解释：
+   | 错误码 | 含义               | 解决方案             |
+   |------|-------------------|--------------------|
+   | 1001 | 驱动句柄无效          | 重新调用SetHandle函数  |
+   | 2001 | 键盘设备不可用         | 检查系统键盘设备是否正常   |
+   | 3001 | 鼠标设备不可用         | 检查系统鼠标设备是否正常   |
+
+3. 状态监控示例：
+   ```c
+   // 定期检查驱动状态
+   HANDLE hTimer = CreateWaitableTimer(NULL, FALSE, NULL);
+   
+   LARGE_INTEGER liDueTime;
+   liDueTime.QuadPart = -10000000; // 1秒后第一次触发
+   
+   SetWaitableTimer(hTimer, &liDueTime, 5000, NULL, NULL, FALSE); // 每5秒检查一次
+   
+   while (WaitForSingleObject(hTimer, INFINITE) == WAIT_OBJECT_0) {
+       CheckDeviceStatus();
+       DEVICE_STATUS status = GetDriverStatus();
+       
+       if (status != DEVICE_STATUS_READY) {
+           int errorCode = GetDetailedErrorCode();
+           printf("驱动状态异常: %d, 错误码: %d\n", status, errorCode);
+           
+           // 尝试修复驱动状态
+           if (errorCode == 1001) {
+               // 重新设置句柄
+               SetHandle();
+           }
+       }
+   }
+   ```
+
 ## 驱动验证
 
 ### 验证工具
@@ -148,3 +201,50 @@
    - 使用日志分析工具
    - 过滤关键信息
    - 追踪问题根源
+
+### 增强的状态监控
+1. 实现定期状态检查：
+   ```c#
+   // C#中实现的状态监控服务
+   public class DriverStatusMonitor
+   {
+       private Timer _statusTimer;
+       private int _failedChecks = 0;
+       
+       public void StartMonitoring(int interval = 5000)
+       {
+           _statusTimer = new Timer(CheckStatus, null, 0, interval);
+       }
+       
+       private void CheckStatus(object state)
+       {
+           CheckDeviceStatus();
+           DEVICE_STATUS status = GetDriverStatus();
+           
+           if (status != DEVICE_STATUS_READY)
+           {
+               int errorCode = GetDetailedErrorCode();
+               Console.WriteLine($"驱动状态异常: {status}, 错误码: {errorCode}");
+               
+               _failedChecks++;
+               if (_failedChecks >= 3)
+               {
+                   Console.WriteLine("尝试恢复驱动...");
+                   RecoverDriver();
+                   _failedChecks = 0;
+               }
+           }
+           else
+           {
+               _failedChecks = 0;
+           }
+       }
+       
+       private void RecoverDriver()
+       {
+           // 实现驱动恢复逻辑
+           // 例如：重新设置驱动句柄
+           SetHandle();
+       }
+   }
+   ```

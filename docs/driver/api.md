@@ -6,14 +6,16 @@
 
 <div class="driver-api-table">
 
-| 函数名              | 参数列表                                       | 返回值类型         | 功能描述     | 示例                                   |
-|------------------|--------------------------------------------|---------------|----------|--------------------------------------|
-| LoadNTDriver     | char* lpszDriverName, char* lpszDriverPath | BOOL          | 加载NT驱动程序 | LoadNTDriver("lykeys", "lykeys.sys") |
-| UnloadNTDriver   | char* szSvrName                            | BOOL          | 卸载NT驱动程序 | UnloadNTDriver("lykeys")             |
-| SetHandle        | void                                       | BOOL          | 设置驱动句柄   | SetHandle()                          |
-| GetDriverHandle  | void                                       | HANDLE        | 获取驱动句柄   | GetDriverHandle()                    |
-| GetDriverStatus  | void                                       | DEVICE_STATUS | 获取驱动状态   | GetDriverStatus()                    |
-| GetLastCheckTime | void                                       | ULONGLONG     | 获取上次检查时间 | GetLastCheckTime()                   |
+| 函数名                | 参数列表                                      | 返回值类型        | 功能描述                | 示例                                  |
+|---------------------|----------------------------------------------|----------------|-----------------------|--------------------------------------|
+| LoadNTDriver        | char* lpszDriverName, char* lpszDriverPath   | BOOL           | 加载NT驱动程序            | LoadNTDriver("lykeys", "lykeys.sys") |
+| UnloadNTDriver      | char* szSvrName                              | BOOL           | 卸载NT驱动程序            | UnloadNTDriver("lykeys")            |
+| SetHandle           | void                                         | BOOL           | 设置驱动句柄              | SetHandle()                         |
+| GetDriverHandle     | void                                         | HANDLE         | 获取驱动句柄              | GetDriverHandle()                   |
+| GetDriverStatus     | void                                         | DEVICE_STATUS  | 获取驱动状态              | GetDriverStatus()                   |
+| GetLastCheckTime    | void                                         | ULONGLONG      | 获取上次检查时间            | GetLastCheckTime()                  |
+| CheckDeviceStatus   | void                                         | void           | 检查驱动状态并更新状态信息      | CheckDeviceStatus()                 |
+| GetDetailedErrorCode| void                                         | int            | 获取详细错误代码            | GetDetailedErrorCode()              |
 
 </div>
 
@@ -65,6 +67,10 @@ SetHandle();
 DEVICE_STATUS status = GetDriverStatus();
 if (status == DEVICE_STATUS_READY) {
     // 驱动就绪
+} else {
+    // 获取详细错误信息
+    int errorCode = GetDetailedErrorCode();
+    printf("驱动错误，错误代码：%d\n", errorCode);
 }
 ```
 
@@ -98,6 +104,8 @@ MouseWheelUp(120);
 1. 使用前必须先调用 `LoadNTDriver` 加载驱动
 2. 加载驱动后需要调用 `SetHandle` 获取设备句柄
 3. 所有操作前建议通过 `GetDriverStatus` 检查驱动状态
-4. 程序退出前应调用 `UnloadNTDriver` 卸载驱动
-5. 鼠标移动坐标使用屏幕坐标系(左上角为原点)
-6. 键盘操作使用Windows虚拟键码(Virtual-Key Codes)
+4. 若驱动状态异常，可通过 `GetDetailedErrorCode` 获取详细错误代码
+5. 可通过 `CheckDeviceStatus` 主动检查并更新驱动状态
+6. 程序退出前应调用 `UnloadNTDriver` 卸载驱动
+7. 鼠标移动坐标使用屏幕坐标系(左上角为原点)
+8. 键盘操作使用Windows虚拟键码(Virtual-Key Codes)

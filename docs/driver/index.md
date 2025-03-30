@@ -13,6 +13,9 @@
 - 基于DeviceIoControl实现
 - 支持离线运行
 - 支持热插拔
+- 自动状态检测与恢复
+- 系统兼容性检查
+- 增强的安全性和稳定性
 
 ### 系统要求
 - Windows 10/11
@@ -45,6 +48,20 @@
    @echo off && sc query lykeys > nul 2>&1 && (echo Service exists, stopping... && sc stop lykeys > nul 2>&1 && timeout /t 2 /nobreak > nul && sc delete lykeys > nul 2>&1 && echo Service deleted successfully && exit) || (echo Service does not exist && exit)
    ```
 
+## 系统兼容性
+
+### 支持的Windows版本
+- Windows 10（所有版本）
+- Windows 11（所有版本）
+
+### 系统兼容性检查
+驱动包含自动系统兼容性检查功能，会在加载驱动时验证以下内容：
+- 操作系统版本兼容性
+- 32位/64位兼容性
+- 必要系统服务可用性
+- 设备接口可访问性
+
+
 ## 参考资料
 
 - [kmclassdll.dll](https://github.com/BestBurning/kmclassdll/releases) - DLL动态库
@@ -60,8 +77,10 @@
 - 请勿修改驱动文件
 - 保持驱动签名完整
 - 关注项目及时获取最新驱动版本
+- 避免在调试器运行环境下使用
 
 ### 故障排除
 - 检查驱动状态
-- 查看错误日志
+- 查看详细错误代码
+- 验证系统兼容性
 - 按照debug文档排查故障
