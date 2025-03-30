@@ -20,6 +20,7 @@ public sealed class LyKeys : IDisposable
     private const string DriverName = "lykeys";
     private readonly string _driverPath;
     private IntPtr _dllHandle = IntPtr.Zero;
+    private DeviceStatus _lastStatus = DeviceStatus.Unknown;
 
     #endregion
 
@@ -27,9 +28,12 @@ public sealed class LyKeys : IDisposable
 
     public enum DeviceStatus
     {
-        Unknown = 0,
-        Ready = 1,
-        Error = 2
+        Unknown = 0,     // 未知状态
+        Ready = 1,       // 准备就绪
+        Error = 2,       // 错误状态
+        NoKeyboard = 3,  // 无法找到键盘设备
+        NoMouse = 4,     // 无法找到鼠标设备
+        InitFailed = 5   // 初始化失败
     }
 
     #endregion
@@ -67,11 +71,12 @@ public sealed class LyKeys : IDisposable
     [DllImport("lykeysdll.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern DeviceStatus GetDriverStatus();
 
+    // 新增：获取详细错误信息
+    [DllImport("lykeysdll.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern int GetDetailedErrorCode();
+
     [DllImport("lykeysdll.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern ulong GetLastCheckTime();
-
-    [DllImport("lykeysdll.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "GetDriverHandle")]
-    private static extern IntPtr GetDriverHandle();
 
     // 键盘操作函数
     [DllImport("lykeysdll.dll", CallingConvention = CallingConvention.Cdecl)]
@@ -128,6 +133,9 @@ public sealed class LyKeys : IDisposable
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool FreeLibrary(IntPtr hModule);
+
+    [DllImport("lykeysdll.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "GetDriverHandle")]
+    private static extern IntPtr GetDriverHandle();
 
     #endregion
 
@@ -238,6 +246,7 @@ public sealed class LyKeys : IDisposable
                     _logger.Debug("开始检查设备状态");
                     CheckDeviceStatus();
                     var status = GetDriverStatus();
+                    _lastStatus = status;
                     _logger.Debug($"设备状态: {status}");
 
                     if (status != DeviceStatus.Ready)
@@ -249,9 +258,31 @@ public sealed class LyKeys : IDisposable
                         await Task.Delay(500, cancellationToken);
                         CheckDeviceStatus();
                         status = GetDriverStatus();
+                        _lastStatus = status;
                         _logger.Debug($"重新初始化后的设备状态: {status}");
 
-                        if (status != DeviceStatus.Ready) throw new InvalidOperationException($"设备状态异常: {status}");
+                        // 根据设备状态提供不同的错误信息
+                        if (status != DeviceStatus.Ready)
+                        {
+                            string errorMessage;
+                            switch (status)
+                            {
+                                case DeviceStatus.NoKeyboard:
+                                    errorMessage = "找不到键盘设备，请检查您的键盘连接。";
+                                    break;
+                                case DeviceStatus.NoMouse:
+                                    errorMessage = "找不到鼠标设备，请检查您的鼠标连接。";
+                                    break;
+                                case DeviceStatus.InitFailed:
+                                    errorMessage = "驱动初始化失败，请尝试重新启动计算机或重新安装驱动。";
+                                    break;
+                                default:
+                                    errorMessage = $"设备状态异常: {status}";
+                                    break;
+                            }
+                            _logger.Error(errorMessage);
+                            throw new InvalidOperationException(errorMessage);
+                        }
                     }
 
                     _logger.Debug("设备句柄初始化成功");
@@ -725,5 +756,18 @@ public sealed class LyKeys : IDisposable
         }
     }
 
+    #endregion
+
+    #region 公共方法
+    
+    /// <summary>
+    /// 获取最后一次设备状态检查的结果
+    /// </summary>
+    /// <returns>设备状态</returns>
+    public DeviceStatus GetLastStatus()
+    {
+        return _lastStatus;
+    }
+    
     #endregion
 }

@@ -4,11 +4,26 @@
 
 <div class="status-code-table">
 
-| 定义                        | 含义               |
-|---------------------------|------------------|
-| DEVICE_STATUS_UNKNOWN (0) | 设备状态未知，设备刚初始化的状态 |
-| DEVICE_STATUS_READY (1)   | 设备就绪，设备初始化完成的状态  |
-| DEVICE_STATUS_ERROR (2)   | 设备错误，设备初始化错误的状态  |
+| 定义                         | 值  | 含义                |
+|----------------------------|----|--------------------|
+| DEVICE_STATUS_UNKNOWN      | 0  | 设备状态未知，设备刚初始化的状态 |
+| DEVICE_STATUS_READY        | 1  | 设备就绪，设备初始化完成的状态  |
+| DEVICE_STATUS_ERROR        | 2  | 设备错误，设备初始化错误的状态  |
+| DEVICE_STATUS_NO_KEYBOARD  | 3  | 无法找到键盘设备         |
+| DEVICE_STATUS_NO_MOUSE     | 4  | 无法找到鼠标设备         |
+| DEVICE_STATUS_INIT_FAILED  | 5  | 初始化失败            |
+
+</div>
+
+## 详细错误码
+
+<div class="detailed-error-code-table">
+
+| 错误码 | 含义                | 解决方案           |
+|------|-------------------|----------------|
+| 1001 | 句柄无效错误           | 检查驱动初始化状态      |
+| 2001 | 键盘设备不可用          | 检查系统键盘设备是否正常   |
+| 3001 | 鼠标设备不可用          | 检查系统鼠标设备是否正常   |
 
 </div>
 
@@ -76,6 +91,34 @@ switch (status) {
         break;
     case DEVICE_STATUS_ERROR:
         // 设备错误
+        break;
+    case DEVICE_STATUS_NO_KEYBOARD:
+        // 键盘设备不可用
+        break;
+    case DEVICE_STATUS_NO_MOUSE:
+        // 鼠标设备不可用
+        break;
+    case DEVICE_STATUS_INIT_FAILED:
+        // 初始化失败
+        break;
+}
+```
+
+### 获取详细错误码
+```c
+// 获取详细错误码
+int detailedError = GetDetailedErrorCode();
+
+// 处理错误
+switch (detailedError) {
+    case 1001:
+        // 处理句柄无效错误
+        break;
+    case 2001:
+        // 处理键盘设备不可用错误
+        break;
+    case 3001:
+        // 处理鼠标设备不可用错误
         break;
 }
 ```

@@ -14,6 +14,17 @@ namespace LyKeys
             _driverService = driverService ?? throw new ArgumentNullException(nameof(driverService));
             _driverService.StatusChanged += DriverService_StatusChanged;
             
+            // 显示已配置的驱动路径
+            if (!string.IsNullOrEmpty(_driverService.DriverPath))
+            {
+                SysPathText.Text = _driverService.DriverPath;
+            }
+            
+            if (!string.IsNullOrEmpty(_driverService.DllPath))
+            {
+                DllPathText.Text = _driverService.DllPath;
+            }
+            
             UpdateButtonStates();
         }
 

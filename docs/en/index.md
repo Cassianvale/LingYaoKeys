@@ -15,11 +15,14 @@ hero:
       text: Download
       link: https://github.com/Cassianvale/LingYaoKeys/releases/latest
     - theme: alt
-      text: View on GitHub
-      link: https://github.com/Cassianvale/LingYaoKeys
-    - theme: alt
       text: FAQ
       link: /en/faq
+    - theme: brand
+      text: 🐧Join QQ Group
+      link: https://qm.qq.com/cgi-bin/qm/qr?k=Iv4RluZN1ceLX_iV5j6oNITElvUP5sFo&jump_from=webapi&authKey=xUof/EqyhLD6KNkVaL2vf1wqx14Gz5OTKHtGLiZN7igbtZLn1/l1DeOAtAkOTOUd
+    - theme: brand
+      text: ☕️Donate
+      link: /en/donate
 
 features:
   - icon: 🎯
