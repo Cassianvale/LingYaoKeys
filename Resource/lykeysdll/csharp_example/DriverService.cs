@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using System.Reflection;
 
 namespace LyKeys;
 
@@ -20,6 +21,39 @@ public class DriverService : IDisposable
         _driverManager = new DriverManager();
         _driverName = "lykeys";
         _isDriverInstalled = false;
+        
+        // 尝试设置默认路径
+        TrySetDefaultPaths();
+    }
+
+    private void TrySetDefaultPaths()
+    {
+        try
+        {
+            // 获取应用程序基础目录
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            
+            // 构建默认的Resource\lykeysdll路径
+            string defaultDriverDir = Path.Combine(baseDir, "Resource", "lykeysdll");
+            
+            // 检查目录是否存在
+            if (Directory.Exists(defaultDriverDir))
+            {
+                string sysPath = Path.Combine(defaultDriverDir, "lykeys.sys");
+                string dllPath = Path.Combine(defaultDriverDir, "lykeysdll.dll");
+                
+                // 如果文件存在，则设置默认路径
+                if (File.Exists(sysPath) && File.Exists(dllPath))
+                {
+                    SetDriverPaths(sysPath, dllPath);
+                    OnStatusChanged($"已自动设置驱动路径：{defaultDriverDir}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            OnStatusChanged($"自动设置默认驱动路径失败：{ex.Message}");
+        }
     }
 
     public bool IsDriverInstalled => _isDriverInstalled;
