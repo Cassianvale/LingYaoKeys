@@ -12,7 +12,7 @@ hero:
       text: 关于项目
       link: /guide/index
     - theme: alt
-      text: 下载
+      text: 下载最新版本
       link: https://github.com/Cassianvale/LingYaoKeys/releases/latest
     - theme: alt
       text: 常见问题
@@ -20,9 +20,9 @@ hero:
     - theme: brand
       text: 🐧加入QQ群
       link: https://qm.qq.com/cgi-bin/qm/qr?k=Iv4RluZN1ceLX_iV5j6oNITElvUP5sFo&jump_from=webapi&authKey=xUof/EqyhLD6KNkVaL2vf1wqx14Gz5OTKHtGLiZN7igbtZLn1/l1DeOAtAkOTOUd
-    - theme: alt
+    - theme: brand
       text: ☕️赞助
-      link: 
+      link: /donate
 
 features:
   - icon: 🎯
