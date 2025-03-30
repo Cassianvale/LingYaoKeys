@@ -26,7 +26,12 @@
 
 [简体中文](./README.md) / English
 
+<br>
+
 ❤ If you like this project, please give it a `Star`🌟 ❤
+
+<br>
+
 Join QQ Group: <a target="_blank" href="https://qm.qq.com/cgi-bin/qm/qr?k=Iv4RluZN1ceLX_iV5j6oNITElvUP5sFo&jump_from=webapi&authKey=xUof/EqyhLD6KNkVaL2vf1wqx14Gz5OTKHtGLiZN7igbtZLn1/l1DeOAtAkOTOUd"><img border="0" src="https://pub.idqqimg.com/wpa/images/group.png" alt="LingYaoKeys" title="LingYaoKeys"></a>
 </br>
 </div>
