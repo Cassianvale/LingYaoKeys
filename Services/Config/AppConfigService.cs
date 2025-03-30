@@ -156,12 +156,12 @@ public class AppConfigService
             stopMods = 0,
             keys = new List<KeyConfig>
             {
-                new KeyConfig(LyKeysCode.VK_F, true, 5),
-                new KeyConfig(LyKeysCode.VK_1, false, 5),
-                new KeyConfig(LyKeysCode.VK_2, false, 5)
+                new KeyConfig(LyKeysCode.VK_F, true, 10),
+                new KeyConfig(LyKeysCode.VK_1, false, 10),
+                new KeyConfig(LyKeysCode.VK_2, false, 10)
             },
             keyMode = 0,
-            interval = 5,
+            interval = 10,
             soundEnabled = true,
             IsReduceKeyStuck = true,
             SoundVolume = 0.8,

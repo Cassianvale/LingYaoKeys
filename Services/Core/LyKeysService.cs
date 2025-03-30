@@ -6,6 +6,7 @@ using WpfApp.Services.Config;
 using WpfApp.Services.Events;
 using WpfApp.Services.Utils;
 using System.Text;
+using System.Runtime.InteropServices; // 添加此命名空间
 
 namespace WpfApp.Services.Core
 {
@@ -14,6 +15,13 @@ namespace WpfApp.Services.Core
     /// </summary>
     public class LyKeysService : IDisposable
     {
+        // Windows API 用于提高系统时钟精度
+        [DllImport("winmm.dll", EntryPoint = "timeBeginPeriod")]
+        private static extern uint TimeBeginPeriod(uint uMilliseconds);
+
+        [DllImport("winmm.dll", EntryPoint = "timeEndPeriod")]
+        private static extern uint TimeEndPeriod(uint uMilliseconds);
+        
         #region 私有字段
         private LyKeys? _lyKeys;
         private readonly SerilogManager _logger;
@@ -28,7 +36,7 @@ namespace WpfApp.Services.Core
         
         private const int MIN_KEY_INTERVAL = 1;  // 最小按键间隔
         public const int DEFAULT_KEY_PRESS_INTERVAL = 5; // 默认按键按下时长
-        private int _keyInterval = 5; // 按键间隔
+        private int _keyInterval = 10; // 按键间隔
         private int _keyPressInterval = DEFAULT_KEY_PRESS_INTERVAL; // 按键按下时长
         private bool _isDisposed;
         private CancellationTokenSource? _holdModeCts;
@@ -47,6 +55,12 @@ namespace WpfApp.Services.Core
         private DateTime _cacheExpirationTime = DateTime.MinValue;
         // 是否正在执行SetKeyList
         private bool _isSettingKeyList = false;
+        // 是否启用降低卡位功能
+        private bool _isReduceKeyStuck = false;
+        // 是否已提高时钟精度
+        private bool _isHighResolutionTimerEnabled = false;
+        // 用于精确延迟的Stopwatch
+        private readonly Stopwatch _precisionStopwatch = new Stopwatch();
         #endregion
 
         #region 事件定义
@@ -204,6 +218,24 @@ namespace WpfApp.Services.Core
                 }
             }
         }
+
+        /// <summary>
+        /// 获取或设置是否启用降低卡位功能
+        /// </summary>
+        public bool IsReduceKeyStuck
+        {
+            get => _isReduceKeyStuck;
+            set
+            {
+                if (_isReduceKeyStuck != value)
+                {
+                    _isReduceKeyStuck = value;
+                    // 根据降低卡位状态更新按键按下时长
+                    KeyPressInterval = _isReduceKeyStuck ? DEFAULT_KEY_PRESS_INTERVAL : 0;
+                    _logger.Debug($"降低卡位功能状态：{(_isReduceKeyStuck ? "开启" : "关闭")}，按键按下时长已调整为：{KeyPressInterval}ms");
+                }
+            }
+        }
         #endregion
 
         #region 构造函数
@@ -219,17 +251,28 @@ namespace WpfApp.Services.Core
             _virtualKeyMap = InitializeVirtualKeyMap();
             _inputMethodService = new InputMethodService();  // 初始化InputMethodService
             
+            // 提高系统时钟精度
+            EnableHighResolutionTimer();
+            
             // 从配置中读取是否自动切换输入法
             try
             {
                 var config = AppConfigService.Config;
                 _autoSwitchIME = config.AutoSwitchToEnglishIME ?? true;
                 _logger.Debug($"LyKeysService构造函数：输入法自动切换设置为 {(_autoSwitchIME ? "开启" : "关闭")}");
+                
+                // 读取降低卡位配置
+                _isReduceKeyStuck = config.IsReduceKeyStuck ?? false;
+                // 根据降低卡位状态设置按键按下时长
+                _keyPressInterval = _isReduceKeyStuck ? DEFAULT_KEY_PRESS_INTERVAL : 0;
+                _logger.Debug($"LyKeysService构造函数：降低卡位功能设置为 {(_isReduceKeyStuck ? "开启" : "关闭")}，按键按下时长：{_keyPressInterval}ms");
             }
             catch (Exception ex)
             {
-                _logger.Error("读取输入法切换配置失败，使用默认值(开启)", ex);
+                _logger.Error("读取配置失败，使用默认值", ex);
                 _autoSwitchIME = true;
+                _isReduceKeyStuck = false;
+                _keyPressInterval = 0;
             }
             
             _logger.Debug("LyKeysService构造函数：已初始化InputMethodService");
@@ -357,15 +400,49 @@ namespace WpfApp.Services.Core
                 if (!File.Exists(driverPath))
                 {
                     _logger.Error($"驱动文件不存在: {driverPath}");
+                    SendStatusMessage($"初始化失败：驱动文件不存在({driverPath})", true);
                     return false;
                 }
 
                 // 初始化驱动
                 _lyKeys = new LyKeys(driverPath);
-                if (!await _lyKeys.Initialize())
-                {   
-                    _logger.Error("注意：初始化已经失败，返回False");
-                    return false; // 初始化失败返回false
+                try
+                {
+                    if (!await _lyKeys.Initialize())
+                    {   
+                        // 获取并处理详细的错误信息
+                        var lastStatus = _lyKeys.GetLastStatus();
+                        string errorMessage;
+                        
+                        switch (lastStatus)
+                        {
+                            case LyKeys.DeviceStatus.NoKeyboard:
+                                errorMessage = "找不到键盘设备，请检查您的键盘连接是否正常，且系统能识别到键盘设备。";
+                                break;
+                            case LyKeys.DeviceStatus.NoMouse:
+                                errorMessage = "找不到鼠标设备，请检查您的鼠标连接是否正常，且系统能识别到鼠标设备。";
+                                break;
+                            case LyKeys.DeviceStatus.InitFailed:
+                                errorMessage = "驱动初始化失败，请尝试重新启动计算机或重新安装驱动。";
+                                break;
+                            case LyKeys.DeviceStatus.Error:
+                                errorMessage = "设备发生错误，无法完成初始化。请尝试重新安装驱动或重启电脑。";
+                                break;
+                            default:
+                                errorMessage = $"驱动初始化失败 ({lastStatus})，请尝试重新安装驱动或重启电脑。";
+                                break;
+                        }
+                        
+                        _logger.Error($"驱动初始化失败: {errorMessage}");
+                        SendStatusMessage($"初始化失败：{errorMessage}", true);
+                        return false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"驱动初始化过程发生异常: {ex.Message}", ex);
+                    SendStatusMessage($"初始化过程发生错误：{ex.Message}", true);
+                    return false;
                 }
                 
                 _isInitialized = true;
@@ -377,6 +454,7 @@ namespace WpfApp.Services.Core
             catch (Exception ex)
             {
                 _logger.Error("服务初始化异常", ex);
+                SendStatusMessage($"初始化过程发生异常：{ex.Message}", true);
                 return false;
             }
         }
@@ -1236,15 +1314,53 @@ namespace WpfApp.Services.Core
             string modeDescription,
             CancellationToken token)
         {
-            stopwatch.Restart();
+            // 获取按键间隔
             int keyInterval = GetKeyInterval(key);
             
-            // 发送按键
-            SendKeyPress(key, keyPressInterval);
-            _logger.Debug($"{modeDescription} - 执行按键: {key}, 按下时长: {keyPressInterval}ms, 使用间隔: {keyInterval}ms");
+            // 重置总计时器，用于衡量整个操作的时间
+            stopwatch.Restart();
             
-            // 计算并等待剩余延迟时间
-            return await WaitRemainingDelayAsync(keyInterval, stopwatch, spinWait, shouldStopFunc, token);
+            try
+            {
+                // 按下按键
+                SendKeyDown(key);
+                
+                // 如果设置了按键按下时长，等待指定时间后释放按键
+                if (keyPressInterval > 0)
+                {
+                    // 使用高精度延迟等待按键按下时长
+                    bool continueOperation = await HighPrecisionDelayAsync(keyPressInterval, shouldStopFunc, token);
+                    if (!continueOperation)
+                    {
+                        // 如果被中断，确保释放按键
+                        SendKeyUp(key);
+                        return false;
+                    }
+                }
+                
+                // 释放按键
+                SendKeyUp(key);
+                
+                _logger.Debug($"{modeDescription} - 执行按键: {key}, 按下时长: {keyPressInterval}ms, 按键间隔: {keyInterval}ms");
+                
+                // 计算并等待剩余的按键间隔时间（总间隔减去已经消耗的时间）
+                var elapsedMs = stopwatch.ElapsedMilliseconds;
+                var remainingDelay = Math.Max(0, keyInterval - elapsedMs);
+                
+                if (remainingDelay > 0)
+                {
+                    return await HighPrecisionDelayAsync(remainingDelay, shouldStopFunc, token);
+                }
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"执行按键异常: {key}, {ex.Message}", ex);
+                // 确保按键被释放
+                SendKeyUp(key);
+                return false;
+            }
         }
 
         /// <summary>
@@ -1262,34 +1378,66 @@ namespace WpfApp.Services.Core
             
             if (remainingDelay <= 0) return true;
             
-            // 对于短延迟使用自旋等待
-            if (remainingDelay <= 2)
+            // 使用高精度延迟方法，统一处理所有延迟情况
+            return await HighPrecisionDelayAsync(remainingDelay, shouldStopFunc, token);
+        }
+        
+        /// <summary>
+        /// 高精度延迟方法，使用混合策略实现更精确的延迟
+        /// </summary>
+        private async Task<bool> HighPrecisionDelayAsync(
+            long delayMs, 
+            Func<bool> shouldStopFunc,
+            CancellationToken token)
+        {
+            if (delayMs <= 0) return true;
+            
+            try
             {
-                while (stopwatch.ElapsedMilliseconds < targetDelay)
+                // 重置精确计时器
+                _precisionStopwatch.Restart();
+                
+                // 对于超过15ms的延迟，先使用Task.Delay等待大部分时间（留出5ms的余量）
+                if (delayMs > 15)
                 {
-                    if (shouldStopFunc())
+                    long sleepTime = delayMs - 5;
+                    
+                    // 检查是否应该终止
+                    if (shouldStopFunc()) return false;
+                    
+                    // 异步等待大部分时间
+                    await Task.Delay((int)sleepTime, token);
+                    
+                    // 剩余时间使用自旋等待
+                    delayMs = 5;
+                }
+                
+                // 对于短延迟或剩余时间，使用高精度自旋等待
+                var sw = new SpinWait();
+                while (_precisionStopwatch.ElapsedMilliseconds < delayMs)
+                {
+                    // 定期检查是否应该终止
+                    if (_precisionStopwatch.ElapsedMilliseconds % 1 == 0 && shouldStopFunc())
                     {
                         return false;
                     }
-                    spinWait.SpinOnce();
+                    
+                    // 使用SpinWait避免CPU过度消耗
+                    sw.SpinOnce();
                 }
+                
                 return true;
             }
-            
-            // 分段休眠，以提高响应性
-            var segments = Math.Max(1, remainingDelay / 10);
-            var segmentDelay = remainingDelay / segments;
-            
-            for (int i = 0; i < segments; i++)
+            catch (OperationCanceledException)
             {
-                if (shouldStopFunc())
-                {
-                    return false;
-                }
-                await Task.Delay((int)segmentDelay, token);
+                // 操作被取消
+                return false;
             }
-            
-            return true;
+            catch (Exception ex)
+            {
+                _logger.Error($"高精度延迟执行异常: {ex.Message}", ex);
+                return false;
+            }
         }
 
         /// <summary>
@@ -1381,6 +1529,10 @@ namespace WpfApp.Services.Core
                 IsEnabled = false;
                 StopKeySequence();
                 StopHoldMode();
+                
+                // 恢复系统时钟精度
+                DisableHighResolutionTimer();
+                
                 _lyKeys?.Dispose();
                 _isInitialized = false;
                 _isDisposed = true;
@@ -1388,6 +1540,50 @@ namespace WpfApp.Services.Core
             catch (Exception ex)
             {
                 _logger.Error("释放资源异常", ex);
+            }
+        }
+        #endregion
+
+        #region 高精度时钟
+        /// <summary>
+        /// 启用高精度时钟
+        /// </summary>
+        private void EnableHighResolutionTimer()
+        {
+            try
+            {
+                if (!_isHighResolutionTimerEnabled)
+                {
+                    // 设置计时器精度为1毫秒
+                    TimeBeginPeriod(1);
+                    _isHighResolutionTimerEnabled = true;
+                    _logger.Debug("已启用高精度时钟（1ms精度）");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("启用高精度时钟失败", ex);
+            }
+        }
+        
+        /// <summary>
+        /// 禁用高精度时钟，恢复系统默认精度
+        /// </summary>
+        private void DisableHighResolutionTimer()
+        {
+            try
+            {
+                if (_isHighResolutionTimerEnabled)
+                {
+                    // 恢复默认精度
+                    TimeEndPeriod(1);
+                    _isHighResolutionTimerEnabled = false;
+                    _logger.Debug("已恢复系统默认时钟精度");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("恢复系统默认时钟精度失败", ex);
             }
         }
         #endregion
@@ -1401,6 +1597,15 @@ namespace WpfApp.Services.Core
         {
             _autoSwitchIME = autoSwitch;
             _logger.Debug($"输入法自动切换设置已更新: {(autoSwitch ? "开启" : "关闭")}");
+        }
+
+        /// <summary>
+        /// 根据降低卡位状态更新按键按下时长，确保与降低卡位功能状态保持一致
+        /// </summary>
+        public void UpdateKeyPressIntervalByReduceKeyStuck()
+        {
+            KeyPressInterval = _isReduceKeyStuck ? DEFAULT_KEY_PRESS_INTERVAL : 0;
+            _logger.Debug($"根据降低卡位功能状态({(_isReduceKeyStuck ? "开启" : "关闭")})更新按键按下时长：{_keyPressInterval}ms");
         }
 
         /// <summary>
