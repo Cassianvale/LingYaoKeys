@@ -32,7 +32,7 @@
   },
   "startKey": 120,
   "startMods": 0,
-  "stopKey": 121,
+  "stopKey": 120,
   "stopMods": 0,
   "keys": [
     {
@@ -57,8 +57,6 @@
   "IsReduceKeyStuck": true,
   "SoundVolume": 0.8,
   "KeyPressInterval": 5,
-  "FloatingWindowLeft": 1849.6,
-  "FloatingWindowTop": 1024.8,
   "AutoSwitchToEnglishIME": false,
   "isHotkeyControlEnabled": false,
   "TargetWindowClassName": null,
